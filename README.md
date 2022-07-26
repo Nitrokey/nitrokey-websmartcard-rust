@@ -21,3 +21,7 @@ Tests are here:
 
 Check out `nitrokey-webcrypt-usbip` project for the USB-IP simulation:
 - https://github.com/Nitrokey/nitrokey-webcrypt-usbip
+
+## Running on a hardware
+Here is a working Nitrokey Webcrypt on a Nitrokey 3 firmware:
+- https://github.com/Nitrokey/nitrokey-3-firmware/tree/nitrokey-webcrypt
