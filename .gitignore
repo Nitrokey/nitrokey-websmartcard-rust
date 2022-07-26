@@ -1,0 +1,6 @@
+.idea/
+cov-report/
+state_file
+/tmp
+/tests
+/target

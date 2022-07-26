@@ -1,0 +1,48 @@
+[package]
+name = "webcrypt"
+version = "0.2.0"
+authors = ["Szczepan Zalega <szczepan@nitrokey.com>"]
+edition = "2021"
+
+
+[lib]
+name = "webcrypt"
+path = "src/lib/lib.rs"
+
+
+[dependencies]
+delog = "*"
+log = "*"
+cbor-smol = "0.4.0"
+heapless-bytes = { version = "0.3.0", features = ["cbor"] }
+heapless = "0.7"
+littlefs2 = "0.3"
+serde = { version = "1.0", default-features = false }
+serde_cbor = { version = "0.11.0", default-features = false }
+serde-indexed = "0.1.0"
+generic-array = "0.14.3"
+ctap-types = "0.1"
+ctaphid-dispatch = "0.1"
+apdu-dispatch = "0.1"
+
+trussed = { git = "https://github.com/Nitrokey/trussed.git", branch="sz-unsafe-inject-any-key" }
+pretty_env_logger = { version = "0.4.0", optional = true }
+
+
+[dev-dependencies]
+env_logger = "*"
+chacha20 = { version = "0.7", default-features = false, features = ["rng"] }
+rand = "0.8.3"
+
+
+[features]
+enable-logs = ["pretty_env_logger"]
+
+log-all = []
+log-none = []
+log-info = []
+log-debug = []
+log-warn = []
+log-error = []
+
+[patch.crates-io]
