@@ -81,7 +81,9 @@ where
         + client::HmacSha256P256
         + client::Chacha8Poly1305,
 {
-    let req: CommandGenerateRequest = w.get_input_deserialized().unwrap();
+    let req: CommandGenerateRequest = w
+        .get_input_deserialized()
+        .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     w.session
         .check_token_res(req.tp.unwrap())
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
@@ -190,7 +192,9 @@ where
         + client::Sha256
         + client::Chacha8Poly1305,
 {
-    let req: CommandSignRequest = w.get_input_deserialized().unwrap();
+    let req: CommandSignRequest = w
+        .get_input_deserialized()
+        .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     w.session
         .check_token_res(req.tp.unwrap())
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
@@ -305,7 +309,9 @@ where
         + client::Sha256
         + client::Chacha8Poly1305,
 {
-    let req: CommandDecryptRequest = w.get_input_deserialized().unwrap();
+    let req: CommandDecryptRequest = w
+        .get_input_deserialized()
+        .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     w.session
         .check_token_res(req.tp.unwrap())
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
@@ -399,7 +405,9 @@ where
         + client::HmacSha256P256
         + client::Chacha8Poly1305,
 {
-    let req: CommandGenerateFromDataRequest = w.get_input_deserialized().unwrap();
+    let req: CommandGenerateFromDataRequest = w
+        .get_input_deserialized()
+        .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     w.session
         .check_token_res(req.tp.unwrap())
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
@@ -460,7 +468,9 @@ where
         + client::HmacSha256P256
         + client::Chacha8Poly1305,
 {
-    let req: CommandReadResidentKeyRequest = w.get_input_deserialized().unwrap();
+    let req: CommandReadResidentKeyRequest = w
+        .get_input_deserialized()
+        .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     w.session
         .check_token_res(req.tp.unwrap())
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
@@ -529,7 +539,9 @@ where
         + client::Chacha8Poly1305,
 {
     // Check PIN and return temporary password for the further communication
-    let req: CommandLoginRequest = w.get_input_deserialized().unwrap();
+    let req: CommandLoginRequest = w
+        .get_input_deserialized()
+        .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
 
     // hash rpid if the request is coming from FIDO2
     // TODO move hashing to transport
@@ -567,7 +579,9 @@ where
         + client::HmacSha256P256
         + client::Chacha8Poly1305,
 {
-    let req: CommandLogoutRequest = w.get_input_deserialized().unwrap();
+    let req: CommandLogoutRequest = w
+        .get_input_deserialized()
+        .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     w.session
         .check_token_res(req.tp.unwrap())
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
@@ -620,7 +634,9 @@ where
     // Allow to set some configuration options, like when to require user touch confirmation
     // To decide: same handler for both setting and getting?
 
-    let mut req: CommandConfigureRequest = w.get_input_deserialized().unwrap();
+    let mut req: CommandConfigureRequest = w
+        .get_input_deserialized()
+        .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     w.session
         .check_token_res(req.tp.unwrap())
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
@@ -681,7 +697,9 @@ where
 {
     // Discover all RKs connected to this RP. Should be protected with PIN (L3 credprotect as of CTAP2.1).
 
-    let req: CommandDiscoverResidentKeyRequest = w.get_input_deserialized().unwrap();
+    let req: CommandDiscoverResidentKeyRequest = w
+        .get_input_deserialized()
+        .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     w.session
         .check_token_res(req.tp.unwrap())
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
@@ -816,7 +834,9 @@ where
 {
     // write the RK similarly, as done with FIDO2, potentially with some extensions
 
-    let req: CommandGenerateResidentKeyRequest = w.get_input_deserialized().unwrap();
+    let req: CommandGenerateResidentKeyRequest = w
+        .get_input_deserialized()
+        .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     w.session
         .check_token_res(req.tp.unwrap())
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
@@ -903,7 +923,9 @@ where
         + client::HmacSha256P256
         + client::Chacha8Poly1305,
 {
-    let req: CommandRestoreRequest = w.get_input_deserialized().unwrap();
+    let req: CommandRestoreRequest = w
+        .get_input_deserialized()
+        .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     w.session
         .check_token_res(req.tp.unwrap())
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
@@ -945,7 +967,9 @@ where
         + client::HmacSha256P256
         + client::Chacha8Poly1305,
 {
-    let req: CommandInitializeRequest = w.get_input_deserialized().unwrap();
+    let req: CommandInitializeRequest = w
+        .get_input_deserialized()
+        .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     w.session
         .check_token_res(req.tp.unwrap())
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
