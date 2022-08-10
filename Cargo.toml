@@ -46,3 +46,6 @@ log-warn = []
 log-error = []
 
 [patch.crates-io]
+#ctaphid-dispatch = { path = "components/ctaphid-dispatch" }
+trussed = { git = "https://github.com/Nitrokey/trussed.git", branch="sz-unsafe-inject-any-key" }
+ctaphid-dispatch = { git = "https://github.com/Nitrokey/ctaphid-dispatch.git", branch="multiple_apps" }

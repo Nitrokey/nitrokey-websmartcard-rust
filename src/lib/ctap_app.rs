@@ -1,15 +1,17 @@
+use apdu_dispatch::app::Status;
+use ctap_types::ctap1::{authenticate, Request as Request1, Response as Response1};
+use ctap_types::ctap2::{get_assertion, Request, Response};
+use ctap_types::webauthn::PublicKeyCredentialUserEntity;
+use ctap_types::{ctap1, ctap2};
+use ctaphid_dispatch::app;
+use heapless_bytes::Bytes;
+use trussed::client;
+
 use crate::helpers::hash;
 use crate::transport::Webcrypt;
 use crate::types::RequestSource::RS_FIDO2;
 use crate::types::{RequestDetails, RequestSource};
 use crate::Message;
-use apdu_dispatch::app::Status;
-use ctap_types::ctap1::{authenticate, Request as Request1, Response as Response1};
-use ctap_types::ctap2::{get_assertion, Request, Response};
-use ctap_types::{ctap1, ctap2};
-use ctaphid_dispatch::app;
-use heapless_bytes::Bytes;
-use trussed::client;
 
 #[inline(never)]
 fn try_handle_ctap1<C>(
@@ -144,11 +146,9 @@ where
             let output = w
                 .bridge_u2f_to_webcrypt_raw(
                     output,
-                    data,
+                    &data.clone(),
                     RequestDetails {
-                        // FIXME hash the full incoming rp_id before passing further, or otherwise only the first 32 bytes of the domain will be checked
-                        // rpid: Bytes32::from_slice(&request.rp_id.as_bytes()[..32]).unwrap(),
-                        rpid: rpid_hash,
+                        rpid: rpid_hash.clone(),
                         source: RS_FIDO2,
                         pin_auth: request.pin_auth,
                     },
@@ -157,14 +157,14 @@ where
 
             use ctap2::AuthenticatorDataFlags as Flags;
             let authenticator_data = ctap2::make_credential::AuthenticatorData {
-                rp_id_hash: Bytes::from_slice(&[0u8; 32]).unwrap(),
+                rp_id_hash: rpid_hash,
 
                 flags: {
                     let mut flags = Flags::USER_PRESENCE;
                     // if uv_performed {
-                    //     flags |= Flags::USER_VERIFIED;
+                    flags |= Flags::USER_VERIFIED;
                     // }
-                    flags |= Flags::ATTESTED_CREDENTIAL_DATA;
+                    // flags |= Flags::ATTESTED_CREDENTIAL_DATA;
                     flags
                 },
 
@@ -172,8 +172,9 @@ where
 
                 attested_credential_data: {
                     let attested_credential_data = ctap2::make_credential::AttestedCredentialData {
-                        aaguid: Bytes::from_slice(&[0u8; 16]).unwrap(),
-                        credential_id: Bytes::from_slice(&[0u8; 255]).unwrap(),
+                        aaguid: Bytes::from_slice(&[1u8; 16]).unwrap(),
+                        // credential_id: Bytes::from_slice(&[2u8; 255]).unwrap(),
+                        credential_id: Bytes::from_slice(&data[..]).unwrap(),
                         credential_public_key: {
                             // FIXME replace with a properly serialized empty cose public key
                             let a = [
@@ -187,17 +188,37 @@ where
                             Bytes::from_slice(&a).unwrap()
                         },
                     };
-                    Some(attested_credential_data)
+                    // Some(attested_credential_data)
+                    None
                 },
 
                 extensions: { None },
             };
             let serialized_auth_data = authenticator_data.serialize();
 
+            // let user = {
+            //     PublicKeyCredentialUserEntity {
+            //         id: Bytes::from_slice(&[3u8; 16]).unwrap(),
+            //         icon: Some("icon".try_into().unwrap()),
+            //         name: Some("name".try_into().unwrap()),
+            //         display_name: Some("display".try_into().unwrap()),
+            //     }
+            // };
+
+            let user = {
+                PublicKeyCredentialUserEntity {
+                    id: Bytes::from_slice(&[3u8; 16]).unwrap(),
+                    icon: None,
+                    name: Some("name".try_into().unwrap()),
+                    display_name: Some("display".try_into().unwrap()),
+                }
+            };
+
             Ok(Response::GetAssertion(get_assertion::Response {
                 credential: None,
                 auth_data: serialized_auth_data,
                 signature: Bytes::<77>::from_slice(&output[..]).unwrap(),
+                // user: Some(user),
                 user: None,
                 number_of_credentials: None,
             }))
@@ -245,6 +266,28 @@ where
 {
     fn commands(&self) -> &'static [app::Command] {
         &[app::Command::Cbor, app::Command::Msg]
+    }
+
+    fn peek(&self, request: &ctaphid_dispatch::types::Message) -> bool {
+        // let offset = 4 * 16 + 8;
+        // let offset2 = 3 * 16 + 8;
+        // let res = request.len() > 3 + offset
+        //     && request[0 + offset..=2 + offset] == [0x22, 0x8c, 0x27]
+        //     || request.len() > 3 + offset2
+        //         && request[0 + offset2..=2 + offset2] == [0x22, 0x8c, 0x27];
+        // res
+
+        if request.len() < 7 {
+            return false;
+        }
+
+        for offset in 1..request.len() - 5 {
+            if request[offset..=4 + offset] == [0x22, 0x8c, 0x27, 0x90, 0xF6] {
+                log::info!("Found WC constant at offset {offset}");
+                return true;
+            }
+        }
+        false
     }
 
     #[inline(never)]

@@ -348,9 +348,8 @@ dependencies = [
 
 [[package]]
 name = "ctaphid-dispatch"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24f378100ce2ecda0bc9c882254583168b63afd788f277f45d494c33b4493d5a"
+version = "0.1.1"
+source = "git+https://github.com/Nitrokey/ctaphid-dispatch.git?branch=multiple_apps#8bad0da13dead343c13c152140ef66dcb6f0e6a4"
 dependencies = [
  "delog",
  "heapless",
