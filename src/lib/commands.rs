@@ -19,6 +19,7 @@ use crate::types::CommandID::{CHANGE_PIN, SET_PIN};
 use crate::types::ERROR_ID;
 
 use crate::helpers::hash;
+use crate::types::ERROR_ID::{ERR_BAD_ORIGIN, ERR_FAILED_LOADING_DATA};
 use crate::{Message, RequestSource};
 
 type CommandResult = Result<(), ERROR_ID>;
@@ -134,7 +135,7 @@ where
         + client::HmacSha256P256
         + client::Chacha8Poly1305,
 {
-    let appid = w.session.rp_id_hash.clone().ok_or(ERR_INTERNAL_ERROR)?;
+    let appid = w.session.rp_id_hash.clone().ok_or(ERR_BAD_ORIGIN)?;
 
     // The wrapping operation is reused from the fido-authenticator crate.
     // 1. The private key is wrapped using a persistent wrapping key using ChaCha20-Poly1305 AEAD algorithm.
@@ -252,7 +253,7 @@ where
     // 2. From the resulting KeyHandle structure the wrapped private key is decrypted and deserialized
     // 3. Finally, the wrapped private key is imported to the volatile in-memory keystore, and used for the further operations.
 
-    let appid = w.session.rp_id_hash.clone().ok_or(ERR_INTERNAL_ERROR)?;
+    let appid = w.session.rp_id_hash.clone().ok_or(ERR_BAD_ORIGIN)?;
 
     let encr_message: Encrypt =
         trussed::cbor_deserialize(encrypted_serialized_keyhandle.as_slice())
@@ -485,7 +486,7 @@ where
                 &Bytes32::from_slice(req.keyhandle.as_slice()).unwrap()
             )
         ))
-        .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)?
+        .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)? // TODO Change to ERR_FAILED_LOADING_DATA
         .data;
         let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
         cred.key_id
