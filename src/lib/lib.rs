@@ -15,6 +15,7 @@ mod commands_types;
 mod constants;
 mod ctap_app;
 mod helpers;
+// mod nfc_app;
 mod rk_files;
 mod state;
 mod transport;

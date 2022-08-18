@@ -603,9 +603,6 @@ where
     let req: CommandLogoutRequest = w
         .get_input_deserialized()
         .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
-    w.session
-        .check_token_res(req.tp.unwrap())
-        .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
 
     // Clear session
     w.session.logout();

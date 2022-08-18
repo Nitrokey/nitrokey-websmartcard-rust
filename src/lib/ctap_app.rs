@@ -1,9 +1,15 @@
+use apdu_dispatch::app::Interface;
 use apdu_dispatch::app::Status;
+use apdu_dispatch::command::SIZE as APDU_SIZE;
+use apdu_dispatch::iso7816::{Aid, App};
+use apdu_dispatch::{app as apdu, iso7816, response::Data, Command};
 use ctap_types::ctap1::{authenticate, Request as Request1, Response as Response1};
 use ctap_types::ctap2::{get_assertion, Request, Response};
 use ctap_types::webauthn::PublicKeyCredentialUserEntity;
 use ctap_types::{ctap1, ctap2};
+use ctap_types::{serde::error::Error as SerdeError, Error};
 use ctaphid_dispatch::app;
+use ctaphid_dispatch::app as ctaphid;
 use heapless_bytes::Bytes;
 use trussed::client;
 
@@ -63,7 +69,7 @@ where
                     )
                     .unwrap();
                 Ok(Response1::Authenticate(authenticate::Response {
-                    user_presence: 0,
+                    user_presence: 0x01,
                     count: 0,
                     signature: output,
                 }))
@@ -310,5 +316,97 @@ where
             }
         };
         Ok(())
+    }
+}
+
+const SIZE: usize = APDU_SIZE;
+
+impl<C> App for Webcrypt<C>
+where
+    C: client::Aes256Cbc
+        + client::Chacha8Poly1305
+        + client::Client
+        + client::HmacSha256
+        + client::HmacSha256P256
+        + client::P256
+        + client::Sha256
+        + trussed::Client,
+{
+    fn aid(&self) -> Aid {
+        Aid::new(&[0xA0, 0x00, 0x00, 0x06, 0x47, 0x2F, 0x00, 0x01])
+    }
+}
+
+impl<C> apdu::App<{ SIZE }, { SIZE }> for Webcrypt<C>
+where
+    C: trussed::Client
+        + client::Client
+        + client::P256
+        + client::Chacha8Poly1305
+        + client::Aes256Cbc
+        + client::HmacSha256
+        + client::HmacSha256P256
+        + client::Sha256,
+{
+    fn select(
+        &mut self,
+        _apdu: &apdu::Command<{ SIZE }>,
+        reply: &mut apdu::Data<{ apdu_dispatch::response::SIZE }>,
+    ) -> apdu::Result {
+        reply.extend_from_slice(b"U2F_V2").unwrap();
+        Ok(())
+    }
+
+    fn deselect(&mut self) {}
+
+    fn call(
+        &mut self,
+        interface: Interface,
+        apdu: &apdu::Command<{ SIZE }>,
+        response: &mut apdu::Data<{ apdu_dispatch::response::SIZE }>,
+    ) -> apdu::Result {
+        if interface != apdu::Interface::Contactless {
+            return Err(Status::ConditionsOfUseNotSatisfied);
+        }
+
+        let instruction: u8 = apdu.instruction().into();
+        match instruction {
+            0x00 | 0x01 | 0x02 => handle_ctap1(self, apdu.data(), response), //self.call_authenticator_u2f(apdu, response),
+
+            _ => {
+                match ctaphid::Command::try_from(instruction) {
+                    // 0x10
+                    Ok(ctaphid::Command::Cbor) => handle_ctap2(self, apdu.data(), response),
+                    Ok(ctaphid::Command::Msg) => handle_ctap1(self, apdu.data(), response),
+                    Ok(ctaphid::Command::Deselect) => self.deselect(),
+                    _ => {
+                        info!("Unsupported ins for fido app {:02x}", instruction);
+                        return Err(iso7816::Status::InstructionNotSupportedOrInvalid);
+                    }
+                }
+            }
+        };
+        Ok(())
+    }
+
+    fn peek(&self, apdu: Option<&apdu_dispatch::app::Command<SIZE>>) -> bool {
+        match apdu {
+            None => false,
+            Some(apdu) => {
+                let data = apdu.data();
+                let data_len = data.len();
+                if data_len < 7 {
+                    return false;
+                }
+
+                for offset in 0..data_len - 5 {
+                    if data[offset..=4 + offset] == [0x22, 0x8c, 0x27, 0x90, 0xF6] {
+                        log::info!("NFC Found WC constant at offset {offset}");
+                        return true;
+                    }
+                }
+                false
+            }
+        }
     }
 }

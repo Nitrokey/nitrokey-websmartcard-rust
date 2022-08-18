@@ -1,6 +1,6 @@
 [package]
 name = "webcrypt"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Szczepan Zalega <szczepan@nitrokey.com>"]
 edition = "2021"
 
@@ -25,7 +25,7 @@ ctap-types = "0.1"
 ctaphid-dispatch = "0.1"
 apdu-dispatch = "0.1"
 
-trussed = { git = "https://github.com/Nitrokey/trussed.git", branch="sz-unsafe-inject-any-key" }
+trussed = "0.1.0"
 pretty_env_logger = { version = "0.4.0", optional = true }
 
 
@@ -46,6 +46,6 @@ log-warn = []
 log-error = []
 
 [patch.crates-io]
-#ctaphid-dispatch = { path = "components/ctaphid-dispatch" }
 trussed = { git = "https://github.com/Nitrokey/trussed.git", branch="sz-unsafe-inject-any-key" }
 ctaphid-dispatch = { git = "https://github.com/Nitrokey/ctaphid-dispatch.git", branch="multiple_apps" }
+apdu-dispatch = { git = "https://github.com/Nitrokey/apdu-dispatch.git", branch="sz-multiple-apps" }
