@@ -19,7 +19,7 @@ use crate::types::CommandID::{CHANGE_PIN, SET_PIN};
 use crate::types::ERROR_ID;
 
 use crate::helpers::hash;
-use crate::types::ERROR_ID::{ERR_BAD_ORIGIN, ERR_FAILED_LOADING_DATA};
+use crate::types::ERROR_ID::{ERR_BAD_FORMAT, ERR_BAD_ORIGIN, ERR_FAILED_LOADING_DATA};
 use crate::{Message, RequestSource};
 
 type CommandResult = Result<(), ERROR_ID>;
@@ -200,10 +200,15 @@ where
         .check_token_res(req.tp.unwrap())
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
 
-    let key = if req.keyhandle.len() > 32 {
+    if !(req.keyhandle.len() > 0 && req.hash.len() > 0) {
+        return Err(ERR_FAILED_LOADING_DATA);
+    }
+
+    let (key, keyhandle_points_to_RK) = if req.keyhandle.len() > 32 {
         // invalid keyhandle or lack of memory
-        import_key_from_keyhandle(w, &req.keyhandle)?
+        (import_key_from_keyhandle(w, &req.keyhandle)?, false)
     } else {
+        // this is RK
         let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
         let cred_data = try_syscall!(w.trussed.read_file(
             Location::Internal,
@@ -215,7 +220,7 @@ where
         .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)?
         .data;
         let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
-        cred.key_id
+        (cred.key_id, true)
     };
 
     let signature = syscall!(w.trussed.sign(
@@ -227,7 +232,9 @@ where
     .signature;
     let signature = signature.to_bytes().expect("Too small target buffer");
 
-    syscall!(w.trussed.delete(key));
+    if !keyhandle_points_to_RK {
+        syscall!(w.trussed.delete(key));
+    }
 
     w.send_to_output({
         CommandSignResponse {
@@ -316,6 +323,14 @@ where
     w.session
         .check_token_res(req.tp.unwrap())
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
+
+    if !(req.keyhandle.len() > 0
+        && req.eccekey.len() > 0
+        && req.data.len() > 0
+        && req.hmac.len() > 0)
+    {
+        return Err(ERR_BAD_FORMAT);
+    }
 
     let kh_key = if req.keyhandle.len() > 32 {
         import_key_from_keyhandle(w, &req.keyhandle)?
@@ -420,6 +435,9 @@ where
     //     .extend_from_slice(rpid.as_slice())
     //     .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?;
     let data_for_key = &req.hash[..];
+    if req.hash.len() < 32 {
+        return Err(ERR_FAILED_LOADING_DATA);
+    }
 
     let derived_key = syscall!(
         // requires support on the trussed side
@@ -472,6 +490,7 @@ where
     let req: CommandReadResidentKeyRequest = w
         .get_input_deserialized()
         .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
+    log::debug!("WC cmd_read_resident_key_public {:?}", req);
     w.session
         .check_token_res(req.tp.unwrap())
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
@@ -492,9 +511,10 @@ where
         cred.key_id
     };
 
-    let public_key = syscall!(w
+    let public_key = try_syscall!(w
         .trussed
         .derive_p256_public_key(private_key, Location::Volatile))
+    .map_err(|_| ERROR_ID::ERR_NOT_FOUND)?
     .key;
 
     // generate keyhandle for the reply
@@ -772,16 +792,18 @@ where
 
     use trussed::key::Kind;
 
-    let private_key = syscall!(w.trussed.unsafe_inject_shared_key(
+    let private_key = try_syscall!(w.trussed.unsafe_inject_shared_key(
         // &k.serialize(),
         req.raw_key_data.as_slice(),
         Location::Internal,
         Kind::P256
     ))
+    .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
     .key;
-    let public_key = syscall!(w
+    let public_key = try_syscall!(w
         .trussed
         .derive_p256_public_key(private_key, Location::Volatile))
+    .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
     .key;
 
     let cred = CredentialData::new(private_key);
@@ -975,7 +997,7 @@ where
         .check_token_res(req.tp.unwrap())
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
 
-    if req.entropy.is_some() {
+    if req.entropy.is_some() && req.entropy.unwrap().len() > 0 {
         // todo!();
         return Err(ERROR_ID::ERR_NOT_IMPLEMENTED);
     }
