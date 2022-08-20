@@ -44,7 +44,7 @@ impl From<u8> for TRANSPORT_CMD_ID {
             0x01 => COMM_CMD_WRITE,
             0x02 => COMM_CMD_READ,
             _ => {
-                panic!("invalid value")
+                panic!("invalid value: {t}")
             }
         }
     }
