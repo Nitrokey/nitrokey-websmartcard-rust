@@ -363,21 +363,23 @@ where
     };
 
     // import incoming public key
-    let ephem_pub_bin_key = syscall!(w.trussed.deserialize_p256_key(
-        &req.eccekey,
+    let ephem_pub_bin_key = try_syscall!(w.trussed.deserialize_p256_key(
+        &ecc_key,
         trussed::types::KeySerialization::Raw,
         trussed::types::StorageAttributes::new()
             .set_persistence(trussed::types::Location::Volatile)
     ))
+    .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
     .key;
 
     // agree on shared secret
-    let shared_secret = syscall!(w.trussed.agree(
+    let shared_secret = try_syscall!(w.trussed.agree(
         Mechanism::P256,
         kh_key,
         ephem_pub_bin_key,
         trussed::types::StorageAttributes::new().set_persistence(Location::Volatile)
     ))
+    .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
     .shared_secret;
 
     // check HMAC
@@ -388,12 +390,13 @@ where
     data_to_hmac.extend(encoded_ciphertext_len);
     data_to_hmac.extend(req.keyhandle);
 
-    let calculated_hmac = syscall!(w.trussed.sign(
+    let calculated_hmac = try_syscall!(w.trussed.sign(
         Mechanism::HmacSha256,
         shared_secret,
         &data_to_hmac,
         SignatureSerialization::Raw
     ))
+    .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
     .signature;
 
     let hmac_correct = calculated_hmac == req.hmac;
@@ -409,7 +412,8 @@ where
     //     ).key;
 
     // decrypt with shared secret
-    let decrypted = syscall!(w.trussed.decrypt_aes256cbc(shared_secret, &req.data))
+    let decrypted = try_syscall!(w.trussed.decrypt_aes256cbc(shared_secret, &req.data))
+        .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
         .plaintext
         .ok_or(ERR_INTERNAL_ERROR)?;
 
