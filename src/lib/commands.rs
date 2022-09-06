@@ -383,6 +383,7 @@ where
     .shared_secret;
 
     // check HMAC
+    // TODO DESIGN derive separate key for HMAC
     let encoded_ciphertext_len: [u8; 2] = (req.data.len() as u16).to_le_bytes();
     let mut data_to_hmac = Message::new(); // FIXME check length
     data_to_hmac.extend(req.data.clone());
