@@ -356,7 +356,12 @@ where
         cred.key_id
     };
 
-    // FIXME use try_syscall and check for errors
+    let ecc_key: Vec<u8, 64> = match req.eccekey.len() {
+        65 => Vec::<u8, 64>::from_slice(&req.eccekey[1..65]).unwrap(),
+        64 => Vec::<u8, 64>::from_slice(&req.eccekey[0..64]).unwrap(),
+        _ => return Err(ERR_FAILED_LOADING_DATA),
+    };
+
     // import incoming public key
     let ephem_pub_bin_key = syscall!(w.trussed.deserialize_p256_key(
         &req.eccekey,
