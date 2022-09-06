@@ -1,5 +1,6 @@
 use cbor_smol::cbor_deserialize;
 pub use ctap_types::ctap1::Error as U2fError;
+use heapless::Vec;
 
 use heapless_bytes::{Bytes, Bytes32};
 use trussed::api::reply::Encrypt;
@@ -317,9 +318,15 @@ where
         + client::Sha256
         + client::Chacha8Poly1305,
 {
-    let req: CommandDecryptRequest = w
-        .get_input_deserialized()
-        .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
+    let req = match w.get_input_deserialized() {
+        Ok(x) => Ok(x),
+        Err(e) => {
+            log::error!("Deserialization error: {:?}", e);
+            Err(e)
+        }
+    };
+
+    let req: CommandDecryptRequest = req.map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     w.session
         .check_token_res(req.tp.unwrap())
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
