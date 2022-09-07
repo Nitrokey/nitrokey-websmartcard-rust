@@ -25,7 +25,7 @@ fn main() -> std::io::Result<()> {
         let trussed_platform = platform::init_platform("state_file");
         let mut trussed_service = trussed::service::Service::new(trussed_platform);
         let trussed_client = trussed_service.try_as_new_client("webcrypt").unwrap();
-        log::info!("Initializing Webcrypt");
+        log::info!("Initializing Webcrypt {}", webcrypt::GIT_VERSION);
         let mut w = Webcrypt::new(trussed_client);
         let mut server = UDPServer::new();
 

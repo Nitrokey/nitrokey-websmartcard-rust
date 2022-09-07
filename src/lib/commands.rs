@@ -13,6 +13,7 @@ use trussed::{
 use ERROR_ID::ERR_INTERNAL_ERROR;
 
 use crate::commands_types::*;
+use crate::constants::GIT_VERSION;
 use crate::constants::{WEBCRYPT_AVAILABLE_SLOTS_MAX, WEBCRYPT_VERSION};
 use crate::rk_files::*;
 use crate::transport::Webcrypt;
@@ -47,11 +48,13 @@ where
         + client::HmacSha256P256
         + client::Aes256Cbc,
 {
+    let git_version_bytes = Bytes::from_slice(GIT_VERSION[..].as_bytes()).unwrap();
     let resp = CommandStatusResponse {
         unlocked: w.session.is_open(),
         version: WEBCRYPT_VERSION,
         slots: WEBCRYPT_AVAILABLE_SLOTS_MAX,
         pin_attempts: w.state.pin.get_counter(),
+        version_string: Some(git_version_bytes),
     };
     w.send_to_output(resp);
     Ok(())
