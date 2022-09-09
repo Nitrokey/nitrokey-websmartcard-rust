@@ -65,7 +65,7 @@ impl trussed::platform::UserInterface for UserInterface {
     }
 
     fn reboot(&mut self, _to: reboot::To) -> ! {
-        info!("Restart!  ({:?})", to);
+        info!("Restart!  ({:?})", _to);
         std::process::exit(25);
     }
 }

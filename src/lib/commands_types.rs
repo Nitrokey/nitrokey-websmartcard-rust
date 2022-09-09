@@ -11,6 +11,8 @@ pub struct CommandStatusResponse {
     pub(crate) unlocked: bool,
     /// Webcrypt's version
     pub(crate) version: u16,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) version_string: Option<Bytes<100>>,
     /// Count of a free Webcrypt's resident keys' slots
     pub(crate) slots: u16,
     /// The current FIDO2/U2F PIN attempt counter value

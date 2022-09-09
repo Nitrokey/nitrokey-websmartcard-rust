@@ -32,6 +32,8 @@ fn cbor_serialize_message<T: serde::Serialize>(
     trussed::cbor_serialize_bytes(object)
 }
 
+pub use constants::GIT_VERSION;
+
 pub type Webcrypt<C> = transport::Webcrypt<C>;
 pub use types::RequestDetails;
 pub use types::RequestSource;

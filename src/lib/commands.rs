@@ -1,5 +1,6 @@
 use cbor_smol::cbor_deserialize;
 pub use ctap_types::ctap1::Error as U2fError;
+use heapless::Vec;
 
 use heapless_bytes::{Bytes, Bytes32};
 use trussed::api::reply::Encrypt;
@@ -12,6 +13,7 @@ use trussed::{
 use ERROR_ID::ERR_INTERNAL_ERROR;
 
 use crate::commands_types::*;
+use crate::constants::GIT_VERSION;
 use crate::constants::{WEBCRYPT_AVAILABLE_SLOTS_MAX, WEBCRYPT_VERSION};
 use crate::rk_files::*;
 use crate::transport::Webcrypt;
@@ -46,11 +48,13 @@ where
         + client::HmacSha256P256
         + client::Aes256Cbc,
 {
+    let git_version_bytes = Bytes::from_slice(GIT_VERSION[..].as_bytes()).unwrap();
     let resp = CommandStatusResponse {
         unlocked: w.session.is_open(),
         version: WEBCRYPT_VERSION,
         slots: WEBCRYPT_AVAILABLE_SLOTS_MAX,
         pin_attempts: w.state.pin.get_counter(),
+        version_string: Some(git_version_bytes),
     };
     w.send_to_output(resp);
     Ok(())
@@ -317,9 +321,15 @@ where
         + client::Sha256
         + client::Chacha8Poly1305,
 {
-    let req: CommandDecryptRequest = w
-        .get_input_deserialized()
-        .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
+    let req = match w.get_input_deserialized() {
+        Ok(x) => Ok(x),
+        Err(e) => {
+            log::error!("Deserialization error: {:?}", e);
+            Err(e)
+        }
+    };
+
+    let req: CommandDecryptRequest = req.map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     w.session
         .check_token_res(req.tp.unwrap())
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
@@ -349,26 +359,34 @@ where
         cred.key_id
     };
 
-    // FIXME use try_syscall and check for errors
+    let ecc_key: Vec<u8, 64> = match req.eccekey.len() {
+        65 => Vec::<u8, 64>::from_slice(&req.eccekey[1..65]).unwrap(),
+        64 => Vec::<u8, 64>::from_slice(&req.eccekey[0..64]).unwrap(),
+        _ => return Err(ERR_FAILED_LOADING_DATA),
+    };
+
     // import incoming public key
-    let ephem_pub_bin_key = syscall!(w.trussed.deserialize_p256_key(
-        &req.eccekey,
+    let ephem_pub_bin_key = try_syscall!(w.trussed.deserialize_p256_key(
+        &ecc_key,
         trussed::types::KeySerialization::Raw,
         trussed::types::StorageAttributes::new()
             .set_persistence(trussed::types::Location::Volatile)
     ))
+    .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
     .key;
 
     // agree on shared secret
-    let shared_secret = syscall!(w.trussed.agree(
+    let shared_secret = try_syscall!(w.trussed.agree(
         Mechanism::P256,
         kh_key,
         ephem_pub_bin_key,
         trussed::types::StorageAttributes::new().set_persistence(Location::Volatile)
     ))
+    .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
     .shared_secret;
 
     // check HMAC
+    // TODO DESIGN derive separate key for HMAC
     let encoded_ciphertext_len: [u8; 2] = (req.data.len() as u16).to_le_bytes();
     let mut data_to_hmac = Message::new(); // FIXME check length
     data_to_hmac.extend(req.data.clone());
@@ -376,12 +394,13 @@ where
     data_to_hmac.extend(encoded_ciphertext_len);
     data_to_hmac.extend(req.keyhandle);
 
-    let calculated_hmac = syscall!(w.trussed.sign(
+    let calculated_hmac = try_syscall!(w.trussed.sign(
         Mechanism::HmacSha256,
         shared_secret,
         &data_to_hmac,
         SignatureSerialization::Raw
     ))
+    .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
     .signature;
 
     let hmac_correct = calculated_hmac == req.hmac;
@@ -397,7 +416,8 @@ where
     //     ).key;
 
     // decrypt with shared secret
-    let decrypted = syscall!(w.trussed.decrypt_aes256cbc(shared_secret, &req.data))
+    let decrypted = try_syscall!(w.trussed.decrypt_aes256cbc(shared_secret, &req.data))
+        .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
         .plaintext
         .ok_or(ERR_INTERNAL_ERROR)?;
 
