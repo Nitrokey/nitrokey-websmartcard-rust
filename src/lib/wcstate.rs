@@ -28,6 +28,7 @@ impl Default for WebcryptConfiguration {
     }
 }
 
+use crate::openpgp::OpenPGPData;
 use crate::types::ERROR_ID::{ERR_INTERNAL_ERROR, ERR_INVALID_PIN, ERR_NOT_ALLOWED};
 use cbor_smol::{cbor_deserialize, cbor_serialize};
 use serde::{Deserialize, Serialize};
@@ -105,6 +106,7 @@ pub struct WebcryptState {
     master_key_raw: Option<MasterKeyRawBytes>,
     pub configuration: WebcryptConfiguration,
     pub pin: WebcryptPIN,
+    pub openpgp_data: Option<OpenPGPData>,
 }
 
 #[derive(Default)]
@@ -345,5 +347,6 @@ impl WebcryptState {
         self.resident_keys = Default::default();
         self.master_key = None;
         self.master_key_raw = None;
+        self.initialized_tag = 0;
     }
 }

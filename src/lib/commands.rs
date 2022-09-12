@@ -21,7 +21,10 @@ use crate::types::CommandID::{CHANGE_PIN, SET_PIN};
 use crate::types::ERROR_ID;
 
 use crate::helpers::hash;
-use crate::types::ERROR_ID::{ERR_BAD_FORMAT, ERR_BAD_ORIGIN, ERR_FAILED_LOADING_DATA};
+use crate::openpgp::OpenPGPData;
+use crate::types::ERROR_ID::{
+    ERR_BAD_FORMAT, ERR_BAD_ORIGIN, ERR_FAILED_LOADING_DATA, ERR_NOT_FOUND,
+};
 use crate::{Message, RequestSource};
 
 type CommandResult = Result<(), ERROR_ID>;
@@ -126,7 +129,7 @@ where
     Ok(())
 }
 
-fn wrap_key_to_keyhandle<C>(
+pub fn wrap_key_to_keyhandle<C>(
     w: &mut Webcrypt<C>,
     private_key: KeyId,
 ) -> Result<KeyHandleSerialized, ERROR_ID>
@@ -308,6 +311,293 @@ where
     .key
     .unwrap();
     Ok(key)
+}
+
+pub fn cmd_openpgp_generate<C>(w: &mut Webcrypt<C>) -> CommandResult
+where
+    C: trussed::Client
+        + client::Client
+        + client::P256
+        + client::Aes256Cbc
+        + client::HmacSha256
+        + client::HmacSha256P256
+        + client::Sha256
+        + client::Chacha8Poly1305,
+{
+    let _: CommandOpenPGPInitRequest = w
+        .get_input_deserialized()
+        .map_err(|_| ERR_FAILED_LOADING_DATA)?;
+
+    w.state.openpgp_data = Some(OpenPGPData::init(&mut w.trussed));
+    w.state.save(&mut w.trussed);
+    Ok(())
+}
+
+pub fn cmd_openpgp_info<C>(w: &mut Webcrypt<C>) -> CommandResult
+where
+    C: trussed::Client
+        + client::Client
+        + client::P256
+        + client::Aes256Cbc
+        + client::HmacSha256
+        + client::HmacSha256P256
+        + client::Sha256
+        + client::Chacha8Poly1305,
+{
+    let _: CommandOpenPGPInfoRequest = w
+        .get_input_deserialized()
+        .map_err(|_| ERR_FAILED_LOADING_DATA)?;
+
+    // FIXME remove -> initialize in a separate command
+    // move to state initialization
+    if w.state.openpgp_data.is_none() {
+        w.state.openpgp_data = Some(OpenPGPData::init(&mut w.trussed));
+        w.state.save(&mut w.trussed);
+    }
+
+    let openpgp_data = w
+        .state
+        .openpgp_data
+        .as_mut()
+        .ok_or(ERR_FAILED_LOADING_DATA)?;
+    let encr_pubkey = DataBytes::from_slice(
+        openpgp_data
+            .encryption
+            .get_public_key_serialized(&mut w.trussed)
+            .as_slice(),
+    )
+    .map_err(|_| ERR_FAILED_LOADING_DATA)?;
+    let auth_pubkey = DataBytes::from_slice(
+        openpgp_data
+            .authentication
+            .get_public_key_serialized(&mut w.trussed)
+            .as_slice(),
+    )
+    .map_err(|_| ERR_FAILED_LOADING_DATA)?;
+    let sign_pubkey = DataBytes::from_slice(
+        openpgp_data
+            .signing
+            .get_public_key_serialized(&mut w.trussed)
+            .as_slice(),
+    )
+    .map_err(|_| ERR_FAILED_LOADING_DATA)?;
+
+    // let sign_keyhandle = wrap_key_to_keyhandle(w, openpgp_data.signing.key)?;
+
+    let date = DataBytes::from_slice(&openpgp_data.date).map_err(|_| ERR_INTERNAL_ERROR)?;
+    w.send_to_output(CommandOpenPGPInfoResponse {
+        encr_pubkey,
+        auth_pubkey,
+        sign_pubkey,
+        date,
+    });
+
+    Ok(())
+}
+
+pub fn cmd_openpgp_import<C>(w: &mut Webcrypt<C>) -> CommandResult
+where
+    C: trussed::Client
+        + client::Client
+        + client::P256
+        + client::Aes256Cbc
+        + client::HmacSha256
+        + client::HmacSha256P256
+        + client::Sha256
+        + client::Chacha8Poly1305,
+{
+    let req = match w.get_input_deserialized() {
+        Ok(x) => Ok(x),
+        Err(e) => {
+            log::error!("Deserialization error: {:?}", e);
+            Err(e)
+        }
+    };
+
+    let req: CommandOpenPGPImportRequest = req.map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
+    w.session
+        .check_token_res(req.tp.unwrap())
+        .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
+
+    w.state.openpgp_data = Some(OpenPGPData::import(
+        &mut w.trussed,
+        req.auth_privkey,
+        req.sign_privkey,
+        req.encr_privkey,
+        req.date.unwrap_or_default(),
+    )?);
+    w.state.save(&mut w.trussed);
+
+    Ok(())
+}
+
+pub fn cmd_openpgp_sign<C>(w: &mut Webcrypt<C>) -> CommandResult
+where
+    C: trussed::Client
+        + client::Client
+        + client::P256
+        + client::Aes256Cbc
+        + client::HmacSha256
+        + client::HmacSha256P256
+        + client::Sha256
+        + client::Chacha8Poly1305,
+{
+    let req = match w.get_input_deserialized() {
+        Ok(x) => Ok(x),
+        Err(e) => {
+            log::error!("Deserialization error: {:?}", e);
+            Err(e)
+        }
+    };
+
+    let req: CommandOpenPGPSignRequest = req.map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
+    w.session
+        .check_token_res(req.tp.unwrap())
+        .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
+
+    // FIXME remove -> initialize in a separate command
+    // move to state initialization
+    if w.state.openpgp_data.is_none() {
+        w.state.openpgp_data = Some(OpenPGPData::init(&mut w.trussed));
+        w.state.save(&mut w.trussed);
+    }
+
+    let signature = syscall!(w.trussed.sign(
+        Mechanism::P256,
+        w.state.openpgp_data.as_ref().unwrap().signing.key,
+        req.data.as_slice(),
+        SignatureSerialization::Raw
+    ))
+    .signature;
+    let signature = signature.to_bytes().expect("Too small target buffer");
+
+    w.send_to_output(CommandOpenPGPSignResponse { signature });
+
+    Ok(())
+}
+
+pub fn cmd_openpgp_decrypt<C>(w: &mut Webcrypt<C>) -> CommandResult
+where
+    C: trussed::Client
+        + client::Client
+        + client::P256
+        + client::Aes256Cbc
+        + client::HmacSha256
+        + client::HmacSha256P256
+        + client::Sha256
+        + client::Chacha8Poly1305,
+{
+    let req = match w.get_input_deserialized() {
+        Ok(x) => Ok(x),
+        Err(e) => {
+            log::error!("Deserialization error: {:?}", e);
+            Err(e)
+        }
+    };
+
+    let req: CommandOpenPGPDecryptRequest = req.map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
+    w.session
+        .check_token_res(req.tp.unwrap())
+        .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
+
+    // FIXME remove -> initialize in a separate command
+    // move to state initialization
+    if w.state.openpgp_data.is_none() {
+        w.state.openpgp_data = Some(OpenPGPData::init(&mut w.trussed));
+        w.state.save(&mut w.trussed);
+    }
+
+    // TODO find via provided fingerprint if not, get from openpgp info struct, or use the first one
+    // Currently check for the exact match of the held openpgp keys and their fingerprints
+    // if provided, use keyhandle or just default encryption key
+    let kh_key = if req.fingerprint.is_none() && req.keyhandle.is_none() {
+        w.state
+            .openpgp_data
+            .as_ref()
+            .ok_or(ERR_FAILED_LOADING_DATA)?
+            .encryption
+            .key
+    } else if req.fingerprint.is_some() {
+        w.state
+            .openpgp_data
+            .as_ref()
+            .ok_or(ERR_NOT_FOUND)?
+            .get_id_by_fingerprint(
+                req.fingerprint
+                    .unwrap()
+                    .as_slice()
+                    .try_into()
+                    .map_err(|_| ERR_FAILED_LOADING_DATA)?,
+            )
+            .ok_or(ERR_NOT_FOUND)?
+    } else {
+        let keyhandle = req.keyhandle.unwrap();
+        // regular keyhandle unpacking below
+        // TODO remove duplication / extract unpacking
+        if keyhandle.len() > 32 {
+            import_key_from_keyhandle(w, &keyhandle)?
+        } else {
+            let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
+            let cred_data = try_syscall!(w.trussed.read_file(
+                Location::Internal,
+                rk_path(
+                    rp_id_hash,
+                    &Bytes32::from_slice(keyhandle.as_slice()).unwrap()
+                )
+            ))
+            .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)?
+            .data;
+            let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
+            cred.key_id
+        }
+    };
+
+    let agreed_shared_secret_id = {
+        let ecc_key: Vec<u8, 64> = match req.eccekey.len() {
+            65 => Vec::<u8, 64>::from_slice(&req.eccekey[1..65]).unwrap(),
+            64 => Vec::<u8, 64>::from_slice(&req.eccekey[0..64]).unwrap(),
+            _ => return Err(ERR_FAILED_LOADING_DATA),
+        };
+
+        // import incoming public key
+        let ephem_pub_bin_key = try_syscall!(w.trussed.deserialize_p256_key(
+            &ecc_key,
+            trussed::types::KeySerialization::Raw,
+            trussed::types::StorageAttributes::new()
+                .set_persistence(trussed::types::Location::Volatile)
+        ))
+        .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
+        .key;
+
+        // agree on shared secret
+        let shared_secret = try_syscall!(w.trussed.agree(
+            Mechanism::P256,
+            kh_key,
+            ephem_pub_bin_key,
+            trussed::types::StorageAttributes::new()
+                .set_persistence(Location::Volatile)
+                .set_serializable(true)
+        ))
+        .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
+        .shared_secret;
+        shared_secret
+    };
+
+    let serialized_shared_secret = try_syscall!(w.trussed.serialize_key(
+        Mechanism::SharedSecret,
+        agreed_shared_secret_id,
+        KeySerialization::Raw
+    ))
+    .map_err(|e| {
+        log::error!("Deserialization error: {:?}", e);
+        ERR_INTERNAL_ERROR
+    })?;
+
+    w.send_to_output(CommandOpenPGPDecryptResponse {
+        data: serialized_shared_secret.serialized_key,
+    });
+
+    Ok(())
 }
 
 pub fn cmd_decrypt<C>(w: &mut Webcrypt<C>) -> CommandResult
@@ -602,7 +892,11 @@ where
         .session
         .login(req.pin, &mut w.trussed, &rpid, &mut w.state)?;
     // ignore loading errors for now
-    w.state.load(&mut w.trussed).ok();
+    if !w.state.initialized() {
+        w.state
+            .load(&mut w.trussed)
+            .map_err(|_| ERR_FAILED_LOADING_DATA)?
+    }
 
     w.send_to_output(CommandLoginResponse { tp });
 
@@ -620,10 +914,11 @@ where
         + client::HmacSha256P256
         + client::Chacha8Poly1305,
 {
-    let req: CommandLogoutRequest = w
+    let _: CommandLogoutRequest = w
         .get_input_deserialized()
         .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
 
+    w.state.save(&mut w.trussed);
     // Clear session
     w.session.logout();
     w.state.logout();

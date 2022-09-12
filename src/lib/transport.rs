@@ -92,6 +92,13 @@ where
             GENERATE_KEY => cmd_generate_key(self),
             SIGN => cmd_sign(self),
             DECRYPT => cmd_decrypt(self),
+
+            OPENPGP_IMPORT => cmd_openpgp_import(self),
+            OPENPGP_SIGN => cmd_openpgp_sign(self),
+            OPENPGP_DECRYPT => cmd_openpgp_decrypt(self),
+            OPENPGP_INFO => cmd_openpgp_info(self),
+            OPENPGP_GENERATE => cmd_openpgp_generate(self),
+
             GENERATE_KEY_FROM_DATA => cmd_generate_key_from_data(self),
 
             READ_RESIDENT_KEY_PUBLIC => cmd_read_resident_key_public(self),
