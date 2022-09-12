@@ -133,7 +133,12 @@ pub enum CommandID {
     /// Write RAW key as received from the RP
     WRITE_RESIDENT_KEY = 0x19,
 
+    /// OPENPGP specific commands
+    OPENPGP_DECRYPT = 0x20,
+    OPENPGP_SIGN = 0x21,
+
     /// Implementation detail: default value
+    /// Add map to From<u8> for CommandID, or you will get this value: 0xFE
     NOT_SET = 0xFE,
     /// Implementation detail: commands' total count
     __MAX_SIZE,
@@ -178,6 +183,10 @@ impl From<u8> for CommandID {
             0x17 => READ_RESIDENT_KEY_PUBLIC,
             0x18 => DISCOVER_RESIDENT_KEYS,
             0x19 => WRITE_RESIDENT_KEY,
+
+            0x20 => OPENPGP_DECRYPT,
+            0x21 => OPENPGP_SIGN,
+
             0xFE => NOT_SET,
             _ => NOT_SET,
         }

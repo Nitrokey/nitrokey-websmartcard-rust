@@ -99,6 +99,35 @@ pub struct CommandSignRequest {
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "UPPERCASE")]
+pub struct CommandOpenPGPDecryptRequest {
+    /// ephemeral ecc encryption key
+    pub(crate) eccekey: DataBytes,
+
+    /// key handle, should be less than 200 bytes
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) keyhandle: Option<KeyHandleSerialized>,
+
+    /// public key fingerprint
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) fingerprint: Option<DataBytes>,
+
+    /// name of the algorithm for decryption
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) oid: Option<DataBytes>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) tp: ExpectedSessionToken,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "UPPERCASE")]
+pub struct CommandOpenPGPDecryptResponse {
+    /// result of decryption
+    pub(crate) data: DataBytes,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "UPPERCASE")]
 pub struct CommandDecryptRequest {
     /// data to decrypt
     pub(crate) data: DataBytes,

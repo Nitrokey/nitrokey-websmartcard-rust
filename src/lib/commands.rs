@@ -310,6 +310,103 @@ where
     Ok(key)
 }
 
+pub fn cmd_openpgp_decrypt<C>(w: &mut Webcrypt<C>) -> CommandResult
+where
+    C: trussed::Client
+        + client::Client
+        + client::P256
+        + client::Aes256Cbc
+        + client::HmacSha256
+        + client::HmacSha256P256
+        + client::Sha256
+        + client::Chacha8Poly1305,
+{
+    let req = match w.get_input_deserialized() {
+        Ok(x) => Ok(x),
+        Err(e) => {
+            log::error!("Deserialization error: {:?}", e);
+            Err(e)
+        }
+    };
+
+    let req: CommandOpenPGPDecryptRequest = req.map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
+    w.session
+        .check_token_res(req.tp.unwrap())
+        .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
+
+    if req.fingerprint.is_none() && req.keyhandle.is_none() {
+        return Err(ERR_BAD_FORMAT);
+    }
+
+    // for now assuming keyhandle is always available
+    // TODO find via provided fingerprint if not, get from openpgp info struct, or use the first one
+    let keyhandle = req.keyhandle.unwrap();
+
+    // regular keyhandle unpacking below
+    // TODO remove duplication / extract unpacking
+    let kh_key = if keyhandle.len() > 32 {
+        import_key_from_keyhandle(w, &keyhandle)?
+    } else {
+        let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
+        let cred_data = try_syscall!(w.trussed.read_file(
+            Location::Internal,
+            rk_path(
+                rp_id_hash,
+                &Bytes32::from_slice(keyhandle.as_slice()).unwrap()
+            )
+        ))
+        .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)?
+        .data;
+        let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
+        cred.key_id
+    };
+
+    let agreed_shared_secret_id = {
+        let ecc_key: Vec<u8, 64> = match req.eccekey.len() {
+            65 => Vec::<u8, 64>::from_slice(&req.eccekey[1..65]).unwrap(),
+            64 => Vec::<u8, 64>::from_slice(&req.eccekey[0..64]).unwrap(),
+            _ => return Err(ERR_FAILED_LOADING_DATA),
+        };
+
+        // import incoming public key
+        let ephem_pub_bin_key = try_syscall!(w.trussed.deserialize_p256_key(
+            &ecc_key,
+            trussed::types::KeySerialization::Raw,
+            trussed::types::StorageAttributes::new()
+                .set_persistence(trussed::types::Location::Volatile)
+        ))
+        .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
+        .key;
+
+        // agree on shared secret
+        let shared_secret = try_syscall!(w.trussed.agree(
+            Mechanism::P256,
+            kh_key,
+            ephem_pub_bin_key,
+            trussed::types::StorageAttributes::new().set_persistence(Location::Volatile)
+        ))
+        .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
+        .shared_secret;
+        shared_secret
+    };
+
+    let serialized_shared_secret = try_syscall!(w.trussed.serialize_key(
+        Mechanism::Aes256Cbc,
+        agreed_shared_secret_id,
+        KeySerialization::Raw
+    ))
+    .map_err(|e| {
+        log::error!("Deserialization error: {:?}", e);
+        ERR_INTERNAL_ERROR
+    })?;
+
+    w.send_to_output(CommandOpenPGPDecryptResponse {
+        data: serialized_shared_secret.serialized_key,
+    });
+
+    Ok(())
+}
+
 pub fn cmd_decrypt<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: trussed::Client
