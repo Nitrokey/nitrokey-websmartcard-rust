@@ -1,6 +1,6 @@
 [package]
 name = "webcrypt"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Szczepan Zalega <szczepan@nitrokey.com>"]
 edition = "2021"
 
