@@ -347,5 +347,6 @@ impl WebcryptState {
         self.resident_keys = Default::default();
         self.master_key = None;
         self.master_key_raw = None;
+        self.initialized_tag = 0;
     }
 }

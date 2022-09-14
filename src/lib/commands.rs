@@ -313,6 +313,64 @@ where
     Ok(key)
 }
 
+pub fn cmd_openpgp_info<C>(w: &mut Webcrypt<C>) -> CommandResult
+where
+    C: trussed::Client
+        + client::Client
+        + client::P256
+        + client::Aes256Cbc
+        + client::HmacSha256
+        + client::HmacSha256P256
+        + client::Sha256
+        + client::Chacha8Poly1305,
+{
+    let _: CommandOpenPGPInfoRequest = w
+        .get_input_deserialized()
+        .map_err(|_| ERR_FAILED_LOADING_DATA)?;
+
+    // FIXME remove -> initialize in a separate command
+    // move to state initialization
+    if w.state.openpgp_data.is_none() {
+        w.state.openpgp_data = Some(OpenPGPData::init(&mut w.trussed));
+        w.state.save(&mut w.trussed);
+    }
+
+    let openpgp_data = w
+        .state
+        .openpgp_data
+        .as_ref()
+        .ok_or(ERR_FAILED_LOADING_DATA)?;
+    let encr_pubkey = DataBytes::from_slice(
+        openpgp_data
+            .encryption
+            .get_public_key_serialized(&mut w.trussed)
+            .as_slice(),
+    )
+    .map_err(|_| ERR_FAILED_LOADING_DATA)?;
+    let auth_pubkey = DataBytes::from_slice(
+        openpgp_data
+            .authentication
+            .get_public_key_serialized(&mut w.trussed)
+            .as_slice(),
+    )
+    .map_err(|_| ERR_FAILED_LOADING_DATA)?;
+    let sign_pubkey = DataBytes::from_slice(
+        openpgp_data
+            .signing
+            .get_public_key_serialized(&mut w.trussed)
+            .as_slice(),
+    )
+    .map_err(|_| ERR_FAILED_LOADING_DATA)?;
+
+    w.send_to_output(CommandOpenPGPInfoResponse {
+        encr_pubkey,
+        auth_pubkey,
+        sign_pubkey,
+    });
+
+    Ok(())
+}
+
 pub fn cmd_openpgp_decrypt<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: trussed::Client
@@ -337,19 +395,24 @@ where
         .check_token_res(req.tp.unwrap())
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
 
-    if req.fingerprint.is_none() && req.keyhandle.is_none() {
-        return Err(ERR_BAD_FORMAT);
-    }
-
     // FIXME remove -> initialize in a separate command
+    // move to state initialization
     if w.state.openpgp_data.is_none() {
         w.state.openpgp_data = Some(OpenPGPData::init(&mut w.trussed));
+        w.state.save(&mut w.trussed);
     }
 
     // TODO find via provided fingerprint if not, get from openpgp info struct, or use the first one
     // Currently check for the exact match of the held openpgp keys and their fingerprints
-    // and abort with error if not found, but fingerprint is provided
-    let kh_key = if req.fingerprint.is_some() {
+    // if provided, use keyhandle or just default encryption key
+    let kh_key = if req.fingerprint.is_none() && req.keyhandle.is_none() {
+        w.state
+            .openpgp_data
+            .as_ref()
+            .ok_or(ERR_FAILED_LOADING_DATA)?
+            .encryption
+            .key
+    } else if req.fingerprint.is_some() {
         w.state
             .openpgp_data
             .as_ref()
@@ -724,7 +787,11 @@ where
         .session
         .login(req.pin, &mut w.trussed, &rpid, &mut w.state)?;
     // ignore loading errors for now
-    w.state.load(&mut w.trussed).ok();
+    if !w.state.initialized() {
+        w.state
+            .load(&mut w.trussed)
+            .map_err(|_| ERR_FAILED_LOADING_DATA)?
+    }
 
     w.send_to_output(CommandLoginResponse { tp });
 
@@ -742,10 +809,11 @@ where
         + client::HmacSha256P256
         + client::Chacha8Poly1305,
 {
-    let req: CommandLogoutRequest = w
+    let _: CommandLogoutRequest = w
         .get_input_deserialized()
         .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
 
+    w.state.save(&mut w.trussed);
     // Clear session
     w.session.logout();
     w.state.logout();

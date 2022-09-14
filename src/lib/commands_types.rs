@@ -128,6 +128,21 @@ pub struct CommandOpenPGPDecryptResponse {
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "UPPERCASE")]
+pub struct CommandOpenPGPInfoRequest {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) tp: ExpectedSessionToken,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "UPPERCASE")]
+pub struct CommandOpenPGPInfoResponse {
+    pub(crate) encr_pubkey: DataBytes,
+    pub(crate) auth_pubkey: DataBytes,
+    pub(crate) sign_pubkey: DataBytes,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "UPPERCASE")]
 pub struct CommandDecryptRequest {
     /// data to decrypt
     pub(crate) data: DataBytes,
