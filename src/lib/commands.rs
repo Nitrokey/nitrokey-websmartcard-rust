@@ -383,7 +383,9 @@ where
             Mechanism::P256,
             kh_key,
             ephem_pub_bin_key,
-            trussed::types::StorageAttributes::new().set_persistence(Location::Volatile)
+            trussed::types::StorageAttributes::new()
+                .set_persistence(Location::Volatile)
+                .set_serializable(true)
         ))
         .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
         .shared_secret;
@@ -391,7 +393,7 @@ where
     };
 
     let serialized_shared_secret = try_syscall!(w.trussed.serialize_key(
-        Mechanism::Aes256Cbc,
+        Mechanism::SharedSecret,
         agreed_shared_secret_id,
         KeySerialization::Raw
     ))
