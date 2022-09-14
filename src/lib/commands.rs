@@ -341,6 +341,11 @@ where
         return Err(ERR_BAD_FORMAT);
     }
 
+    // FIXME remove -> initialize in a separate command
+    if w.state.openpgp_data.is_none() {
+        w.state.openpgp_data = Some(OpenPGPData::init(&mut w.trussed));
+    }
+
     // TODO find via provided fingerprint if not, get from openpgp info struct, or use the first one
     // Currently check for the exact match of the held openpgp keys and their fingerprints
     // and abort with error if not found, but fingerprint is provided
