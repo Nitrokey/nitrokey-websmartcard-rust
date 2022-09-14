@@ -21,7 +21,10 @@ use crate::types::CommandID::{CHANGE_PIN, SET_PIN};
 use crate::types::ERROR_ID;
 
 use crate::helpers::hash;
-use crate::types::ERROR_ID::{ERR_BAD_FORMAT, ERR_BAD_ORIGIN, ERR_FAILED_LOADING_DATA};
+use crate::openpgp::OpenPGPData;
+use crate::types::ERROR_ID::{
+    ERR_BAD_FORMAT, ERR_BAD_ORIGIN, ERR_FAILED_LOADING_DATA, ERR_NOT_FOUND,
+};
 use crate::{Message, RequestSource};
 
 type CommandResult = Result<(), ERROR_ID>;
@@ -338,27 +341,47 @@ where
         return Err(ERR_BAD_FORMAT);
     }
 
-    // for now assuming keyhandle is always available
     // TODO find via provided fingerprint if not, get from openpgp info struct, or use the first one
-    let keyhandle = req.keyhandle.unwrap();
-
-    // regular keyhandle unpacking below
-    // TODO remove duplication / extract unpacking
-    let kh_key = if keyhandle.len() > 32 {
-        import_key_from_keyhandle(w, &keyhandle)?
+    // Currently check for the exact match of the held openpgp keys and their fingerprints
+    // and abort with error if not found, but fingerprint is provided
+    let kh_key = if req.fingerprint.is_some() {
+        match &w.state.openpgp_data {
+            None => {
+                return Err(ERR_NOT_FOUND);
+            }
+            Some(o) => match o.get_id_by_fingerprint(
+                req.fingerprint
+                    .unwrap()
+                    .as_slice()
+                    .try_into()
+                    .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?,
+            ) {
+                None => {
+                    return Err(ERR_NOT_FOUND);
+                }
+                Some(k) => k,
+            },
+        }
     } else {
-        let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
-        let cred_data = try_syscall!(w.trussed.read_file(
-            Location::Internal,
-            rk_path(
-                rp_id_hash,
-                &Bytes32::from_slice(keyhandle.as_slice()).unwrap()
-            )
-        ))
-        .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)?
-        .data;
-        let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
-        cred.key_id
+        let keyhandle = req.keyhandle.unwrap();
+        // regular keyhandle unpacking below
+        // TODO remove duplication / extract unpacking
+        if keyhandle.len() > 32 {
+            import_key_from_keyhandle(w, &keyhandle)?
+        } else {
+            let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
+            let cred_data = try_syscall!(w.trussed.read_file(
+                Location::Internal,
+                rk_path(
+                    rp_id_hash,
+                    &Bytes32::from_slice(keyhandle.as_slice()).unwrap()
+                )
+            ))
+            .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)?
+            .data;
+            let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
+            cred.key_id
+        }
     };
 
     let agreed_shared_secret_id = {
