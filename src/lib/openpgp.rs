@@ -9,9 +9,7 @@ impl TryFrom<&[u8]> for KeyFingerprint {
     type Error = ();
 
     fn try_from(a: &[u8]) -> Result<KeyFingerprint, Self::Error> {
-        Ok(KeyFingerprint {
-            0: Bytes::from_slice(a)?,
-        })
+        Ok(KeyFingerprint(Bytes::from_slice(a)?))
     }
 }
 
