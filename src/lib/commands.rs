@@ -345,23 +345,18 @@ where
     // Currently check for the exact match of the held openpgp keys and their fingerprints
     // and abort with error if not found, but fingerprint is provided
     let kh_key = if req.fingerprint.is_some() {
-        match &w.state.openpgp_data {
-            None => {
-                return Err(ERR_NOT_FOUND);
-            }
-            Some(o) => match o.get_id_by_fingerprint(
+        w.state
+            .openpgp_data
+            .as_ref()
+            .ok_or(ERR_NOT_FOUND)?
+            .get_id_by_fingerprint(
                 req.fingerprint
                     .unwrap()
                     .as_slice()
                     .try_into()
-                    .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?,
-            ) {
-                None => {
-                    return Err(ERR_NOT_FOUND);
-                }
-                Some(k) => k,
-            },
-        }
+                    .map_err(|_| ERR_FAILED_LOADING_DATA)?,
+            )
+            .ok_or(ERR_NOT_FOUND)?
     } else {
         let keyhandle = req.keyhandle.unwrap();
         // regular keyhandle unpacking below
