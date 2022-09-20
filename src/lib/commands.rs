@@ -129,7 +129,7 @@ where
     Ok(())
 }
 
-fn wrap_key_to_keyhandle<C>(
+pub fn wrap_key_to_keyhandle<C>(
     w: &mut Webcrypt<C>,
     private_key: KeyId,
 ) -> Result<KeyHandleSerialized, ERROR_ID>
@@ -338,7 +338,7 @@ where
     let openpgp_data = w
         .state
         .openpgp_data
-        .as_ref()
+        .as_mut()
         .ok_or(ERR_FAILED_LOADING_DATA)?;
     let encr_pubkey = DataBytes::from_slice(
         openpgp_data
@@ -362,11 +362,59 @@ where
     )
     .map_err(|_| ERR_FAILED_LOADING_DATA)?;
 
+    // let sign_keyhandle = wrap_key_to_keyhandle(w, openpgp_data.signing.key)?;
+
     w.send_to_output(CommandOpenPGPInfoResponse {
         encr_pubkey,
         auth_pubkey,
         sign_pubkey,
+        // sign_keyhandle,
     });
+
+    Ok(())
+}
+
+pub fn cmd_openpgp_sign<C>(w: &mut Webcrypt<C>) -> CommandResult
+where
+    C: trussed::Client
+        + client::Client
+        + client::P256
+        + client::Aes256Cbc
+        + client::HmacSha256
+        + client::HmacSha256P256
+        + client::Sha256
+        + client::Chacha8Poly1305,
+{
+    let req = match w.get_input_deserialized() {
+        Ok(x) => Ok(x),
+        Err(e) => {
+            log::error!("Deserialization error: {:?}", e);
+            Err(e)
+        }
+    };
+
+    let req: CommandOpenPGPSignRequest = req.map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
+    w.session
+        .check_token_res(req.tp.unwrap())
+        .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
+
+    // FIXME remove -> initialize in a separate command
+    // move to state initialization
+    if w.state.openpgp_data.is_none() {
+        w.state.openpgp_data = Some(OpenPGPData::init(&mut w.trussed));
+        w.state.save(&mut w.trussed);
+    }
+
+    let signature = syscall!(w.trussed.sign(
+        Mechanism::P256,
+        w.state.openpgp_data.as_ref().unwrap().signing.key,
+        req.data.as_slice(),
+        SignatureSerialization::Raw
+    ))
+    .signature;
+    let signature = signature.to_bytes().expect("Too small target buffer");
+
+    w.send_to_output(CommandOpenPGPSignResponse { signature });
 
     Ok(())
 }

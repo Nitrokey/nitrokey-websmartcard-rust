@@ -1,3 +1,6 @@
+use crate::commands::wrap_key_to_keyhandle;
+use crate::commands_types::KeyHandleSerialized;
+use crate::types::ERROR_ID;
 use heapless_bytes::Bytes;
 use serde::{Deserialize, Serialize};
 use trussed::types::KeyId;
@@ -53,11 +56,12 @@ impl OpenPGPKey {
         }
     }
     pub fn get_public_key_serialized(
-        &self,
+        &mut self,
         trussed: &mut (impl client::Client + client::P256),
     ) -> Bytes<64> {
         let pubk = self.get_public_keyid(trussed);
-
+        // syscall!(trussed.delete(pubk));
+        self.pubkey = Some(pubk);
         let serialized_raw_public_key =
             syscall!(trussed.serialize_p256_key(pubk, trussed::types::KeySerialization::Raw))
                 .serialized_key;

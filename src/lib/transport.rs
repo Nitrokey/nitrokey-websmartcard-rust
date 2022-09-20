@@ -93,6 +93,7 @@ where
             SIGN => cmd_sign(self),
             DECRYPT => cmd_decrypt(self),
 
+            OPENPGP_SIGN => cmd_openpgp_sign(self),
             OPENPGP_DECRYPT => cmd_openpgp_decrypt(self),
             OPENPGP_INFO => cmd_openpgp_info(self),
 
