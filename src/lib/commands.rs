@@ -364,12 +364,49 @@ where
 
     // let sign_keyhandle = wrap_key_to_keyhandle(w, openpgp_data.signing.key)?;
 
+    let date = DataBytes::from_slice(&openpgp_data.date).map_err(|_| ERR_INTERNAL_ERROR)?;
     w.send_to_output(CommandOpenPGPInfoResponse {
         encr_pubkey,
         auth_pubkey,
         sign_pubkey,
-        // sign_keyhandle,
+        date,
     });
+
+    Ok(())
+}
+
+pub fn cmd_openpgp_import<C>(w: &mut Webcrypt<C>) -> CommandResult
+where
+    C: trussed::Client
+        + client::Client
+        + client::P256
+        + client::Aes256Cbc
+        + client::HmacSha256
+        + client::HmacSha256P256
+        + client::Sha256
+        + client::Chacha8Poly1305,
+{
+    let req = match w.get_input_deserialized() {
+        Ok(x) => Ok(x),
+        Err(e) => {
+            log::error!("Deserialization error: {:?}", e);
+            Err(e)
+        }
+    };
+
+    let req: CommandOpenPGPImportRequest = req.map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
+    w.session
+        .check_token_res(req.tp.unwrap())
+        .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
+
+    w.state.openpgp_data = Some(OpenPGPData::import(
+        &mut w.trussed,
+        req.auth_privkey,
+        req.sign_privkey,
+        req.encr_privkey,
+        req.date.unwrap_or_default(),
+    )?);
+    w.state.save(&mut w.trussed);
 
     Ok(())
 }

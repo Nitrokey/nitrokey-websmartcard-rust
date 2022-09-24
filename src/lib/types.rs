@@ -137,6 +137,7 @@ pub enum CommandID {
     OPENPGP_DECRYPT = 0x20,
     OPENPGP_SIGN = 0x21,
     OPENPGP_INFO = 0x22,
+    OPENPGP_IMPORT = 0x23,
 
     /// Implementation detail: default value
     /// Add map to From<u8> for CommandID, or you will get this value: 0xFE
@@ -188,6 +189,7 @@ impl From<u8> for CommandID {
             0x20 => OPENPGP_DECRYPT,
             0x21 => OPENPGP_SIGN,
             0x22 => OPENPGP_INFO,
+            0x23 => OPENPGP_IMPORT,
 
             0xFE => NOT_SET,
             _ => NOT_SET,

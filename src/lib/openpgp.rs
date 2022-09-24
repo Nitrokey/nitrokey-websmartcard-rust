@@ -1,6 +1,7 @@
 use crate::commands::wrap_key_to_keyhandle;
-use crate::commands_types::KeyHandleSerialized;
+use crate::commands_types::{DataBytes, KeyHandleSerialized, ResultW};
 use crate::types::ERROR_ID;
+use crate::types::ERROR_ID::ERR_INTERNAL_ERROR;
 use heapless_bytes::Bytes;
 use serde::{Deserialize, Serialize};
 use trussed::types::KeyId;
@@ -39,6 +40,7 @@ pub struct OpenPGPData {
     pub authentication: OpenPGPKey,
     pub encryption: OpenPGPKey,
     pub signing: OpenPGPKey,
+    pub date: Bytes<32>,
 }
 
 impl OpenPGPKey {
@@ -102,7 +104,63 @@ impl OpenPGPData {
                 pubkey: None,
                 fingerprint: Default::default(),
             },
+            date: Default::default(),
         }
+    }
+
+    pub fn import(
+        trussed: &mut (impl client::Client + client::P256),
+        auth: DataBytes,
+        sign: DataBytes,
+        enc: DataBytes,
+        date: DataBytes,
+    ) -> ResultW<Self> {
+        use trussed::key::Kind;
+        use trussed::try_syscall;
+        use trussed::types::Location;
+
+        Ok(OpenPGPData {
+            authentication: OpenPGPKey {
+                key: {
+                    try_syscall!(trussed.unsafe_inject_shared_key(
+                        auth.as_slice(),
+                        Location::Internal,
+                        Kind::P256
+                    ))
+                    .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
+                    .key
+                },
+                pubkey: None,
+                fingerprint: Default::default(),
+            },
+            encryption: OpenPGPKey {
+                key: {
+                    try_syscall!(trussed.unsafe_inject_shared_key(
+                        enc.as_slice(),
+                        Location::Internal,
+                        Kind::P256
+                    ))
+                    .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
+                    .key
+                },
+                pubkey: None,
+                fingerprint: Default::default(),
+            },
+            signing: OpenPGPKey {
+                key: {
+                    try_syscall!(trussed.unsafe_inject_shared_key(
+                        sign.as_slice(),
+                        Location::Internal,
+                        Kind::P256
+                    ))
+                    .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
+                    .key
+                },
+                pubkey: None,
+                fingerprint: Default::default(),
+            },
+            date: Bytes::<32>::from_slice(&date).map_err(|_| ERR_INTERNAL_ERROR)?,
+        })
     }
 
     pub fn get_id_by_fingerprint(&self, f: KeyFingerprint) -> Option<KeyId> {

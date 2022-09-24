@@ -129,6 +129,7 @@ pub struct CommandOpenPGPDecryptResponse {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "UPPERCASE")]
 pub struct CommandOpenPGPSignRequest {
+    /// data to sign
     pub(crate) data: DataBytes,
 
     /// name of the algorithm for decryption
@@ -159,8 +160,25 @@ pub struct CommandOpenPGPInfoResponse {
     pub(crate) encr_pubkey: DataBytes,
     pub(crate) auth_pubkey: DataBytes,
     pub(crate) sign_pubkey: DataBytes,
+    pub(crate) date: DataBytes,
     // pub(crate) sign_keyhandle: KeyHandleSerialized,
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "UPPERCASE")]
+pub struct CommandOpenPGPImportRequest {
+    pub(crate) encr_privkey: DataBytes,
+    pub(crate) auth_privkey: DataBytes,
+    pub(crate) sign_privkey: DataBytes,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) date: Option<DataBytes>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) tp: ExpectedSessionToken,
+}
+// no response
+// pub type CommandOpenPGPImportResponse = CommandOpenPGPInfoResponse;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "UPPERCASE")]
