@@ -97,6 +97,7 @@ where
             OPENPGP_SIGN => cmd_openpgp_sign(self),
             OPENPGP_DECRYPT => cmd_openpgp_decrypt(self),
             OPENPGP_INFO => cmd_openpgp_info(self),
+            OPENPGP_GENERATE => cmd_openpgp_generate(self),
 
             GENERATE_KEY_FROM_DATA => cmd_generate_key_from_data(self),
 

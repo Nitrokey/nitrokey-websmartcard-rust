@@ -154,6 +154,8 @@ pub struct CommandOpenPGPInfoRequest {
     pub(crate) tp: ExpectedSessionToken,
 }
 
+pub type CommandOpenPGPInitRequest = CommandOpenPGPInfoRequest;
+
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "UPPERCASE")]
 pub struct CommandOpenPGPInfoResponse {

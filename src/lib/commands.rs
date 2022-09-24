@@ -313,6 +313,26 @@ where
     Ok(key)
 }
 
+pub fn cmd_openpgp_generate<C>(w: &mut Webcrypt<C>) -> CommandResult
+where
+    C: trussed::Client
+        + client::Client
+        + client::P256
+        + client::Aes256Cbc
+        + client::HmacSha256
+        + client::HmacSha256P256
+        + client::Sha256
+        + client::Chacha8Poly1305,
+{
+    let _: CommandOpenPGPInitRequest = w
+        .get_input_deserialized()
+        .map_err(|_| ERR_FAILED_LOADING_DATA)?;
+
+    w.state.openpgp_data = Some(OpenPGPData::init(&mut w.trussed));
+    w.state.save(&mut w.trussed);
+    Ok(())
+}
+
 pub fn cmd_openpgp_info<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: trussed::Client
