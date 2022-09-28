@@ -707,7 +707,10 @@ where
 
     // decrypt with shared secret
     let decrypted = try_syscall!(w.trussed.decrypt_aes256cbc(shared_secret, &req.data))
-        .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
+        .map_err(|e| {
+            log::error!("Decryption error: {:?}", e);
+            ERROR_ID::ERR_FAILED_LOADING_DATA
+        })?
         .plaintext
         .ok_or(ERR_INTERNAL_ERROR)?;
 
