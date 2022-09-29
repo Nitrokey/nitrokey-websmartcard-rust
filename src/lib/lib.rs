@@ -16,6 +16,7 @@ mod constants;
 mod ctap_app;
 mod helpers;
 // mod nfc_app;
+mod openpgp;
 mod rk_files;
 mod state;
 mod transport;
