@@ -593,6 +593,7 @@ where
         log::error!("Deserialization error: {:?}", e);
         ERR_INTERNAL_ERROR
     })?;
+    syscall!(w.trussed.delete(agreed_shared_secret_id));
 
     w.send_to_output(CommandOpenPGPDecryptResponse {
         data: serialized_shared_secret.serialized_key,
