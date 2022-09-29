@@ -921,9 +921,16 @@ where
 
     let tp = w
         .session
-        .login(req.pin, &mut w.trussed, &rpid, &mut w.state)?;
+        .login(req.pin.clone(), &mut w.trussed, &rpid, &mut w.state)?;
+
+    try_syscall!(w
+        .trussed
+        .set_client_context_pin(Bytes::from_slice(req.pin.as_slice()).unwrap()))
+    .map_err(|_| ERR_INTERNAL_ERROR)?;
+
     // ignore loading errors for now
     if !w.state.initialized() {
+        log::debug!("WC loading state");
         w.state
             .load(&mut w.trussed)
             .map_err(|_| ERR_FAILED_LOADING_DATA)?
@@ -953,6 +960,9 @@ where
     // Clear session
     w.session.logout();
     w.state.logout();
+    try_syscall!(w
+        .trussed
+        .set_client_context_pin(Bytes::from_slice(b"invalid pin")));
 
     Ok(())
 }
@@ -1041,7 +1051,12 @@ where
             let req: CommandChangePINRequest = w
                 .get_input_deserialized()
                 .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
-            w.state.pin.change_pin(req.pin, req.newpin)?;
+            w.state.pin.change_pin(req.pin, req.newpin.clone())?;
+            try_syscall!(w
+                .trussed
+                .change_pin(Bytes::from_slice(req.newpin.as_slice()).unwrap()))
+            .map_err(|_| ERROR_ID::ERR_INTERNAL_ERROR)?;
+
             Ok(())
         }
         _ => Err(ERROR_ID::ERR_INVALID_COMMAND),
