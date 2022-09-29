@@ -4,6 +4,7 @@ use heapless::Vec;
 
 use heapless_bytes::{Bytes, Bytes32};
 use trussed::api::reply::Encrypt;
+use trussed::key::Kind;
 use trussed::types::KeyId;
 use trussed::types::PathBuf;
 use trussed::{
@@ -670,7 +671,9 @@ where
         Mechanism::P256,
         kh_key,
         ephem_pub_bin_key,
-        trussed::types::StorageAttributes::new().set_persistence(Location::Volatile)
+        trussed::types::StorageAttributes::new()
+            .set_persistence(Location::Volatile)
+            .set_serializable(true)
     ))
     .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
     .shared_secret;
@@ -705,17 +708,41 @@ where
     //             trussed::types::StorageAttributes::new().set_persistence(Location::Volatile))
     //     ).key;
 
+    // FIXME set the right type at first, instead of serializing and importing the key again
+    // Related: https://github.com/trussed-dev/trussed/pull/43
+    let serialized_shared_secret = try_syscall!(w.trussed.serialize_key(
+        Mechanism::SharedSecret,
+        shared_secret,
+        KeySerialization::Raw
+    ))
+    .map_err(|e| {
+        log::error!("Deserialization error: {:?}", e);
+        ERR_INTERNAL_ERROR
+    })?
+    .serialized_key;
+    let serialized_reimported = try_syscall!(w.trussed.unsafe_inject_shared_key(
+        // &k.serialize(),
+        serialized_shared_secret.as_slice(),
+        Location::Internal,
+        Kind::Symmetric(32)
+    ))
+    .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
+    .key;
+
     // decrypt with shared secret
-    let decrypted = try_syscall!(w.trussed.decrypt_aes256cbc(shared_secret, &req.data))
-        .map_err(|e| {
-            log::error!("Decryption error: {:?}", e);
-            ERROR_ID::ERR_FAILED_LOADING_DATA
-        })?
-        .plaintext
-        .ok_or(ERR_INTERNAL_ERROR)?;
+    let decrypted = try_syscall!(w
+        .trussed
+        .decrypt_aes256cbc(serialized_reimported, &req.data))
+    .map_err(|e| {
+        log::error!("Decryption error: {:?}", e);
+        ERROR_ID::ERR_FAILED_LOADING_DATA
+    })?
+    .plaintext
+    .ok_or(ERR_INTERNAL_ERROR)?;
 
     syscall!(w.trussed.delete(kh_key));
     syscall!(w.trussed.delete(shared_secret));
+    syscall!(w.trussed.delete(serialized_reimported));
     syscall!(w.trussed.delete(ephem_pub_bin_key));
 
     w.send_to_output(CommandDecryptResponse { data: decrypted });
