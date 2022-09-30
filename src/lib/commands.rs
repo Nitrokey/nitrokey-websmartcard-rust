@@ -919,22 +919,20 @@ where
         }
     };
 
-    let tp = w
-        .session
-        .login(req.pin.clone(), &mut w.trussed, &rpid, &mut w.state)?;
-
     try_syscall!(w
         .trussed
         .set_client_context_pin(Bytes::from_slice(req.pin.as_slice()).unwrap()))
     .map_err(|_| ERR_INTERNAL_ERROR)?;
 
     // ignore loading errors for now
-    if !w.state.initialized() {
-        log::debug!("WC loading state");
-        w.state
-            .load(&mut w.trussed)
-            .map_err(|_| ERR_FAILED_LOADING_DATA)?
-    }
+    log::debug!("WC loading state");
+    w.state
+        .load(&mut w.trussed)
+        .map_err(|_| ERR_FAILED_LOADING_DATA)?;
+
+    let tp = w
+        .session
+        .login(req.pin.clone(), &mut w.trussed, &rpid, &mut w.state)?;
 
     w.send_to_output(CommandLoginResponse { tp });
 
@@ -962,7 +960,8 @@ where
     w.state.logout();
     try_syscall!(w
         .trussed
-        .set_client_context_pin(Bytes::from_slice(b"invalid pin")));
+        .set_client_context_pin(Bytes::from_slice(b"invalid pin").unwrap()))
+    .map_err(|_| ERR_INTERNAL_ERROR)?;
 
     Ok(())
 }
@@ -1038,12 +1037,22 @@ where
 {
     // To decide: same handler for both setting and changing?
 
+    const DEFAULT_ENCRYPTION_PIN: &'static [u8; 4] = b"1234";
     match w.current_command_id {
         SET_PIN => {
             let req: CommandSetPINRequest = w
                 .get_input_deserialized()
                 .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
-            w.state.pin.set_pin(req.pin)?;
+            w.state.pin.set_pin(req.pin.clone())?;
+
+            try_syscall!(w
+                .trussed
+                .set_client_context_pin(Bytes::from_slice(DEFAULT_ENCRYPTION_PIN).unwrap()))
+            .unwrap();
+            // .map_err(|_| ERR_INTERNAL_ERROR)?;
+            try_syscall!(w.trussed.change_pin(req.pin.to_bytes().unwrap())).unwrap();
+            // .map_err(|_| ERR_INTERNAL_ERROR)?;
+
             w.state.initialize(&mut w.trussed);
             Ok(())
         }
@@ -1147,8 +1156,6 @@ where
     w.session
         .check_token_res(req.tp.unwrap())
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
-
-    use trussed::key::Kind;
 
     let private_key = try_syscall!(w.trussed.unsafe_inject_shared_key(
         // &k.serialize(),
