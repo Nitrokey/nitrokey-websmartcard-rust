@@ -28,6 +28,8 @@ fn try_handle_ctap1<C>(
 where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
+        + client::Rsa2kPkcs
         + client::P256
         + client::Chacha8Poly1305
         + client::Aes256Cbc
@@ -87,6 +89,7 @@ fn handle_ctap1<C>(w: &mut Webcrypt<C>, data: &[u8], response: &mut apdu_dispatc
 where
     C: trussed::Client
         + trussed::Client
+        + client::Rsa2kPkcs
         + client::P256
         + client::Chacha8Poly1305
         + client::Aes256Cbc
@@ -118,6 +121,8 @@ fn try_handle_ctap2<C>(
 where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
+        + client::Rsa2kPkcs
         + client::P256
         + client::Chacha8Poly1305
         + client::Aes256Cbc
@@ -245,6 +250,7 @@ fn handle_ctap2<C>(
 ) where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
         + client::P256
         + client::Chacha8Poly1305
         + client::Aes256Cbc
@@ -263,6 +269,7 @@ impl<C> app::App for Webcrypt<C>
 where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
         + client::P256
         + client::Chacha8Poly1305
         + client::Aes256Cbc
@@ -326,6 +333,7 @@ where
     C: client::Aes256Cbc
         + client::Chacha8Poly1305
         + client::Client
+        + client::Rsa2kPkcs
         + client::HmacSha256
         + client::HmacSha256P256
         + client::P256
@@ -341,6 +349,7 @@ impl<C> apdu::App<{ SIZE }, { SIZE }> for Webcrypt<C>
 where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
         + client::P256
         + client::Chacha8Poly1305
         + client::Aes256Cbc

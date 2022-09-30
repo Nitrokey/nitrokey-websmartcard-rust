@@ -45,6 +45,7 @@ pub fn cmd_status<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
         + client::P256
         + client::Chacha8Poly1305
         + client::HmacSha256
@@ -68,6 +69,7 @@ pub fn cmd_test_ping<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
         + client::P256
         + client::Aes256Cbc
         + client::HmacSha256
@@ -83,6 +85,7 @@ pub fn cmd_generate_key<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
         + client::P256
         + client::Aes256Cbc
         + client::HmacSha256
@@ -137,6 +140,7 @@ pub fn wrap_key_to_keyhandle<C>(
 where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
         + client::P256
         + client::Aes256Cbc
         + client::HmacSha256
@@ -195,6 +199,7 @@ pub fn cmd_sign<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
         + client::P256
         + client::Aes256Cbc
         + client::HmacSha256
@@ -260,7 +265,11 @@ fn import_key_from_keyhandle<C>(
     encrypted_serialized_keyhandle: &KeyHandleSerialized,
 ) -> Result<KeyId, ERROR_ID>
 where
-    C: trussed::Client + client::Client + client::P256 + client::Chacha8Poly1305,
+    C: trussed::Client
+        + client::Client
+        + client::Rsa2kPkcs
+        + client::P256
+        + client::Chacha8Poly1305,
 {
     // encr_ser -> encr struct -> decrypted serialized -> struct
 
@@ -319,6 +328,7 @@ pub fn cmd_openpgp_generate<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
         + client::P256
         + client::Aes256Cbc
         + client::HmacSha256
@@ -339,6 +349,7 @@ pub fn cmd_openpgp_info<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
         + client::P256
         + client::Aes256Cbc
         + client::HmacSha256
@@ -401,6 +412,7 @@ pub fn cmd_openpgp_import<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
         + client::P256
         + client::Aes256Cbc
         + client::HmacSha256
@@ -437,6 +449,7 @@ pub fn cmd_openpgp_sign<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
         + client::P256
         + client::Aes256Cbc
         + client::HmacSha256
@@ -482,6 +495,7 @@ pub fn cmd_openpgp_decrypt<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
         + client::P256
         + client::Aes256Cbc
         + client::HmacSha256
@@ -607,6 +621,7 @@ pub fn cmd_decrypt<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
         + client::P256
         + client::Aes256Cbc
         + client::HmacSha256
@@ -756,6 +771,7 @@ pub fn cmd_generate_key_from_data<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
         + client::P256
         + client::Aes256Cbc
         + client::HmacSha256
@@ -822,6 +838,7 @@ pub fn cmd_read_resident_key_public<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
         + client::P256
         + client::Aes256Cbc
         + client::Sha256
@@ -894,6 +911,7 @@ pub fn cmd_login<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
         + client::P256
         + client::Aes256Cbc
         + client::HmacSha256
@@ -939,6 +957,7 @@ pub fn cmd_logout<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
         + client::P256
         + client::Aes256Cbc
         + client::HmacSha256
@@ -989,6 +1008,7 @@ pub fn cmd_configure<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
         + client::P256
         + client::Aes256Cbc
         + client::Sha256
@@ -1020,6 +1040,7 @@ pub fn cmd_manage_pin<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
         + client::P256
         + client::Aes256Cbc
         + client::Sha256
@@ -1053,6 +1074,7 @@ pub fn cmd_discover_resident_key<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
         + client::P256
         + client::Aes256Cbc
         + client::Sha256
@@ -1120,11 +1142,13 @@ pub fn cmd_write_resident_key<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
         + client::P256
         + client::Aes256Cbc
         + client::HmacSha256
         + client::HmacSha256P256
         + client::Chacha8Poly1305
+        + client::Rsa2kPkcs
         + client::Sha256,
 {
     let req: CommandWriteResidentKeyRequest = w
@@ -1192,6 +1216,7 @@ pub fn cmd_generate_resident_key<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
         + client::P256
         + client::Aes256Cbc
         + client::HmacSha256
@@ -1283,6 +1308,7 @@ pub fn cmd_restore_from_seed<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
         + client::P256
         + client::Aes256Cbc
         + client::HmacSha256
@@ -1327,6 +1353,7 @@ pub fn cmd_initialize_seed<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
         + client::P256
         + client::Aes256Cbc
         + client::HmacSha256

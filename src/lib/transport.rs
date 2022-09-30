@@ -31,6 +31,7 @@ impl<C> Webcrypt<C>
 where
     C: trussed::Client
         + client::Client
+        + client::Rsa2kPkcs
         + client::P256
         + client::Chacha8Poly1305
         + client::Aes256Cbc
