@@ -47,6 +47,7 @@ log-error = []
 
 [patch.crates-io]
 #trussed = { git = "https://github.com/Nitrokey/trussed.git", branch="webcrypt-devel" }
-trussed = { git = "https://github.com/Nitrokey/trussed.git", branch="raw_store" }
+#trussed = { git = "https://github.com/Nitrokey/trussed.git", branch="raw_store" }
+trussed = { path = "components/trussed" }
 ctaphid-dispatch = { git = "https://github.com/Nitrokey/ctaphid-dispatch.git", branch="multiple_apps" }
 apdu-dispatch = { git = "https://github.com/Nitrokey/apdu-dispatch.git", branch="sz-multiple-apps" }
