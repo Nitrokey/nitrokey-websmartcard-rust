@@ -1160,26 +1160,34 @@ where
         .check_token_res(req.tp.unwrap())
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
 
-    use trussed::key::Kind;
+    let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
+
+    // write private key
+
+    let kind = {
+        match req.key_type {
+            None => Kind::P256,
+            Some(kind) => match kind {
+                0 => Kind::P256,
+                1 => Kind::Rsa2k,
+                _ => Kind::P256,
+            },
+        }
+    };
 
     let private_key = try_syscall!(w.trussed.unsafe_inject_shared_key(
-        // &k.serialize(),
         req.raw_key_data.as_slice(),
         Location::Internal,
-        Kind::P256
+        kind
     ))
     .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
     .key;
-    let public_key = try_syscall!(w
-        .trussed
-        .derive_p256_public_key(private_key, Location::Volatile))
-    .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
-    .key;
+
+    // write file
 
     let cred = CredentialData::new(private_key);
     let serialized_credential = cred.serialize()?;
 
-    let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
     let credential_id_hash = syscall!(w.trussed.hash_sha256(serialized_credential.as_slice()))
         .hash
         .to_bytes()
@@ -1193,11 +1201,33 @@ where
     ))
     .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)?;
 
-    // public key
-    let serialized_raw_public_key = syscall!(w
-        .trussed
-        .serialize_p256_key(public_key, KeySerialization::Raw))
-    .serialized_key;
+    // get public key
+    let (public_key, serialized_raw_public_key) = match kind {
+        Kind::P256 => {
+            let public_key = try_syscall!(w
+                .trussed
+                .derive_p256_public_key(private_key, Location::Volatile))
+            .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
+            .key;
+
+            let serialized_raw_public_key = syscall!(w
+                .trussed
+                .serialize_p256_key(public_key, KeySerialization::Raw))
+            .serialized_key;
+            (public_key, serialized_raw_public_key)
+        }
+        Kind::Rsa2k => {
+            let pk = syscall!(w
+                .trussed
+                .derive_rsa2kpkcs_public_key(private_key, Location::Volatile))
+            .key;
+            let serialized_key =
+                syscall!(w.trussed.serialize_rsa2kpkcs_key(pk, KeySerialization::Raw))
+                    .serialized_key;
+            (pk, serialized_key)
+        }
+        _ => todo!(),
+    };
 
     syscall!(w.trussed.delete(public_key));
 

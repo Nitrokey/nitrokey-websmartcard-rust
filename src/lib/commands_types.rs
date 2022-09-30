@@ -31,6 +31,8 @@ pub type ExpectedSessionToken = Option<SessionToken>;
 pub(crate) type SerializedCredential = trussed::types::Message;
 pub type ResultW<T> = core::result::Result<T, ERROR_ID>;
 
+pub type KeyType = Option<i16>;
+
 // TODO move to struct, instead of the type alias
 pub type KeyHandleSerialized = Bytes512;
 
@@ -235,7 +237,7 @@ pub struct CommandGenerateFromDataRequest {
 pub struct CommandGenerateRequest {
     /// data to be used for key derivation
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) key_type: Option<i16>,
+    pub(crate) key_type: KeyType,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) tp: ExpectedSessionToken,
@@ -297,7 +299,10 @@ pub struct CommandRestoreResponse {
 #[serde(rename_all = "UPPERCASE")]
 pub struct CommandWriteResidentKeyRequest {
     /// Sent in P256 serialized private key
-    pub(crate) raw_key_data: Bytes32,
+    pub(crate) raw_key_data: DataBytes,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) key_type: KeyType,
 
     // a placeholder for metadata
     #[serde(skip_serializing_if = "Option::is_none")]
