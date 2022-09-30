@@ -924,6 +924,12 @@ where
         .set_client_context_pin(Bytes::from_slice(req.pin.as_slice()).unwrap()))
     .map_err(|_| ERR_INTERNAL_ERROR)?;
 
+    // 1. test cycle
+    // 2. wrong pin login, set wrong PIN in the context => broken filesystem
+    // 3. calling tests again
+    // 4. this factory reset
+    //
+
     // ignore loading errors for now
     log::debug!("WC loading state");
     w.state
