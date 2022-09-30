@@ -174,6 +174,7 @@ where
             .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?,
         nonce: Bytes::<12>::from_slice(nonce).unwrap(),
         usage_flags: None,
+        mechanism: None,
     };
 
     let kek = w

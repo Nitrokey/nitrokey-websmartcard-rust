@@ -1,6 +1,6 @@
 use heapless_bytes::{Bytes, Bytes32, Bytes64};
 use serde::{Deserialize, Serialize};
-use trussed::types::{KeyId, Message};
+use trussed::types::{KeyId, Mechanism, Message};
 
 use crate::types::ERROR_ID;
 
@@ -218,7 +218,6 @@ pub struct CommandEmptyRequest {
     pub(crate) tp: ExpectedSessionToken,
 }
 
-pub type CommandGenerateRequest = CommandEmptyRequest;
 pub type CommandLogoutRequest = CommandEmptyRequest;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -226,6 +225,17 @@ pub type CommandLogoutRequest = CommandEmptyRequest;
 pub struct CommandGenerateFromDataRequest {
     /// data to be used for key derivation
     pub(crate) hash: DataBytes,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) tp: ExpectedSessionToken,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "UPPERCASE")]
+pub struct CommandGenerateRequest {
+    /// data to be used for key derivation
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) key_type: Option<i16>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) tp: ExpectedSessionToken,
@@ -408,12 +418,15 @@ pub struct CommandLoginResponse {
 pub(crate) struct KeyHandle {
     pub(crate) appid: Bytes32,
     /// encrypted private key, containing appid info
-    pub(crate) wrapped_private_key: Bytes<384>,
+    pub(crate) wrapped_private_key: Bytes<512>,
     /// nonce for encryption
     pub(crate) nonce: Bytes<12>,
     /// usage flags for key
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) usage_flags: Option<u8>,
+    /// type of the key, default: P256
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) mechanism: Option<Mechanism>,
 }
 
 impl KeyHandle {
@@ -423,5 +436,9 @@ impl KeyHandle {
 
     pub(crate) fn deser(b: Message) -> Self {
         trussed::cbor_deserialize(b.as_slice()).unwrap()
+    }
+
+    pub(crate) fn get_mechanism(&self) -> Mechanism {
+        self.mechanism.unwrap_or(Mechanism::P256)
     }
 }
