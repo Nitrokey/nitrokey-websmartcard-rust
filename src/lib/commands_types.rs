@@ -24,6 +24,7 @@ pub type Bytes40 = Bytes<40>;
 pub type Bytes65 = Bytes<65>;
 pub type Bytes200 = Bytes<200>;
 pub type Bytes250 = Bytes<250>;
+pub type Bytes512 = Bytes<512>;
 pub type DataBytes = Bytes<1024>;
 pub type SessionToken = Bytes32;
 pub type ExpectedSessionToken = Option<SessionToken>;
@@ -31,7 +32,7 @@ pub(crate) type SerializedCredential = trussed::types::Message;
 pub type ResultW<T> = core::result::Result<T, ERROR_ID>;
 
 // TODO move to struct, instead of the type alias
-pub type KeyHandleSerialized = Bytes250;
+pub type KeyHandleSerialized = Bytes512;
 
 #[derive(Clone, Debug, serde_indexed::DeserializeIndexed, serde_indexed::SerializeIndexed)]
 pub struct CredentialData {
@@ -407,7 +408,7 @@ pub struct CommandLoginResponse {
 pub(crate) struct KeyHandle {
     pub(crate) appid: Bytes32,
     /// encrypted private key, containing appid info
-    pub(crate) wrapped_private_key: Bytes<256>,
+    pub(crate) wrapped_private_key: Bytes<384>,
     /// nonce for encryption
     pub(crate) nonce: Bytes<12>,
     /// usage flags for key
@@ -416,7 +417,7 @@ pub(crate) struct KeyHandle {
 }
 
 impl KeyHandle {
-    pub(crate) fn ser(self) -> Bytes200 {
+    pub(crate) fn ser(self) -> KeyHandleSerialized {
         trussed::cbor_serialize_bytes(&self).unwrap()
     }
 
