@@ -3,10 +3,12 @@ extern crate delog;
 
 use delog::log;
 use heapless_bytes::{Bytes, Bytes32};
+use std::path::PathBuf;
 
 use webcrypt::{RequestDetails, RequestSource, Webcrypt};
 
 use crate::udp_server::UDPServer;
+use trussed::types::ClientContext;
 
 generate_macros!();
 
@@ -24,7 +26,13 @@ fn main() -> std::io::Result<()> {
         log::info!("Initializing Trussed");
         let trussed_platform = platform::init_platform("state_file");
         let mut trussed_service = trussed::service::Service::new(trussed_platform);
-        let trussed_client = trussed_service.try_as_new_client("webcrypt").unwrap();
+        // let trussed_client = trussed_service.try_as_new_client("webcrypt").unwrap();
+        let trussed_client = trussed_service
+            .try_as_new_client_ctx(ClientContext::new(
+                littlefs2::path::PathBuf::from("webcrypt"),
+                Some("1234"),
+            ))
+            .unwrap();
         log::info!("Initializing Webcrypt {}", webcrypt::GIT_VERSION);
         let mut w = Webcrypt::new(trussed_client);
         let mut server = UDPServer::new();
