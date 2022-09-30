@@ -24,9 +24,9 @@ use crate::types::ERROR_ID;
 use crate::helpers::hash;
 use crate::openpgp::OpenPGPData;
 use crate::types::ERROR_ID::{
-    ERR_BAD_FORMAT, ERR_BAD_ORIGIN, ERR_FAILED_LOADING_DATA, ERR_NOT_FOUND,
+    ERR_BAD_FORMAT, ERR_BAD_ORIGIN, ERR_FAILED_LOADING_DATA, ERR_INVALID_PIN, ERR_NOT_FOUND,
 };
-use crate::{Message, RequestSource};
+use crate::{Message, RequestSource, DEFAULT_ENCRYPTION_PIN};
 
 type CommandResult = Result<(), ERROR_ID>;
 
@@ -932,9 +932,16 @@ where
 
     // ignore loading errors for now
     log::debug!("WC loading state");
-    w.state
+    let res = w
+        .state
         .load(&mut w.trussed)
-        .map_err(|_| ERR_FAILED_LOADING_DATA)?;
+        // the cause might be in the corrupted storage as well (ERR_FAILED_LOADING_DATA),
+        // but we can't differentiate at this point
+        .map_err(|_| ERR_INVALID_PIN);
+    if res.is_err() {
+        w.state.pin.decrease_counter()?;
+        res?
+    }
 
     let tp = w
         .session
@@ -988,6 +995,9 @@ where
     syscall!(w
         .trussed
         .remove_dir_all(Location::Internal, PathBuf::from("wcrk"),));
+
+    let default_pin = Bytes::from_slice(DEFAULT_ENCRYPTION_PIN.as_ref()).unwrap();
+    try_syscall!(w.trussed.reset_pin(default_pin)).map_err(|_| ERR_INTERNAL_ERROR)?;
 
     // delete persistent state
     // reset PIN
@@ -1043,7 +1053,6 @@ where
 {
     // To decide: same handler for both setting and changing?
 
-    const DEFAULT_ENCRYPTION_PIN: &'static [u8; 4] = b"1234";
     match w.current_command_id {
         SET_PIN => {
             let req: CommandSetPINRequest = w
@@ -1051,13 +1060,12 @@ where
                 .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
             w.state.pin.set_pin(req.pin.clone())?;
 
-            try_syscall!(w
-                .trussed
-                .set_client_context_pin(Bytes::from_slice(DEFAULT_ENCRYPTION_PIN).unwrap()))
-            .unwrap();
-            // .map_err(|_| ERR_INTERNAL_ERROR)?;
-            try_syscall!(w.trussed.change_pin(req.pin.to_bytes().unwrap())).unwrap();
-            // .map_err(|_| ERR_INTERNAL_ERROR)?;
+            try_syscall!(w.trussed.set_client_context_pin(
+                Bytes::from_slice(DEFAULT_ENCRYPTION_PIN.as_ref()).unwrap()
+            ))
+            .map_err(|_| ERR_INTERNAL_ERROR)?;
+            try_syscall!(w.trussed.change_pin(req.pin.to_bytes().unwrap()))
+                .map_err(|_| ERR_INTERNAL_ERROR)?;
 
             w.state.initialize(&mut w.trussed);
             Ok(())

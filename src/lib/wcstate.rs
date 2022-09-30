@@ -45,6 +45,15 @@ impl WebcryptPIN {
         self.counter
     }
 
+    pub fn decrease_counter(&mut self) -> Result<(), ERROR_ID> {
+        if self.counter == 0 {
+            log::info!("Counter PIN used up");
+            return Err(ERR_NOT_ALLOWED);
+        }
+        self.counter -= 1;
+        Ok(())
+    }
+
     pub fn check_pin(&mut self, pin: Bytes64) -> Result<bool, ERROR_ID> {
         if self.pin.is_none() {
             log::info!("PIN not set");
@@ -54,7 +63,8 @@ impl WebcryptPIN {
             log::info!("Counter PIN used up");
             return Err(ERR_NOT_ALLOWED);
         }
-        self.counter -= 1;
+        self.decrease_counter()?;
+
         log::info!("Counter PIN value: {:?}", self.counter);
 
         // TODO use side-channels safe comparison library, e.g. subtle
