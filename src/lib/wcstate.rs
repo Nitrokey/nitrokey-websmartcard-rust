@@ -335,7 +335,7 @@ impl WebcryptState {
         try_syscall!(t.write_file(
             Location::Internal,
             PathBuf::from(STATE_FILE_PATH),
-            self.serialize(),
+            Bytes::from_slice(self.serialize().as_slice()).unwrap(),
             None,
         ))
         .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)

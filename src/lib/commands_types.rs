@@ -25,7 +25,7 @@ pub type Bytes65 = Bytes<65>;
 pub type Bytes200 = Bytes<200>;
 pub type Bytes250 = Bytes<250>;
 pub type Bytes512 = Bytes<512>;
-pub type DataBytes = Bytes<1024>;
+pub type DataBytes = Bytes<1500>;
 pub type SessionToken = Bytes32;
 pub type ExpectedSessionToken = Option<SessionToken>;
 pub(crate) type SerializedCredential = trussed::types::Message;
@@ -318,7 +318,7 @@ pub type CommandWriteResidentKeyResponse = CommandGenerateResidentKeyResponse;
 #[serde(rename_all = "UPPERCASE")]
 pub struct CommandGenerateResidentKeyResponse {
     /// resulting public key
-    pub(crate) pubkey: Bytes65,
+    pub(crate) pubkey: Message,
 
     /// key handle, should be less than 200 bytes
     /// should contain short KH, with the type==RK

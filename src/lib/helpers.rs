@@ -22,7 +22,7 @@ where
     use trussed::types::Mechanism;
     let hash = syscall!(trussed.hash(
         Mechanism::Sha256,
-        Message::from_slice(data.as_slice()).unwrap()
+        Bytes::from_slice(data.as_slice()).unwrap()
     ))
     .hash;
     Bytes32::from_slice(hash.as_slice()).unwrap()

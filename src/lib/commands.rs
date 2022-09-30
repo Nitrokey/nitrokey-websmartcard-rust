@@ -611,7 +611,7 @@ where
     syscall!(w.trussed.delete(agreed_shared_secret_id));
 
     w.send_to_output(CommandOpenPGPDecryptResponse {
-        data: serialized_shared_secret.serialized_key,
+        data: Bytes::from_slice(serialized_shared_secret.serialized_key.as_slice()).unwrap(),
     });
 
     Ok(())
@@ -762,7 +762,9 @@ where
     syscall!(w.trussed.delete(serialized_reimported));
     syscall!(w.trussed.delete(ephem_pub_bin_key));
 
-    w.send_to_output(CommandDecryptResponse { data: decrypted });
+    w.send_to_output(CommandDecryptResponse {
+        data: Bytes::from_slice(decrypted.as_slice()).unwrap(),
+    });
 
     Ok(())
 }
@@ -893,7 +895,7 @@ where
     syscall!(w.trussed.delete(public_key));
 
     w.send_to_output({
-        let mut pubkey = Bytes65::from_slice(serialized_raw_public_key.as_slice()).unwrap();
+        let mut pubkey = Message::from_slice(serialized_raw_public_key.as_slice()).unwrap();
         // add identifier for uncompressed form - 0x04
         pubkey
             .insert(0, 0x04)
@@ -1200,7 +1202,7 @@ where
     syscall!(w.trussed.delete(public_key));
 
     w.send_to_output({
-        let mut pubkey = Bytes65::from_slice(serialized_raw_public_key.as_slice()).unwrap();
+        let mut pubkey = Message::from_slice(serialized_raw_public_key.as_slice()).unwrap();
         // add identifier for uncompressed form - 0x04
         pubkey.insert(0, 0x04).map_err(|_| ERR_INTERNAL_ERROR)?;
         CommandWriteResidentKeyResponse {
@@ -1292,7 +1294,7 @@ where
     syscall!(w.trussed.delete(public_key));
 
     w.send_to_output({
-        let mut pubkey = Bytes65::from_slice(serialized_raw_public_key.as_slice()).unwrap();
+        let mut pubkey = Message::from_slice(serialized_raw_public_key.as_slice()).unwrap();
         // add identifier for uncompressed form - 0x04
         pubkey.insert(0, 0x04).map_err(|_| ERR_INTERNAL_ERROR)?;
         CommandGenerateResidentKeyResponse {
