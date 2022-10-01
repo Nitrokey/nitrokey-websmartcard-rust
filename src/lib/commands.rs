@@ -218,26 +218,7 @@ where
         return Err(ERR_FAILED_LOADING_DATA);
     }
 
-    let (key, mechanism, keyhandle_points_to_RK) = if req.keyhandle.len() > 32 {
-        // invalid keyhandle or lack of memory
-        let (keyid, mechanism) = import_key_from_keyhandle(w, &req.keyhandle)?;
-        (keyid, mechanism, false)
-    } else {
-        // this is RK
-        let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
-        let cred_data = try_syscall!(w.trussed.read_file(
-            Location::Internal,
-            rk_path(
-                rp_id_hash,
-                &Bytes32::from_slice(req.keyhandle.as_slice()).unwrap()
-            )
-        ))
-        .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)?
-        .data;
-        let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
-        let mech = cred_to_mechanism(&cred);
-        (cred.key_id, mech, true)
-    };
+    let (key, mechanism, keyhandle_points_to_RK) = get_key_from_keyhandle(w, req.keyhandle)?;
 
     let signature = match mechanism {
         Mechanism::P256 => {
@@ -272,6 +253,47 @@ where
     });
 
     Ok(())
+}
+
+fn get_key_from_keyhandle<C>(
+    w: &mut Webcrypt<C>,
+    keyhandle: KeyHandleSerialized,
+) -> ResultW<(KeyId, Mechanism, bool)>
+where
+    C: trussed::Client
+        + client::Client
+        + client::Rsa2kPkcs
+        + client::P256
+        + client::Aes256Cbc
+        + client::HmacSha256
+        + client::HmacSha256P256
+        + client::Sha256
+        + client::Chacha8Poly1305,
+{
+    let res = if keyhandle.len() > 32 {
+        // invalid keyhandle or lack of memory
+        let (keyid, mechanism) = import_key_from_keyhandle(w, &keyhandle)?;
+        (keyid, mechanism, false)
+    } else {
+        if keyhandle.len() == 0 {
+            return Err(ERR_BAD_FORMAT);
+        }
+        // this is RK
+        let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
+        let cred_data = try_syscall!(w.trussed.read_file(
+            Location::Internal,
+            rk_path(
+                rp_id_hash,
+                &Bytes32::from_slice(keyhandle.as_slice()).unwrap()
+            )
+        ))
+        .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)?
+        .data;
+        let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
+        let mech = cred_to_mechanism(&cred);
+        (cred.key_id, mech, true)
+    };
+    Ok(res)
 }
 
 fn cred_to_mechanism(cred: &CredentialData) -> Mechanism {
@@ -552,14 +574,14 @@ where
     // TODO find via provided fingerprint if not, get from openpgp info struct, or use the first one
     // Currently check for the exact match of the held openpgp keys and their fingerprints
     // if provided, use keyhandle or just default encryption key
-    let (kh_key, mech) = if req.fingerprint.is_none() && req.keyhandle.is_none() {
+    let (kh_key, mech, is_rk) = if req.fingerprint.is_none() && req.keyhandle.is_none() {
         let open_pgpkey = &w
             .state
             .openpgp_data
             .as_ref()
             .ok_or(ERR_FAILED_LOADING_DATA)?
             .encryption;
-        (open_pgpkey.key, open_pgpkey.key_mechanism)
+        (open_pgpkey.key, open_pgpkey.key_mechanism, true)
     } else if req.fingerprint.is_some() {
         (
             w.state
@@ -575,32 +597,13 @@ where
                 )
                 .ok_or(ERR_NOT_FOUND)?,
             Mechanism::P256,
+            true,
         )
     } else {
         let keyhandle = req.keyhandle.unwrap();
         // regular keyhandle unpacking below
         // TODO remove duplication / extract unpacking
-        if keyhandle.len() > 32 {
-            import_key_from_keyhandle(w, &keyhandle)?
-        } else {
-            let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
-            let cred_data = try_syscall!(w.trussed.read_file(
-                Location::Internal,
-                rk_path(
-                    rp_id_hash,
-                    &Bytes32::from_slice(keyhandle.as_slice()).unwrap()
-                )
-            ))
-            .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)?
-            .data;
-            let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
-            let mech = match cred.algorithm {
-                0 => Mechanism::P256,
-                1 => Mechanism::Rsa2kPkcs,
-                _ => Mechanism::P256,
-            };
-            (cred.key_id, mech)
-        }
+        get_key_from_keyhandle(w, keyhandle)?
     };
 
     let agreed_shared_secret_id = {
@@ -677,25 +680,7 @@ where
         .check_token_res(req.tp.clone().unwrap())
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
 
-    // TODO extract common key loading procedure
-    let ((kh_key, mech), is_rk) = if req.keyhandle.len() > 32 {
-        (import_key_from_keyhandle(w, &req.keyhandle)?, false)
-    } else {
-        let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
-        let cred_data = try_syscall!(w.trussed.read_file(
-            Location::Internal,
-            rk_path(
-                rp_id_hash,
-                &Bytes32::from_slice(req.keyhandle.as_slice()).unwrap()
-            )
-        ))
-        .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)?
-        .data;
-        let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
-        let mech = cred_to_mechanism(&cred);
-
-        ((cred.key_id, mech), true)
-    };
+    let (kh_key, mech, is_rk) = get_key_from_keyhandle(w, req.keyhandle.clone())?;
 
     let decrypted = match mech {
         Mechanism::P256 => decrypt_ecc_p256(w, req, kh_key),
@@ -951,25 +936,11 @@ where
         .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     log::debug!("WC cmd_read_resident_key_public {:?}", req);
     w.session
-        .check_token_res(req.tp.unwrap())
+        .check_token_res(req.tp.clone().unwrap())
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
 
     // Get private keyid
-    let (private_key, mech) = {
-        let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
-        let cred_data = try_syscall!(w.trussed.read_file(
-            Location::Internal,
-            rk_path(
-                rp_id_hash,
-                &Bytes32::from_slice(req.keyhandle.as_slice()).unwrap()
-            )
-        ))
-        .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)? // TODO Change to ERR_FAILED_LOADING_DATA
-        .data;
-        let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
-        let mech = cred_to_mechanism(&cred);
-        (cred.key_id, mech)
-    };
+    let (private_key, mech, is_rk) = get_key_from_keyhandle(w, req.keyhandle.clone())?;
 
     let kind = match mech {
         Mechanism::P256 => Kind::P256,
@@ -979,7 +950,10 @@ where
     let (public_key, serialized_raw_public_key) = get_public_key(w, kind, private_key)?;
 
     syscall!(w.trussed.delete(public_key));
-
+    if !is_rk {
+        // FIXME introduce types to distinct derived and resident keys
+        syscall!(w.trussed.delete(private_key));
+    }
     w.send_to_output({
         let mut pubkey = Message::from_slice(serialized_raw_public_key.as_slice()).unwrap();
         if kind == Kind::P256 {
@@ -1296,7 +1270,7 @@ where
         }
         CommandWriteResidentKeyResponse {
             pubkey,
-            keyhandle: credential_id_hash,
+            keyhandle: Bytes::from_slice(credential_id_hash.as_slice()).unwrap(),
         }
     });
 
@@ -1414,7 +1388,7 @@ where
         pubkey.insert(0, 0x04).map_err(|_| ERR_INTERNAL_ERROR)?;
         CommandGenerateResidentKeyResponse {
             pubkey,
-            keyhandle: credential_id_hash,
+            keyhandle: Bytes::from_slice(credential_id_hash.as_slice()).unwrap(),
         }
     });
 

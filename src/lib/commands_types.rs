@@ -328,7 +328,7 @@ pub struct CommandGenerateResidentKeyResponse {
     /// key handle, should be less than 200 bytes
     /// should contain short KH, with the type==RK
     // pub(crate) keyhandle: KeyHandleSerialized,
-    pub(crate) keyhandle: Bytes32,
+    pub(crate) keyhandle: KeyHandleSerialized,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -357,7 +357,7 @@ pub struct CommandDiscoverResidentKeyResponse {
 pub struct CommandReadResidentKeyRequest {
     /// key handle, should be less than 200 bytes
     /// should contain short KH, with the type==RK
-    pub(crate) keyhandle: Bytes32,
+    pub(crate) keyhandle: KeyHandleSerialized,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) tp: ExpectedSessionToken,
