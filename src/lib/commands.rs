@@ -674,17 +674,10 @@ where
 
     let req: CommandDecryptRequest = req.map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     w.session
-        .check_token_res(req.tp.unwrap())
+        .check_token_res(req.tp.clone().unwrap())
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
 
-    if !(req.keyhandle.len() > 0
-        && req.eccekey.len() > 0
-        && req.data.len() > 0
-        && req.hmac.len() > 0)
-    {
-        return Err(ERR_BAD_FORMAT);
-    }
-
+    // TODO extract common key loading procedure
     let (kh_key, mech) = if req.keyhandle.len() > 32 {
         import_key_from_keyhandle(w, &req.keyhandle)?
     } else {
@@ -699,15 +692,70 @@ where
         .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)?
         .data;
         let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
-
-        let mech = match cred.algorithm {
-            0 => Mechanism::P256,
-            1 => Mechanism::Rsa2kPkcs,
-            _ => Mechanism::P256,
-        };
+        let mech = cred_to_mechanism(&cred);
 
         (cred.key_id, mech)
     };
+
+    let decrypted = match mech {
+        Mechanism::P256 => decrypt_ecc_p256(w, req, kh_key),
+        Mechanism::Rsa2kPkcs => decrypt_rsa(w, req, kh_key),
+        _ => Err(ERR_INTERNAL_ERROR),
+    }?;
+
+    w.send_to_output(CommandDecryptResponse {
+        data: Bytes::from_slice(decrypted.as_slice()).unwrap(),
+    });
+
+    Ok(())
+}
+
+fn decrypt_rsa<C>(
+    w: &mut Webcrypt<C>,
+    req: CommandDecryptRequest,
+    kh_key: KeyId,
+) -> ResultW<Message>
+where
+    C: trussed::Client
+        + client::Client
+        + client::Rsa2kPkcs
+        + client::P256
+        + client::Aes256Cbc
+        + client::HmacSha256
+        + client::HmacSha256P256
+        + client::Sha256
+        + client::Chacha8Poly1305,
+{
+    if !(req.keyhandle.len() > 0 && req.data.len() > 0 && req.hmac.len() > 0) {
+        return Err(ERR_BAD_FORMAT);
+    }
+
+    Ok(Default::default())
+}
+
+fn decrypt_ecc_p256<C>(
+    w: &mut Webcrypt<C>,
+    req: CommandDecryptRequest,
+    kh_key: KeyId,
+) -> ResultW<Message>
+where
+    C: trussed::Client
+        + client::Client
+        + client::Rsa2kPkcs
+        + client::P256
+        + client::Aes256Cbc
+        + client::HmacSha256
+        + client::HmacSha256P256
+        + client::Sha256
+        + client::Chacha8Poly1305,
+{
+    if !(req.keyhandle.len() > 0
+        && req.eccekey.len() > 0
+        && req.data.len() > 0
+        && req.hmac.len() > 0)
+    {
+        return Err(ERR_BAD_FORMAT);
+    }
 
     let ecc_key: Vec<u8, 64> = match req.eccekey.len() {
         65 => Vec::<u8, 64>::from_slice(&req.eccekey[1..65]).unwrap(),
@@ -803,12 +851,7 @@ where
     syscall!(w.trussed.delete(shared_secret));
     syscall!(w.trussed.delete(serialized_reimported));
     syscall!(w.trussed.delete(ephem_pub_bin_key));
-
-    w.send_to_output(CommandDecryptResponse {
-        data: Bytes::from_slice(decrypted.as_slice()).unwrap(),
-    });
-
-    Ok(())
+    Ok(decrypted)
 }
 
 pub fn cmd_generate_key_from_data<C>(w: &mut Webcrypt<C>) -> CommandResult
