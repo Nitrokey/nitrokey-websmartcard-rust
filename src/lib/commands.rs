@@ -270,14 +270,15 @@ where
         + client::Sha256
         + client::Chacha8Poly1305,
 {
+    if keyhandle.len() == 0 {
+        return Err(ERR_BAD_FORMAT);
+    }
+
     let res = if keyhandle.len() > 32 {
         // invalid keyhandle or lack of memory
         let (keyid, mechanism) = import_key_from_keyhandle(w, &keyhandle)?;
         (keyid, mechanism, false)
     } else {
-        if keyhandle.len() == 0 {
-            return Err(ERR_BAD_FORMAT);
-        }
         // this is RK
         let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
         let cred_data = try_syscall!(w.trussed.read_file(
@@ -716,7 +717,11 @@ where
         + client::Sha256
         + client::Chacha8Poly1305,
 {
-    if !(req.keyhandle.len() > 0 && req.data.len() > 0 && req.hmac.len() > 0) {
+    if !(req.keyhandle.len() > 0
+        && req.data.len() > 0
+        && req.hmac.is_none()
+        && req.eccekey.is_none())
+    {
         return Err(ERR_BAD_FORMAT);
     }
     // TODO HMAC?
@@ -748,17 +753,19 @@ where
         + client::Sha256
         + client::Chacha8Poly1305,
 {
+    let req_eccekey = req.eccekey.ok_or(ERR_BAD_FORMAT)?;
+    let req_hmac = req.hmac.ok_or(ERR_BAD_FORMAT)?;
     if !(req.keyhandle.len() > 0
-        && req.eccekey.len() > 0
+        && req_eccekey.len() > 0
         && req.data.len() > 0
-        && req.hmac.len() > 0)
+        && req_hmac.len() > 0)
     {
         return Err(ERR_BAD_FORMAT);
     }
 
-    let ecc_key: Vec<u8, 64> = match req.eccekey.len() {
-        65 => Vec::<u8, 64>::from_slice(&req.eccekey[1..65]).unwrap(),
-        64 => Vec::<u8, 64>::from_slice(&req.eccekey[0..64]).unwrap(),
+    let ecc_key: Vec<u8, 64> = match req_eccekey.len() {
+        65 => Vec::<u8, 64>::from_slice(&req_eccekey[1..65]).unwrap(),
+        64 => Vec::<u8, 64>::from_slice(&req_eccekey[0..64]).unwrap(),
         _ => return Err(ERR_FAILED_LOADING_DATA),
     };
 
@@ -789,7 +796,7 @@ where
     let encoded_ciphertext_len: [u8; 2] = (req.data.len() as u16).to_le_bytes();
     let mut data_to_hmac = Message::new(); // FIXME check length
     data_to_hmac.extend(req.data.clone());
-    data_to_hmac.extend(req.eccekey);
+    data_to_hmac.extend(req_eccekey);
     data_to_hmac.extend(encoded_ciphertext_len);
     data_to_hmac.extend(req.keyhandle);
 
@@ -802,7 +809,7 @@ where
     .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
     .signature;
 
-    let hmac_correct = calculated_hmac == req.hmac;
+    let hmac_correct = calculated_hmac == req_hmac;
     if !hmac_correct {
         // abort decryption on invalid hmac value
         return Err(ERROR_ID::ERR_INVALID_CHECKSUM);

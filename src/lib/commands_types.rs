@@ -191,11 +191,13 @@ pub struct CommandDecryptRequest {
     /// data to decrypt
     pub(crate) data: DataBytes,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
     /// ciphertext's hmac
-    pub(crate) hmac: DataBytes,
+    pub(crate) hmac: Option<DataBytes>,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
     /// ephemeral ecc encryption key
-    pub(crate) eccekey: DataBytes,
+    pub(crate) eccekey: Option<DataBytes>,
 
     /// key handle, should be less than 200 bytes
     pub(crate) keyhandle: KeyHandleSerialized,
