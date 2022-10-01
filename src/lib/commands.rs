@@ -678,8 +678,8 @@ where
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
 
     // TODO extract common key loading procedure
-    let (kh_key, mech) = if req.keyhandle.len() > 32 {
-        import_key_from_keyhandle(w, &req.keyhandle)?
+    let ((kh_key, mech), is_rk) = if req.keyhandle.len() > 32 {
+        (import_key_from_keyhandle(w, &req.keyhandle)?, false)
     } else {
         let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
         let cred_data = try_syscall!(w.trussed.read_file(
@@ -694,7 +694,7 @@ where
         let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
         let mech = cred_to_mechanism(&cred);
 
-        (cred.key_id, mech)
+        ((cred.key_id, mech), true)
     };
 
     let decrypted = match mech {
@@ -702,6 +702,11 @@ where
         Mechanism::Rsa2kPkcs => decrypt_rsa(w, req, kh_key),
         _ => Err(ERR_INTERNAL_ERROR),
     }?;
+
+    if !is_rk {
+        // FIXME introduce types to distinct derived and resident keys
+        syscall!(w.trussed.delete(kh_key));
+    }
 
     w.send_to_output(CommandDecryptResponse {
         data: Bytes::from_slice(decrypted.as_slice()).unwrap(),
@@ -729,8 +734,17 @@ where
     if !(req.keyhandle.len() > 0 && req.data.len() > 0 && req.hmac.len() > 0) {
         return Err(ERR_BAD_FORMAT);
     }
+    // TODO HMAC?
 
-    Ok(Default::default())
+    let decrypted = try_syscall!(w.trussed.decrypt_rsa2kpkcs(kh_key, &req.data))
+        .map_err(|e| {
+            log::error!("Decryption error: {:?}", e);
+            ERROR_ID::ERR_FAILED_LOADING_DATA
+        })?
+        .plaintext
+        .ok_or(ERR_INTERNAL_ERROR)?;
+
+    Ok(decrypted)
 }
 
 fn decrypt_ecc_p256<C>(
@@ -847,7 +861,6 @@ where
     .plaintext
     .ok_or(ERR_INTERNAL_ERROR)?;
 
-    syscall!(w.trussed.delete(kh_key));
     syscall!(w.trussed.delete(shared_secret));
     syscall!(w.trussed.delete(serialized_reimported));
     syscall!(w.trussed.delete(ephem_pub_bin_key));
