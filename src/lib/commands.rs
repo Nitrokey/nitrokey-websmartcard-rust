@@ -235,11 +235,7 @@ where
         .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)?
         .data;
         let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
-        let mech = match cred.algorithm {
-            0 => Mechanism::P256,
-            1 => Mechanism::Rsa2kPkcs,
-            _ => Mechanism::P256,
-        };
+        let mech = cred_to_mechanism(&cred);
         (cred.key_id, mech, true)
     };
 
@@ -276,6 +272,15 @@ where
     });
 
     Ok(())
+}
+
+fn cred_to_mechanism(cred: &CredentialData) -> Mechanism {
+    let mech = match cred.algorithm {
+        0 => Mechanism::P256,
+        1 => Mechanism::Rsa2kPkcs,
+        _ => Mechanism::P256,
+    };
+    mech
 }
 
 fn import_key_from_keyhandle<C>(
@@ -894,7 +899,7 @@ where
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
 
     // Get private keyid
-    let private_key = {
+    let (private_key, mech) = {
         let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
         let cred_data = try_syscall!(w.trussed.read_file(
             Location::Internal,
@@ -906,40 +911,28 @@ where
         .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)? // TODO Change to ERR_FAILED_LOADING_DATA
         .data;
         let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
-        cred.key_id
+        let mech = cred_to_mechanism(&cred);
+        (cred.key_id, mech)
     };
 
-    let public_key = try_syscall!(w
-        .trussed
-        .derive_p256_public_key(private_key, Location::Volatile))
-    .map_err(|_| ERROR_ID::ERR_NOT_FOUND)?
-    .key;
-
-    // generate keyhandle for the reply
-    let cred = CredentialData::new(private_key);
-    let serialized_credential = cred.serialize()?;
-    let credential_id_hash = syscall!(w.trussed.hash_sha256(serialized_credential.as_slice()))
-        .hash
-        .to_bytes()
-        .unwrap();
-
-    // public key preparation
-    let serialized_raw_public_key = syscall!(w
-        .trussed
-        .serialize_p256_key(public_key, KeySerialization::Raw))
-    .serialized_key;
+    let kind = match mech {
+        Mechanism::P256 => Kind::P256,
+        Mechanism::Rsa2kPkcs => Kind::Rsa2k,
+        _ => todo!(),
+    };
+    let (public_key, serialized_raw_public_key) = get_public_key(w, kind, private_key)?;
 
     syscall!(w.trussed.delete(public_key));
 
     w.send_to_output({
         let mut pubkey = Message::from_slice(serialized_raw_public_key.as_slice()).unwrap();
-        // add identifier for uncompressed form - 0x04
-        pubkey
-            .insert(0, 0x04)
-            .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?;
+        if kind == Kind::P256 {
+            // add identifier for uncompressed form - 0x04
+            pubkey.insert(0, 0x04).map_err(|_| ERR_INTERNAL_ERROR)?;
+        }
         CommandGenerateResidentKeyResponse {
             pubkey,
-            keyhandle: credential_id_hash,
+            keyhandle: req.keyhandle,
         }
     });
 
@@ -1201,16 +1194,7 @@ where
 
     // write private key
 
-    let kind = {
-        match req.key_type {
-            None => Kind::P256,
-            Some(kind) => match kind {
-                0 => Kind::P256,
-                1 => Kind::Rsa2k,
-                _ => Kind::P256,
-            },
-        }
-    };
+    let kind = keytype_to_kind(&req.key_type);
 
     let private_key = try_syscall!(w.trussed.unsafe_inject_shared_key(
         req.raw_key_data.as_slice(),
@@ -1244,6 +1228,44 @@ where
     .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)?;
 
     // get public key
+    let (public_key, serialized_raw_public_key) = get_public_key(w, kind, private_key)?;
+
+    syscall!(w.trussed.delete(public_key));
+
+    w.send_to_output({
+        let mut pubkey = Message::from_slice(serialized_raw_public_key.as_slice()).unwrap();
+        if kind == Kind::P256 {
+            // add identifier for uncompressed form - 0x04
+            pubkey.insert(0, 0x04).map_err(|_| ERR_INTERNAL_ERROR)?;
+        }
+        CommandWriteResidentKeyResponse {
+            pubkey,
+            keyhandle: credential_id_hash,
+        }
+    });
+
+    Ok(())
+}
+
+fn keytype_to_kind(key_type: &KeyType) -> Kind {
+    match key_type {
+        None => Kind::P256,
+        Some(kind) => match kind {
+            0 => Kind::P256,
+            1 => Kind::Rsa2k,
+            _ => Kind::P256,
+        },
+    }
+}
+
+fn get_public_key<C>(
+    w: &mut Webcrypt<C>,
+    kind: Kind,
+    private_key: KeyId,
+) -> ResultW<(KeyId, Message)>
+where
+    C: trussed::Client + client::Client + client::Rsa2kPkcs + client::P256,
+{
     let (public_key, serialized_raw_public_key) = match kind {
         Kind::P256 => {
             let public_key = try_syscall!(w
@@ -1263,27 +1285,15 @@ where
                 .trussed
                 .derive_rsa2kpkcs_public_key(private_key, Location::Volatile))
             .key;
-            let serialized_key =
-                syscall!(w.trussed.serialize_rsa2kpkcs_key(pk, KeySerialization::Raw))
-                    .serialized_key;
+            let serialized_key = syscall!(w
+                .trussed
+                .serialize_rsa2kpkcs_key(pk, KeySerialization::RsaPkcs1))
+            .serialized_key;
             (pk, serialized_key)
         }
         _ => todo!(),
     };
-
-    syscall!(w.trussed.delete(public_key));
-
-    w.send_to_output({
-        let mut pubkey = Message::from_slice(serialized_raw_public_key.as_slice()).unwrap();
-        // add identifier for uncompressed form - 0x04
-        pubkey.insert(0, 0x04).map_err(|_| ERR_INTERNAL_ERROR)?;
-        CommandWriteResidentKeyResponse {
-            pubkey,
-            keyhandle: credential_id_hash,
-        }
-    });
-
-    Ok(())
+    Ok((public_key, serialized_raw_public_key))
 }
 
 pub fn cmd_generate_resident_key<C>(w: &mut Webcrypt<C>) -> CommandResult
