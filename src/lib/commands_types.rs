@@ -84,7 +84,7 @@ pub struct CommandSignResponse {
     pub(crate) inhash: Bytes32,
 
     /// signature, should be less than 100 bytes
-    pub(crate) signature: Bytes200,
+    pub(crate) signature: Message,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

@@ -218,9 +218,10 @@ where
         return Err(ERR_FAILED_LOADING_DATA);
     }
 
-    let (key, keyhandle_points_to_RK) = if req.keyhandle.len() > 32 {
+    let (key, mechanism, keyhandle_points_to_RK) = if req.keyhandle.len() > 32 {
         // invalid keyhandle or lack of memory
-        (import_key_from_keyhandle(w, &req.keyhandle)?, false)
+        let (keyid, mechanism) = import_key_from_keyhandle(w, &req.keyhandle)?;
+        (keyid, mechanism, false)
     } else {
         // this is RK
         let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
@@ -234,16 +235,33 @@ where
         .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)?
         .data;
         let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
-        (cred.key_id, true)
+        let mech = match cred.algorithm {
+            0 => Mechanism::P256,
+            1 => Mechanism::Rsa2kPkcs,
+            _ => Mechanism::P256,
+        };
+        (cred.key_id, mech, true)
     };
 
-    let signature = syscall!(w.trussed.sign(
-        Mechanism::P256,
-        key,
-        req.hash.as_slice(),
-        SignatureSerialization::Raw
-    ))
-    .signature;
+    let signature = match mechanism {
+        Mechanism::P256 => {
+            syscall!(w.trussed.sign(
+                Mechanism::P256,
+                key,
+                req.hash.as_slice(),
+                SignatureSerialization::Raw
+            ))
+            .signature
+        }
+        Mechanism::Rsa2kPkcs => {
+            let digest_to_sign = req.hash.as_slice();
+            syscall!(w.trussed.sign_rsa2kpkcs(key, &digest_to_sign)).signature
+        }
+        _ => {
+            todo!()
+        }
+    };
+
     let signature = signature.to_bytes().expect("Too small target buffer");
 
     if !keyhandle_points_to_RK {
@@ -263,7 +281,7 @@ where
 fn import_key_from_keyhandle<C>(
     w: &mut Webcrypt<C>,
     encrypted_serialized_keyhandle: &KeyHandleSerialized,
-) -> Result<KeyId, ERROR_ID>
+) -> Result<(KeyId, Mechanism), ERROR_ID>
 where
     C: trussed::Client
         + client::Client
@@ -321,7 +339,10 @@ where
     ))
     .key
     .unwrap();
-    Ok(key)
+
+    let m = key_handle.mechanism.unwrap_or(Mechanism::P256);
+
+    Ok((key, m))
 }
 
 pub fn cmd_openpgp_generate<C>(w: &mut Webcrypt<C>) -> CommandResult
@@ -526,26 +547,30 @@ where
     // TODO find via provided fingerprint if not, get from openpgp info struct, or use the first one
     // Currently check for the exact match of the held openpgp keys and their fingerprints
     // if provided, use keyhandle or just default encryption key
-    let kh_key = if req.fingerprint.is_none() && req.keyhandle.is_none() {
-        w.state
+    let (kh_key, mech) = if req.fingerprint.is_none() && req.keyhandle.is_none() {
+        let open_pgpkey = &w
+            .state
             .openpgp_data
             .as_ref()
             .ok_or(ERR_FAILED_LOADING_DATA)?
-            .encryption
-            .key
+            .encryption;
+        (open_pgpkey.key, open_pgpkey.key_mechanism)
     } else if req.fingerprint.is_some() {
-        w.state
-            .openpgp_data
-            .as_ref()
-            .ok_or(ERR_NOT_FOUND)?
-            .get_id_by_fingerprint(
-                req.fingerprint
-                    .unwrap()
-                    .as_slice()
-                    .try_into()
-                    .map_err(|_| ERR_FAILED_LOADING_DATA)?,
-            )
-            .ok_or(ERR_NOT_FOUND)?
+        (
+            w.state
+                .openpgp_data
+                .as_ref()
+                .ok_or(ERR_NOT_FOUND)?
+                .get_id_by_fingerprint(
+                    req.fingerprint
+                        .unwrap()
+                        .as_slice()
+                        .try_into()
+                        .map_err(|_| ERR_FAILED_LOADING_DATA)?,
+                )
+                .ok_or(ERR_NOT_FOUND)?,
+            Mechanism::P256,
+        )
     } else {
         let keyhandle = req.keyhandle.unwrap();
         // regular keyhandle unpacking below
@@ -564,7 +589,12 @@ where
             .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)?
             .data;
             let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
-            cred.key_id
+            let mech = match cred.algorithm {
+                0 => Mechanism::P256,
+                1 => Mechanism::Rsa2kPkcs,
+                _ => Mechanism::P256,
+            };
+            (cred.key_id, mech)
         }
     };
 
@@ -650,7 +680,7 @@ where
         return Err(ERR_BAD_FORMAT);
     }
 
-    let kh_key = if req.keyhandle.len() > 32 {
+    let (kh_key, mech) = if req.keyhandle.len() > 32 {
         import_key_from_keyhandle(w, &req.keyhandle)?
     } else {
         let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
@@ -664,7 +694,14 @@ where
         .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)?
         .data;
         let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
-        cred.key_id
+
+        let mech = match cred.algorithm {
+            0 => Mechanism::P256,
+            1 => Mechanism::Rsa2kPkcs,
+            _ => Mechanism::P256,
+        };
+
+        (cred.key_id, mech)
     };
 
     let ecc_key: Vec<u8, 64> = match req.eccekey.len() {
@@ -1185,7 +1222,12 @@ where
 
     // write file
 
-    let cred = CredentialData::new(private_key);
+    let cred = CredentialData {
+        key_id: private_key,
+        algorithm: req.key_type.unwrap_or(0) as i32,
+        creation_time: 0,
+        allowed_use: 0,
+    };
     let serialized_credential = cred.serialize()?;
 
     let credential_id_hash = syscall!(w.trussed.hash_sha256(serialized_credential.as_slice()))
