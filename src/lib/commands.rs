@@ -1317,29 +1317,6 @@ where
         .check_token_res(req.tp.unwrap())
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
 
-    // writing RKs
-    //
-    // if rk_requested {
-    //     // serialization with all metadata
-    //     let serialized_credential = credential.serialize()?;
-    //
-    //     // first delete any other RK cred with same RP + UserId if there is one.
-    //     self.delete_resident_key_by_user_id(&rp_id_hash, &credential.user.id)
-    //         .ok();
-    //
-    //     // then store key, making it resident
-    //     let credential_id_hash = self.hash(credential_id.0.as_ref());
-    //     try_syscall!(self.trussed.write_file(
-    //             Location::Internal,
-    //             rk_path(&rp_id_hash, &credential_id_hash),
-    //             serialized_credential,
-    //             // user attribute for later easy lookup
-    //             // Some(rp_id_hash.clone()),
-    //             None,
-    //         ))
-    //         .map_err(|_| Error::KeyStoreFull)?;
-    // }
-
     // Generate a new P256 key pair.
     // Can fail with FilesystemWriteFailure, if the full capacity is reached
     let private_key = syscall!(w.trussed.generate_p256_private_key(Location::Internal)).key;
