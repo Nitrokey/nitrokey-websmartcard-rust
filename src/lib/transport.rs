@@ -151,6 +151,10 @@ where
         let offset_right = offset + cmd.this_chunk_length as usize;
         let offset_right_clamp = min(offset_right, self.WC_OUTPUT_BUFFER.len() as usize);
 
+        if self.WC_OUTPUT_BUFFER.len() == 0 {
+            log::error!("No data available for read in the output buffer");
+        }
+
         if offset >= self.WC_OUTPUT_BUFFER.len() {
             log::error!(
                 "Requested offset bigger than available buffer length: {} > {}",

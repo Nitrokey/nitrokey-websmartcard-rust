@@ -463,12 +463,13 @@ where
         w.state.save(&mut w.trussed);
     }
 
-    let signature = syscall!(w.trussed.sign(
+    let signature = try_syscall!(w.trussed.sign(
         Mechanism::P256,
         w.state.openpgp_data.as_ref().unwrap().signing.key,
         req.data.as_slice(),
         SignatureSerialization::Raw
     ))
+    .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
     .signature;
     let signature = signature.to_bytes().expect("Too small target buffer");
 
