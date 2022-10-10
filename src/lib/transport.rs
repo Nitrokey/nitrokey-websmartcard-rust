@@ -152,7 +152,11 @@ where
         let offset_right_clamp = min(offset_right, self.WC_OUTPUT_BUFFER.len() as usize);
 
         if offset >= self.WC_OUTPUT_BUFFER.len() {
-            log::error!("Requested offset bigger than available buffer length");
+            log::error!(
+                "Requested offset bigger than available buffer length: {} > {}",
+                offset,
+                self.WC_OUTPUT_BUFFER.len()
+            );
             return ERROR_ID::ERR_FAILED_LOADING_DATA;
         }
 
