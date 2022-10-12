@@ -203,6 +203,11 @@ impl WebcryptState {
     {
         log::info!("Resetting state");
         self.pin = Default::default();
+        if let Some(x) = &self.openpgp_data {
+            if let Err(e) = x.clear(t) {
+                log::error!("Failed resetting state: {:?}", e);
+            }
+        }
         self.openpgp_data = None;
         self.initialize(t);
     }
