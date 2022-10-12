@@ -469,7 +469,10 @@ where
         req.data.as_slice(),
         SignatureSerialization::Raw
     ))
-    .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
+    .map_err(|e| {
+        log::error!("Signing error: {:?}", e);
+        ERROR_ID::ERR_FAILED_LOADING_DATA
+    })?
     .signature;
     let signature = signature.to_bytes().expect("Too small target buffer");
 

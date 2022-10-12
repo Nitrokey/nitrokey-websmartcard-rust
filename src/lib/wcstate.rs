@@ -203,6 +203,7 @@ impl WebcryptState {
     {
         log::info!("Resetting state");
         self.pin = Default::default();
+        self.openpgp_data = None;
         self.initialize(t);
     }
 
