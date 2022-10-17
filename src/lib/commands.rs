@@ -994,8 +994,11 @@ where
         .trussed
         .remove_dir_all(Location::Internal, PathBuf::from("wcrk"),));
 
-    let default_pin = Bytes::from_slice(DEFAULT_ENCRYPTION_PIN.as_ref()).unwrap();
-    try_syscall!(w.trussed.reset_pin(default_pin)).map_err(|_| ERR_INTERNAL_ERROR)?;
+    #[cfg(feature = "transparent-encryption")]
+    {
+        let default_pin = Bytes::from_slice(DEFAULT_ENCRYPTION_PIN.as_ref()).unwrap();
+        try_syscall!(w.trussed.reset_pin(default_pin)).map_err(|_| ERR_INTERNAL_ERROR)?;
+    }
 
     // delete persistent state
     // reset PIN
@@ -1059,12 +1062,14 @@ where
             w.state.pin.set_pin(req.pin.clone())?;
 
             #[cfg(feature = "transparent-encryption")]
-            try_syscall!(w.trussed.set_client_context_pin(
-                Bytes::from_slice(DEFAULT_ENCRYPTION_PIN.as_ref()).unwrap()
-            ))
-            .map_err(|_| ERR_INTERNAL_ERROR)?;
-            try_syscall!(w.trussed.change_pin(req.pin.to_bytes().unwrap()))
+            {
+                try_syscall!(w.trussed.set_client_context_pin(
+                    Bytes::from_slice(DEFAULT_ENCRYPTION_PIN.as_ref()).unwrap()
+                ))
                 .map_err(|_| ERR_INTERNAL_ERROR)?;
+                try_syscall!(w.trussed.change_pin(req.pin.to_bytes().unwrap()))
+                    .map_err(|_| ERR_INTERNAL_ERROR)?;
+            }
 
             w.state.initialize(&mut w.trussed);
             Ok(())
@@ -1074,6 +1079,7 @@ where
                 .get_input_deserialized()
                 .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
             w.state.pin.change_pin(req.pin, req.newpin.clone())?;
+            #[cfg(feature = "transparent-encryption")]
             try_syscall!(w
                 .trussed
                 .change_pin(Bytes::from_slice(req.newpin.as_slice()).unwrap()))
