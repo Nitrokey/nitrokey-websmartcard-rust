@@ -37,6 +37,7 @@ rand = "0.8.3"
 
 [features]
 enable-logs = ["pretty_env_logger"]
+transparent-encryption = []
 
 log-all = []
 log-none = []

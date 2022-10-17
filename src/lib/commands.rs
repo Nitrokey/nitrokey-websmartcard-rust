@@ -923,6 +923,7 @@ where
         }
     };
 
+    #[cfg(feature = "transparent-encryption")]
     try_syscall!(w
         .trussed
         .set_client_context_pin(Bytes::from_slice(req.pin.as_slice()).unwrap()))
@@ -969,6 +970,8 @@ where
     // Clear session
     w.session.logout();
     w.state.logout();
+
+    #[cfg(feature = "transparent-encryption")]
     try_syscall!(w
         .trussed
         .set_client_context_pin(Bytes::from_slice(b"invalid pin").unwrap()))
@@ -1058,6 +1061,7 @@ where
                 .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
             w.state.pin.set_pin(req.pin.clone())?;
 
+            #[cfg(feature = "transparent-encryption")]
             try_syscall!(w.trussed.set_client_context_pin(
                 Bytes::from_slice(DEFAULT_ENCRYPTION_PIN.as_ref()).unwrap()
             ))
