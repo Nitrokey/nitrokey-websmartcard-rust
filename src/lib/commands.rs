@@ -463,12 +463,16 @@ where
         w.state.save(&mut w.trussed);
     }
 
-    let signature = syscall!(w.trussed.sign(
+    let signature = try_syscall!(w.trussed.sign(
         Mechanism::P256,
         w.state.openpgp_data.as_ref().unwrap().signing.key,
         req.data.as_slice(),
         SignatureSerialization::Raw
     ))
+    .map_err(|e| {
+        log::error!("Signing error: {:?}", e);
+        ERROR_ID::ERR_FAILED_LOADING_DATA
+    })?
     .signature;
     let signature = signature.to_bytes().expect("Too small target buffer");
 
@@ -919,6 +923,7 @@ where
         }
     };
 
+    #[cfg(feature = "transparent-encryption")]
     try_syscall!(w
         .trussed
         .set_client_context_pin(Bytes::from_slice(req.pin.as_slice()).unwrap()))
@@ -926,20 +931,17 @@ where
 
     // ignore loading errors for now
     log::debug!("WC loading state");
-    let res = w
-        .state
+    w.state
         .load(&mut w.trussed)
         // the cause might be in the corrupted storage as well (ERR_FAILED_LOADING_DATA),
         // but we can't differentiate at this point
-        .map_err(|_| ERR_INVALID_PIN);
-    if res.is_err() {
-        w.state.pin.decrease_counter()?;
-        res?
-    }
+        .map_err(|_| ERR_INVALID_PIN)?;
 
-    let tp = w
+    let login_result = w
         .session
-        .login(req.pin.clone(), &mut w.trussed, &rpid, &mut w.state)?;
+        .login(req.pin.clone(), &mut w.trussed, &rpid, &mut w.state);
+    w.state.save(&mut w.trussed);
+    let tp = login_result?;
 
     w.send_to_output(CommandLoginResponse { tp });
 
@@ -965,6 +967,8 @@ where
     // Clear session
     w.session.logout();
     w.state.logout();
+
+    #[cfg(feature = "transparent-encryption")]
     try_syscall!(w
         .trussed
         .set_client_context_pin(Bytes::from_slice(b"invalid pin").unwrap()))
@@ -1054,6 +1058,7 @@ where
                 .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
             w.state.pin.set_pin(req.pin.clone())?;
 
+            #[cfg(feature = "transparent-encryption")]
             try_syscall!(w.trussed.set_client_context_pin(
                 Bytes::from_slice(DEFAULT_ENCRYPTION_PIN.as_ref()).unwrap()
             ))

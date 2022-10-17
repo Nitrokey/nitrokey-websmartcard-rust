@@ -1,6 +1,6 @@
 [package]
 name = "webcrypt"
-version = "0.3.0"
+version = "0.5.0"
 authors = ["Szczepan Zalega <szczepan@nitrokey.com>"]
 edition = "2021"
 
@@ -37,6 +37,7 @@ rand = "0.8.3"
 
 [features]
 enable-logs = ["pretty_env_logger"]
+transparent-encryption = []
 
 log-all = []
 log-none = []

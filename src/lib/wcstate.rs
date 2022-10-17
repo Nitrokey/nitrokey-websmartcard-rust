@@ -86,7 +86,6 @@ impl WebcryptPIN {
     }
 
     pub fn set_pin(&mut self, pin: Bytes64) -> Result<bool, ERROR_ID> {
-        // TODO add validation for the new PIN
         if self.pin.is_some() {
             return Err(ERR_NOT_ALLOWED);
         }
@@ -96,7 +95,6 @@ impl WebcryptPIN {
         Ok(true)
     }
     pub fn change_pin(&mut self, pin: Bytes64, new_pin: Bytes64) -> Result<bool, ERROR_ID> {
-        // TODO add validation for the new PIN
         if self.pin.is_none() {
             return Err(ERR_NOT_ALLOWED);
         }
@@ -203,6 +201,12 @@ impl WebcryptState {
     {
         log::info!("Resetting state");
         self.pin = Default::default();
+        if let Some(x) = &self.openpgp_data {
+            if let Err(e) = x.clear(t) {
+                log::error!("Failed resetting state: {:?}", e);
+            }
+        }
+        self.openpgp_data = None;
         self.initialize(t);
     }
 

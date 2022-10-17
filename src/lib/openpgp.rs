@@ -5,7 +5,7 @@ use crate::types::ERROR_ID::ERR_INTERNAL_ERROR;
 use heapless_bytes::Bytes;
 use serde::{Deserialize, Serialize};
 use trussed::types::KeyId;
-use trussed::{client, syscall};
+use trussed::{client, syscall, try_syscall};
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct KeyFingerprint(Bytes<8>);
@@ -44,6 +44,15 @@ pub struct OpenPGPData {
 }
 
 impl OpenPGPKey {
+    pub fn clear(&self, trussed: &mut (impl client::Client)) -> Result<(), trussed::Error> {
+        // TODO: set self.key to None after removal
+        try_syscall!(trussed.delete(self.key))?;
+        if self.pubkey.is_some() {
+            try_syscall!(trussed.delete(self.pubkey.unwrap()))?;
+        }
+        Ok(())
+    }
+
     pub fn get_public_keyid(&self, trussed: &mut (impl client::Client + client::P256)) -> KeyId {
         match self.pubkey {
             Some(pk) => pk,
@@ -72,6 +81,13 @@ impl OpenPGPKey {
 }
 
 impl OpenPGPData {
+    pub fn clear(&self, trussed: &mut (impl client::Client)) -> Result<(), trussed::Error> {
+        self.signing.clear(trussed)?;
+        self.encryption.clear(trussed)?;
+        self.authentication.clear(trussed)?;
+        Ok(())
+    }
+
     pub fn init(trussed: &mut (impl client::Client + client::P256)) -> Self {
         // let private_key =
         //     syscall!(trussed.generate_p256_private_key(trussed::types::Location::Internal)).key;
