@@ -931,20 +931,17 @@ where
 
     // ignore loading errors for now
     log::debug!("WC loading state");
-    let res = w
-        .state
+    w.state
         .load(&mut w.trussed)
         // the cause might be in the corrupted storage as well (ERR_FAILED_LOADING_DATA),
         // but we can't differentiate at this point
-        .map_err(|_| ERR_INVALID_PIN);
-    if res.is_err() {
-        w.state.pin.decrease_counter()?;
-        res?
-    }
+        .map_err(|_| ERR_INVALID_PIN)?;
 
-    let tp = w
+    let login_result = w
         .session
-        .login(req.pin.clone(), &mut w.trussed, &rpid, &mut w.state)?;
+        .login(req.pin.clone(), &mut w.trussed, &rpid, &mut w.state);
+    w.state.save(&mut w.trussed);
+    let tp = login_result?;
 
     w.send_to_output(CommandLoginResponse { tp });
 
