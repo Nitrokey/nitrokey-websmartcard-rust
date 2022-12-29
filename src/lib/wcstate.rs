@@ -174,6 +174,8 @@ impl WebcryptSession {
     }
 
     pub fn check_token_res(&self, token: Bytes32) -> Result<(), ()> {
+        #[cfg(feature = "no-authentication")]
+        return Ok(());
         // TODO should allow empty tokens, if user was verified through CTAP2 already
         match &self.temporary_password_token {
             None => Err(()),
@@ -181,6 +183,7 @@ impl WebcryptSession {
                 if token == current {
                     Ok(())
                 } else {
+                    log::warn!("Token invalid: {:?}, expected: {:?}", token, current);
                     Err(())
                 }
             }
