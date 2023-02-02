@@ -97,7 +97,7 @@ where
     log::info!("WC handle CTAP1");
     match try_handle_ctap1(w, data, response) {
         Ok(()) => {
-            debug!("WC U2F response {} bytes", response.len());
+            info!("WC U2F response {} bytes", response.len());
             response.extend_from_slice(&[0x90, 0x00]).ok();
         }
         Err(status) => {
