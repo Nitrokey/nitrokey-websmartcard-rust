@@ -136,9 +136,9 @@ where
         // send data to output
         // limited to 256*8 bytes for now for a single write
         let mut buffer = [0u8; 256 * 8];
-        let encoded = cbor_serialize(&o, &mut buffer);
-        log::info!("Encoded: {:?}", &encoded);
-        self.WC_OUTPUT_BUFFER.extend_from_slice(encoded.unwrap());
+        let encoded = cbor_serialize(&o, &mut buffer).unwrap();
+        log::info!("Encoded: {:?}", hex::encode(encoded));
+        self.WC_OUTPUT_BUFFER.extend_from_slice(encoded);
     }
 
     pub fn send_to_output_arr(&mut self, o: &Bytes<1024>) {
@@ -171,7 +171,7 @@ where
             offset_right_clamp,
             output.len(),
             self.WC_OUTPUT_BUFFER.len(),
-            output
+            hex::encode(output)
         );
         ERROR_ID::ERR_SUCCESS
     }
@@ -188,6 +188,7 @@ where
         log::info!("< cmd: {:?}", cmd);
         let ret = self.bridge_u2f_to_webcrypt(cmd, req_details)?;
         log::info!("> ret: {:?}", ret);
+        ret.log_hex();
 
         match ret {
             WebcryptResponseType::First(x) => {
@@ -202,7 +203,7 @@ where
                 output.extend([x.result as u8]);
             }
         }
-        log::info!("> outputH: {:02x?}", output);
+        log::info!("> outputH: {:?}", hex::encode(output.clone()));
         Ok(output)
     }
 

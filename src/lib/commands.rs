@@ -155,7 +155,7 @@ where
         .persistent
         .key_wrapping_key(&mut w.trussed)
         .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?;
-    debug!("wrapping u2f private key");
+    info!("wrapping u2f private key");
     let wrapped_key =
         syscall!(w
             .trussed
@@ -835,7 +835,7 @@ where
     let req: CommandReadResidentKeyRequest = w
         .get_input_deserialized()
         .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
-    log::debug!("WC cmd_read_resident_key_public {:?}", req);
+    log::info!("WC cmd_read_resident_key_public {:?}", req);
     w.session
         .check_token_res(req.tp.unwrap())
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
@@ -930,7 +930,7 @@ where
     .map_err(|_| ERR_INTERNAL_ERROR)?;
 
     // ignore loading errors for now
-    log::debug!("WC loading state");
+    log::info!("WC loading state");
     w.state
         .load(&mut w.trussed)
         // the cause might be in the corrupted storage as well (ERR_FAILED_LOADING_DATA),
