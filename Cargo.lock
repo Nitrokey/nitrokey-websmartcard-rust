@@ -345,9 +345,9 @@ checksum = "b365fabc795046672053e29c954733ec3b05e4be654ab130fe8f1f94d7051f35"
 
 [[package]]
 name = "delog"
-version = "0.1.5"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e371811fb858c17e75e0316e7ebf8db0343b10d73038a3b9571006b0e7e5cc53"
+checksum = "4cd67f90cc14e0a91cf693141453cccf2b74db9d59c40f6be18b79169fe77dfd"
 dependencies = [
  "log",
 ]
@@ -595,6 +595,12 @@ checksum = "62b467343b94ba476dcb2500d242dadbb39557df889310ac77c5d99100aaac33"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "hex"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "hex-literal"
@@ -1240,11 +1246,11 @@ dependencies = [
  "ctap-types",
  "ctaphid-dispatch",
  "delog",
- "env_logger",
  "generic-array",
  "git-version",
  "heapless",
  "heapless-bytes",
+ "hex",
  "littlefs2",
  "log",
  "pretty_env_logger",
