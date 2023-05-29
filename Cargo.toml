@@ -24,7 +24,7 @@ generic-array = "0.14.3"
 ctap-types = "0.1"
 ctaphid-dispatch = "0.1"
 apdu-dispatch = "0.1"
-hex = {version = "0.4.3", optional = true}
+hex = "0.4.3"
 
 trussed = "0.1.0"
 pretty_env_logger = { version = "0.4.0", optional = true }
@@ -36,7 +36,7 @@ rand = "0.8.3"
 
 
 [features]
-enable-logs = ["pretty_env_logger", "log-all", "delog/std-log", "hex"]
+enable-logs = ["pretty_env_logger", "log-all", "delog/std-log"]
 transparent-encryption = []
 no-authentication = []
 
