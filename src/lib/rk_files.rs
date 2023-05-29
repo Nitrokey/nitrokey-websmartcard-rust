@@ -4,7 +4,7 @@
 // Imported from the https://github.com/solokeys/fido-authenticator/ project
 
 use heapless_bytes::Bytes;
-use littlefs2::path::PathBuf;
+use trussed::types::PathBuf;
 
 fn format_hex(data: &[u8], mut buffer: &mut [u8]) {
     const HEX_CHARS: &[u8] = b"0123456789abcdef";

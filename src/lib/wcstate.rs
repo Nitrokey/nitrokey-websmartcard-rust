@@ -10,6 +10,7 @@ use trussed::{
 use crate::constants::RESIDENT_KEY_COUNT;
 use crate::types::ERROR_ID;
 use crate::Message;
+use trussed::types::PathBuf;
 
 type ResidentKeyID = u8;
 
@@ -285,7 +286,6 @@ impl WebcryptState {
     where
         T: client::Client,
     {
-        use littlefs2::path::PathBuf;
         let state_ser =
             try_syscall!(t.read_file(Location::Internal, PathBuf::from(STATE_FILE_PATH)))
                 .map_err(|_| ERR_INTERNAL_ERROR)?
@@ -325,7 +325,6 @@ impl WebcryptState {
     where
         T: client::Client,
     {
-        use littlefs2::path::PathBuf;
         let r = try_syscall!(t.remove_file(Location::Internal, PathBuf::from(STATE_FILE_PATH)));
         if r.is_ok() {
             log::info!("State removed");
@@ -347,7 +346,6 @@ impl WebcryptState {
             return;
         }
         // todo!();
-        use littlefs2::path::PathBuf;
 
         try_syscall!(t.write_file(
             Location::Internal,

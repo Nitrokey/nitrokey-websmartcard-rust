@@ -3,7 +3,7 @@ extern crate delog;
 
 use delog::log;
 use heapless_bytes::{Bytes, Bytes32};
-use std::path::PathBuf;
+use trussed::types::PathBuf;
 
 use webcrypt::{RequestDetails, RequestSource, Webcrypt, DEFAULT_ENCRYPTION_PIN};
 
@@ -28,7 +28,7 @@ fn main() -> std::io::Result<()> {
         let mut trussed_service = trussed::service::Service::new(trussed_platform);
         let trussed_client = trussed_service
             .try_as_new_client_ctx(ClientContext::new(
-                littlefs2::path::PathBuf::from("webcrypt"),
+                PathBuf::from("webcrypt"),
                 Some(DEFAULT_ENCRYPTION_PIN),
             ))
             .unwrap();
