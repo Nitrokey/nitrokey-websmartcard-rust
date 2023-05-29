@@ -29,10 +29,23 @@ trussed = "0.1.0"
 pretty_env_logger = { version = "0.4.0", optional = true }
 git-version = "0.3.5"
 
-[dev-dependencies]
-chacha20 = { version = "0.7", default-features = false, features = ["rng"] }
-rand = "0.8.3"
 
+# extension
+trussed-auth = "0.2.2"
+
+
+[dev-dependencies]
+log = { version = "0.4.14", default-features = false }
+pretty_env_logger = "0.4.0"
+
+# below are for running the usbip example
+trussed-usbip = { git = "https://github.com/trussed-dev/pc-usbip-runner", default-features = false, features = ["ctaphid"], rev = "f3a680ca4c9a1411838ae0774f1713f79d4c2979" }
+usbd-ctaphid = "0.1"
+clap = { version = "3.0.0", features = ["cargo", "derive"] }
+clap-num = "1.0.0"
+delog = { version = "0.1.6", features = ["std-log"] }
+fido-authenticator = { git = "https://github.com/Nitrokey/fido-authenticator", tag = "v0.1.1-nitrokey.4",  features = ["dispatch", "log-all"] }
+admin-app = { version = "0.1", features = ["log-all"] }
 
 [features]
 enable-logs = ["pretty_env_logger", "log-all", "delog/std-log"]
@@ -46,7 +59,14 @@ log-debug = []
 log-warn = []
 log-error = []
 
+[[example]]
+name="usbip"
+
+
 [patch.crates-io]
-trussed = { git = "https://github.com/Nitrokey/trussed.git", branch="webcrypt-devel" }
+#trussed = { git = "https://github.com/Nitrokey/trussed.git", branch="webcrypt-devel" }
 ctaphid-dispatch = { git = "https://github.com/Nitrokey/ctaphid-dispatch.git", branch="multiple_apps" }
 apdu-dispatch = { git = "https://github.com/Nitrokey/apdu-dispatch.git", branch="sz-multiple-apps" }
+
+trussed = { git = "https://github.com/Nitrokey/trussed", tag = "v0.1.0-nitrokey.11" }
+trussed-auth = { git = "https://github.com/trussed-dev/trussed-auth/", tag = "v0.2.2" }
