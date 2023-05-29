@@ -12,6 +12,7 @@ use ctaphid_dispatch::app;
 use ctaphid_dispatch::app as ctaphid;
 use heapless_bytes::Bytes;
 use trussed::client;
+use crate::commands::WebcryptTrussedClient;
 
 use crate::helpers::hash;
 use crate::transport::Webcrypt;
@@ -26,14 +27,7 @@ fn try_handle_ctap1<C>(
     response: &mut apdu_dispatch::response::Data,
 ) -> Result<(), Status>
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Chacha8Poly1305
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Sha256,
+    C: WebcryptTrussedClient,
 {
     let ctap_response = {
         let ctap_request = {
@@ -85,14 +79,7 @@ where
 #[inline(never)]
 fn handle_ctap1<C>(w: &mut Webcrypt<C>, data: &[u8], response: &mut apdu_dispatch::response::Data)
 where
-    C: trussed::Client
-        + trussed::Client
-        + client::P256
-        + client::Chacha8Poly1305
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Sha256,
+    C: WebcryptTrussedClient,
 {
     log::info!("WC handle CTAP1");
     match try_handle_ctap1(w, data, response) {
@@ -116,14 +103,7 @@ fn try_handle_ctap2<C>(
     response: &mut apdu_dispatch::response::Data,
 ) -> Result<(), u8>
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Chacha8Poly1305
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Sha256,
+    C: WebcryptTrussedClient,
 {
     let ctap_request = ctap2::Request::deserialize(data).map_err(|error| error as u8)?;
 
@@ -243,14 +223,7 @@ fn handle_ctap2<C>(
     data: &[u8],
     response: &mut apdu_dispatch::response::Data,
 ) where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Chacha8Poly1305
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Sha256,
+    C: WebcryptTrussedClient,
 {
     log::info!("WC handle CTAP2");
     if let Err(error) = try_handle_ctap2(authenticator, data, response) {
@@ -261,14 +234,7 @@ fn handle_ctap2<C>(
 
 impl<C> app::App for Webcrypt<C>
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Chacha8Poly1305
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Sha256,
+    C: WebcryptTrussedClient,
 {
     fn commands(&self) -> &'static [app::Command] {
         &[app::Command::Cbor, app::Command::Msg]
@@ -323,14 +289,7 @@ const SIZE: usize = APDU_SIZE;
 
 impl<C> App for Webcrypt<C>
 where
-    C: client::Aes256Cbc
-        + client::Chacha8Poly1305
-        + client::Client
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::P256
-        + client::Sha256
-        + trussed::Client,
+    C: WebcryptTrussedClient,
 {
     fn aid(&self) -> Aid {
         Aid::new(&[0xA0, 0x00, 0x00, 0x06, 0x47, 0x2F, 0x00, 0x01])
@@ -339,14 +298,7 @@ where
 
 impl<C> apdu::App<{ SIZE }, { SIZE }> for Webcrypt<C>
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Chacha8Poly1305
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Sha256,
+    C: WebcryptTrussedClient,
 {
     fn select(
         &mut self,
