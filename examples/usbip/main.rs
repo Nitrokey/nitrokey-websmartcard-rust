@@ -144,7 +144,7 @@ pub type VirtClient = ClientImplementation<
 #[clap(about, version, author)]
 struct Args {
     /// USB Name string
-    #[clap(short, long, default_value = "Secrets App")]
+    #[clap(short, long, default_value = "Webcrypt")]
     name: String,
 
     /// USB Manufacturer string
@@ -284,7 +284,7 @@ impl trussed::platform::UserInterface for UserInterface {
 struct Apps {
     fido: fido_authenticator::Authenticator<fido_authenticator::Conforming, VirtClient>,
     admin: admin_app::App<VirtClient, Reboot>,
-    secrets: secrets_app::Authenticator<VirtClient>,
+    webcrypt: webcrypt::Webcrypt<VirtClient>,
 }
 
 const MAX_RESIDENT_CREDENTIAL_COUNT: u32 = 50;
@@ -302,20 +302,14 @@ impl trussed_usbip::Apps<VirtClient, dispatch::Dispatch> for Apps {
             },
         );
         let admin = admin_app::App::new(builder.build("admin", &[BackendId::Core]), [0; 16], 0);
-        let options = secrets_app::Options::new(
-            Location::Internal,
-            CustomStatus::ReverseHotpSuccess as u8,
-            CustomStatus::ReverseHotpError as u8,
-            [0x42, 0x42, 0x42, 0x42],
-            u16::MAX,
-        );
-        let secrets =
-            secrets_app::Authenticator::new(builder.build("secrets", dispatch::BACKENDS), options);
+
+        let webcrypt =
+            webcrypt::Webcrypt::new(builder.build("webcrypt", dispatch::BACKENDS));
 
         Self {
             fido,
             admin,
-            secrets,
+            webcrypt,
         }
     }
 
@@ -323,7 +317,7 @@ impl trussed_usbip::Apps<VirtClient, dispatch::Dispatch> for Apps {
         &mut self,
         f: impl FnOnce(&mut [&mut dyn ctaphid_dispatch::app::App]) -> T,
     ) -> T {
-        f(&mut [&mut self.fido, &mut self.admin, &mut self.secrets])
+        f(&mut [&mut self.fido, &mut self.admin, &mut self.webcrypt])
     }
 
     #[cfg(feature = "ccid")]

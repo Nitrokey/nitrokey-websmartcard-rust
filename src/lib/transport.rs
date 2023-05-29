@@ -29,14 +29,7 @@ pub type WebcryptError = ERROR_ID;
 
 impl<C> Webcrypt<C>
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Chacha8Poly1305
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Sha256,
+    C: WebcryptTrussedClient,
 {
     pub fn new(_client: C) -> Self {
         Webcrypt {

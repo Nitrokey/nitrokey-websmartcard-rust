@@ -36,21 +36,14 @@ pub trait WebcryptTrussedClient:
     + client::Chacha8Poly1305
     + client::HmacSha256
     + client::Sha256
-    + client::HmacSha256P256
+    // + client::HmacSha256P256
     + client::Aes256Cbc
 {
 }
 
 pub fn cmd_status<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Chacha8Poly1305
-        + client::HmacSha256
-        + client::Sha256
-        + client::HmacSha256P256
-        + client::Aes256Cbc,
+    C: WebcryptTrussedClient,
 {
     let git_version_bytes = Bytes::from_slice(GIT_VERSION[..].as_bytes()).unwrap();
     let resp = CommandStatusResponse {
@@ -66,14 +59,7 @@ where
 
 pub fn cmd_test_ping<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Sha256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     w.send_input_to_output();
     Ok(())
@@ -81,14 +67,7 @@ where
 
 pub fn cmd_generate_key<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::Sha256
-        + client::HmacSha256P256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     let req: CommandGenerateRequest = w
         .get_input_deserialized()
@@ -135,13 +114,7 @@ pub fn wrap_key_to_keyhandle<C>(
     private_key: KeyId,
 ) -> Result<KeyHandleSerialized, ERROR_ID>
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     let appid = w.session.rp_id_hash.clone().ok_or(ERR_BAD_ORIGIN)?;
 
@@ -192,14 +165,7 @@ where
 
 pub fn cmd_sign<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Sha256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     let req: CommandSignRequest = w
         .get_input_deserialized()
@@ -316,14 +282,7 @@ where
 
 pub fn cmd_openpgp_generate<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Sha256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     let _: CommandOpenPGPInitRequest = w
         .get_input_deserialized()
@@ -336,14 +295,7 @@ where
 
 pub fn cmd_openpgp_info<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Sha256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     let _: CommandOpenPGPInfoRequest = w
         .get_input_deserialized()
@@ -398,14 +350,7 @@ where
 
 pub fn cmd_openpgp_import<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Sha256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     let req = match w.get_input_deserialized() {
         Ok(x) => Ok(x),
@@ -434,14 +379,7 @@ where
 
 pub fn cmd_openpgp_sign<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Sha256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     let req = match w.get_input_deserialized() {
         Ok(x) => Ok(x),
@@ -483,14 +421,7 @@ where
 
 pub fn cmd_openpgp_decrypt<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Sha256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     let req = match w.get_input_deserialized() {
         Ok(x) => Ok(x),
@@ -600,7 +531,8 @@ where
     syscall!(w.trussed.delete(agreed_shared_secret_id));
 
     w.send_to_output(CommandOpenPGPDecryptResponse {
-        data: serialized_shared_secret.serialized_key,
+        data: DataBytes::from_slice(&serialized_shared_secret.serialized_key)
+            .map_err(|_| ERROR_ID::ERR_INTERNAL_ERROR)?,
     });
 
     Ok(())
@@ -608,14 +540,7 @@ where
 
 pub fn cmd_decrypt<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Sha256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     let req = match w.get_input_deserialized() {
         Ok(x) => Ok(x),
@@ -729,7 +654,7 @@ where
         // &k.serialize(),
         serialized_shared_secret.as_slice(),
         Location::Internal,
-        Kind::Symmetric(32)
+        // Kind::Symmetric(32) // FIXME enable back
     ))
     .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
     .key;
@@ -757,14 +682,7 @@ where
 
 pub fn cmd_generate_key_from_data<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::Sha256
-        + client::HmacSha256P256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     let req: CommandGenerateFromDataRequest = w
         .get_input_deserialized()
@@ -784,6 +702,8 @@ where
         return Err(ERR_FAILED_LOADING_DATA);
     }
 
+    #[cfg(feature = "hmacsha256p256")]
+    {
     let derived_key = syscall!(
         // requires support on the trussed side
         w.trussed
@@ -817,20 +737,14 @@ where
             keyhandle: KeyHandleSerialized::from_slice(&keyhandle_ser_enc[..]).unwrap(),
         }
     });
+    }
 
     Ok(())
 }
 
 pub fn cmd_read_resident_key_public<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::Sha256
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     let req: CommandReadResidentKeyRequest = w
         .get_input_deserialized()
@@ -895,14 +809,7 @@ where
 
 pub fn cmd_login<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::Sha256
-        + client::HmacSha256P256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     // Check PIN and return temporary password for the further communication
     let req: CommandLoginRequest = w
@@ -950,14 +857,7 @@ where
 
 pub fn cmd_logout<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::Sha256
-        + client::HmacSha256P256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     let _: CommandLogoutRequest = w
         .get_input_deserialized()
@@ -1012,14 +912,7 @@ where
 
 pub fn cmd_configure<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::Sha256
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     // Allow to set some configuration options, like when to require user touch confirmation
     // To decide: same handler for both setting and getting?
@@ -1043,14 +936,7 @@ where
 
 pub fn cmd_manage_pin<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::Sha256
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     // To decide: same handler for both setting and changing?
 
@@ -1093,14 +979,7 @@ where
 
 pub fn cmd_discover_resident_key<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::Sha256
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     // Discover all RKs connected to this RP. Should be protected with PIN (L3 credprotect as of CTAP2.1).
 
@@ -1160,13 +1039,7 @@ where
 
 pub fn cmd_write_resident_key<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Chacha8Poly1305
+    C: WebcryptTrussedClient
         + client::Sha256,
 {
     let req: CommandWriteResidentKeyRequest = w
@@ -1180,7 +1053,7 @@ where
         // &k.serialize(),
         req.raw_key_data.as_slice(),
         Location::Internal,
-        Kind::P256
+        // Kind::P256  // FIXME enable
     ))
     .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
     .key;
@@ -1230,13 +1103,7 @@ where
 
 pub fn cmd_generate_resident_key<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Chacha8Poly1305
+    C: WebcryptTrussedClient
         + client::Sha256,
 {
     // write the RK similarly, as done with FIDO2, potentially with some extensions
@@ -1321,14 +1188,7 @@ where
 
 pub fn cmd_restore_from_seed<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::Sha256
-        + client::HmacSha256P256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     let req: CommandRestoreRequest = w
         .get_input_deserialized()
@@ -1365,14 +1225,7 @@ where
 
 pub fn cmd_initialize_seed<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::Sha256
-        + client::HmacSha256P256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     let req: CommandInitializeRequest = w
         .get_input_deserialized()
