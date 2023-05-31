@@ -41,6 +41,14 @@ pub trait WebcryptTrussedClient:
 {
 }
 
+impl<C: client::Client
++ client::P256
++ client::Chacha8Poly1305
++ client::HmacSha256
++ client::Sha256
+// + client::HmacSha256P256
++ client::Aes256Cbc> WebcryptTrussedClient for C {}
+
 pub fn cmd_status<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: WebcryptTrussedClient,
@@ -225,7 +233,7 @@ fn import_key_from_keyhandle<C>(
     encrypted_serialized_keyhandle: &KeyHandleSerialized,
 ) -> Result<KeyId, ERROR_ID>
 where
-    C: trussed::Client + client::Client + client::P256 + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     // encr_ser -> encr struct -> decrypted serialized -> struct
 
@@ -879,7 +887,7 @@ where
 
 pub fn cmd_factory_reset<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client,
+    C: WebcryptTrussedClient,
 {
     // Call factory reset for Webcrypt, and for the associated services (like FIDO2) as well.
 

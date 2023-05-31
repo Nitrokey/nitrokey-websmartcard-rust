@@ -13,7 +13,7 @@ use crate::wcstate::{WebcryptSession, WebcryptState};
 use crate::{Bytes, Message};
 
 #[allow(non_snake_case)]
-pub struct Webcrypt<C> {
+pub struct Webcrypt<C: WebcryptTrussedClient> {
     WC_INPUT_BUFFER: Bytes<1024>,
     WC_OUTPUT_BUFFER: Bytes<1024>,
     pub current_command_id: CommandID,

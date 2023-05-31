@@ -1780,7 +1780,6 @@ dependencies = [
  "pretty_env_logger",
  "serde",
  "serde-indexed",
- "serde_cbor",
  "trussed",
  "trussed-auth",
  "trussed-usbip",
