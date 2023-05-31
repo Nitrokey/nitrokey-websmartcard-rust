@@ -137,7 +137,7 @@ where
         // limited to 256*8 bytes for now for a single write
         let mut buffer = [0u8; 256 * 8];
         let encoded = cbor_serialize(&o, &mut buffer).unwrap();
-        log::info!("Encoded: {:?}", hex::encode(encoded));
+        // log::info!("Encoded: {:?}", hex::encode(encoded));
         self.WC_OUTPUT_BUFFER.extend_from_slice(encoded);
     }
 
@@ -165,14 +165,14 @@ where
         }
 
         output.extend_from_slice(&self.WC_OUTPUT_BUFFER[offset..offset_right_clamp]);
-        log::info!(
-            "Read: [{}..{})({})/{} {:?}",
-            offset,
-            offset_right_clamp,
-            output.len(),
-            self.WC_OUTPUT_BUFFER.len(),
-            hex::encode(output)
-        );
+        // log::info!(
+        //     "Read: [{}..{})({})/{} {:?}",
+        //     offset,
+        //     offset_right_clamp,
+        //     output.len(),
+        //     self.WC_OUTPUT_BUFFER.len(),
+        //     hex::encode(output)
+        // );
         ERROR_ID::ERR_SUCCESS
     }
     /// The main transport function, gateway to the extension from the Webauthn perspective
@@ -203,7 +203,7 @@ where
                 output.extend([x.result as u8]);
             }
         }
-        log::info!("> outputH: {:?}", hex::encode(output.clone()));
+        // log::info!("> outputH: {:?}", hex::encode(output.clone()));
         Ok(output)
     }
 
