@@ -498,22 +498,22 @@ pub enum WebcryptResponseType {
     Write(ResponseWrite),
 }
 
-extern crate hex;
+// extern crate hex;
 
 impl WebcryptResponseType {
     pub fn log_hex(&self) {
         match &self {
             WebcryptResponseType::First(d) => {
-                log::info!(
-                    "WebcryptResponseType data: {:?}",
-                    hex::encode(d.data.0.clone())
-                )
+                // log::info!(
+                //     "WebcryptResponseType data: {:?}",
+                //     hex::encode(d.data.0.clone())
+                // )
             }
             WebcryptResponseType::Next(d) => {
-                log::info!(
-                    "WebcryptResponseType data: {:?}",
-                    hex::encode(d.data.0.clone())
-                )
+                // log::info!(
+                //     "WebcryptResponseType data: {:?}",
+                //     hex::encode(d.data.0.clone())
+                // )
             }
             WebcryptResponseType::Write(d) => {}
         }

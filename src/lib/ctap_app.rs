@@ -240,27 +240,27 @@ where
         &[app::Command::Cbor, app::Command::Msg]
     }
 
-    fn peek(&self, request: &ctaphid_dispatch::types::Message) -> bool {
-        // let offset = 4 * 16 + 8;
-        // let offset2 = 3 * 16 + 8;
-        // let res = request.len() > 3 + offset
-        //     && request[0 + offset..=2 + offset] == [0x22, 0x8c, 0x27]
-        //     || request.len() > 3 + offset2
-        //         && request[0 + offset2..=2 + offset2] == [0x22, 0x8c, 0x27];
-        // res
-
-        if request.len() < 7 {
-            return false;
-        }
-
-        for offset in 1..request.len() - 5 {
-            if request[offset..=4 + offset] == [0x22, 0x8c, 0x27, 0x90, 0xF6] {
-                log::info!("Found WC constant at offset {offset}");
-                return true;
-            }
-        }
-        false
-    }
+    // fn peek(&self, request: &ctaphid_dispatch::types::Message) -> bool {
+    //     // let offset = 4 * 16 + 8;
+    //     // let offset2 = 3 * 16 + 8;
+    //     // let res = request.len() > 3 + offset
+    //     //     && request[0 + offset..=2 + offset] == [0x22, 0x8c, 0x27]
+    //     //     || request.len() > 3 + offset2
+    //     //         && request[0 + offset2..=2 + offset2] == [0x22, 0x8c, 0x27];
+    //     // res
+    //
+    //     if request.len() < 7 {
+    //         return false;
+    //     }
+    //
+    //     for offset in 1..request.len() - 5 {
+    //         if request[offset..=4 + offset] == [0x22, 0x8c, 0x27, 0x90, 0xF6] {
+    //             log::info!("Found WC constant at offset {offset}");
+    //             return true;
+    //         }
+    //     }
+    //     false
+    // }
 
     #[inline(never)]
     fn call(
@@ -341,24 +341,24 @@ where
         Ok(())
     }
 
-    fn peek(&self, apdu: Option<&apdu_dispatch::app::Command<SIZE>>) -> bool {
-        match apdu {
-            None => false,
-            Some(apdu) => {
-                let data = apdu.data();
-                let data_len = data.len();
-                if data_len < 7 {
-                    return false;
-                }
-
-                for offset in 0..data_len - 5 {
-                    if data[offset..=4 + offset] == [0x22, 0x8c, 0x27, 0x90, 0xF6] {
-                        log::info!("NFC Found WC constant at offset {offset}");
-                        return true;
-                    }
-                }
-                false
-            }
-        }
-    }
+    // fn peek(&self, apdu: Option<&apdu_dispatch::app::Command<SIZE>>) -> bool {
+    //     match apdu {
+    //         None => false,
+    //         Some(apdu) => {
+    //             let data = apdu.data();
+    //             let data_len = data.len();
+    //             if data_len < 7 {
+    //                 return false;
+    //             }
+    //
+    //             for offset in 0..data_len - 5 {
+    //                 if data[offset..=4 + offset] == [0x22, 0x8c, 0x27, 0x90, 0xF6] {
+    //                     log::info!("NFC Found WC constant at offset {offset}");
+    //                     return true;
+    //                 }
+    //             }
+    //             false
+    //         }
+    //     }
+    // }
 }
