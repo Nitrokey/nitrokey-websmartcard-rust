@@ -284,7 +284,7 @@ where
         Location::Volatile,
     ))
     .key
-    .unwrap();
+        .ok_or(ERROR_ID::ERR_INTERNAL_ERROR)?;
     Ok(key)
 }
 
