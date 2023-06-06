@@ -28,18 +28,23 @@ fn main() {
             let received = server.receive().unwrap();
             let output = Bytes::new();
             let input = Bytes::from_slice(received).unwrap();
-            let output = w
-                .bridge_u2f_to_webcrypt_raw(
-                    output,
-                    &input,
-                    RequestDetails {
-                        source: RequestSource::RS_NOT_SET,
-                        rpid: Bytes32::from_slice("UDP SIMULATION".as_ref()).unwrap(),
-                        pin_auth: None,
-                    },
-                )
-                .unwrap();
-            server.send(&output).unwrap();
+            match w.bridge_u2f_to_webcrypt_raw(
+                output,
+                &input,
+                RequestDetails {
+                    source: RequestSource::RS_NOT_SET,
+                    rpid: Bytes32::from_slice("UDP SIMULATION".as_ref()).unwrap(),
+                    pin_auth: None,
+                },
+            ) {
+                Ok(res) => {
+                    server.send(&res).unwrap();
+                }
+                Err(e) => {
+                    log::error!("Protocol error: {:?}", e);
+                    server.send(&[e as u8]).unwrap();
+                }
+            }
         }
     });
 }
