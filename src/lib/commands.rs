@@ -521,7 +521,7 @@ where
         .key;
 
         // agree on shared secret
-        let shared_secret = try_syscall!(w.trussed.agree(
+        try_syscall!(w.trussed.agree(
             Mechanism::P256,
             kh_key,
             ephem_pub_bin_key,
@@ -530,8 +530,7 @@ where
                 .set_serializable(true)
         ))
         .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
-        .shared_secret;
-        shared_secret
+        .shared_secret
     };
 
     let serialized_shared_secret = try_syscall!(w.trussed.serialize_key(

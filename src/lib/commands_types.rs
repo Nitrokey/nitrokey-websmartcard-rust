@@ -54,9 +54,10 @@ impl CredentialData {
     pub fn serialize(&self) -> ResultW<SerializedCredential> {
         trussed::cbor_serialize_bytes(self).map_err(|_| ERROR_ID::ERR_INTERNAL_ERROR)
     }
-    pub fn deserialize(&self, buffer: SerializedCredential) -> ResultW<Self> {
-        trussed::cbor_deserialize(buffer.as_ref()).map_err(|_| ERROR_ID::ERR_INTERNAL_ERROR)
-    }
+    // TODO remove if unused
+    // pub fn deserialize(&self, buffer: SerializedCredential) -> ResultW<Self> {
+    //     trussed::cbor_deserialize(buffer.as_ref()).map_err(|_| ERROR_ID::ERR_INTERNAL_ERROR)
+    // }
 }
 
 #[derive(Clone, Debug, serde_indexed::DeserializeIndexed, serde_indexed::SerializeIndexed)]
