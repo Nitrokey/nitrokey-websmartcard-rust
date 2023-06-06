@@ -503,19 +503,19 @@ pub enum WebcryptResponseType {
 impl WebcryptResponseType {
     pub fn log_hex(&self) {
         match &self {
-            WebcryptResponseType::First(d) => {
+            WebcryptResponseType::First(_d) => {
                 // log::info!(
                 //     "WebcryptResponseType data: {:?}",
-                //     hex::encode(d.data.0.clone())
+                //     hex::encode(_d.data.0.clone())
                 // )
             }
-            WebcryptResponseType::Next(d) => {
+            WebcryptResponseType::Next(_d) => {
                 // log::info!(
                 //     "WebcryptResponseType data: {:?}",
-                //     hex::encode(d.data.0.clone())
+                //     hex::encode(_d.data.0.clone())
                 // )
             }
-            WebcryptResponseType::Write(d) => {}
+            WebcryptResponseType::Write(_d) => {}
         }
     }
 }
