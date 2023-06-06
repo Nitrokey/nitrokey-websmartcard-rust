@@ -169,13 +169,14 @@ where
 
 /// Run the backend with the extensions required by opcard
 /// using storage backed by a file
-pub fn with_fs_client<P, R, F>(internal: P, client_id: &str, f: F) -> R
-where
-    F: FnOnce(VirtClient<Filesystem>) -> R,
-    P: Into<PathBuf>,
-{
-    with_client(Filesystem::new(internal), client_id, f)
-}
+// TODO remove if unused
+// pub fn with_fs_client<P, R, F>(internal: P, client_id: &str, f: F) -> R
+// where
+//     F: FnOnce(VirtClient<Filesystem>) -> R,
+//     P: Into<PathBuf>,
+// {
+//     with_client(Filesystem::new(internal), client_id, f)
+// }
 
 /// Run the backend with the extensions required by opcard
 /// using a RAM file storage
