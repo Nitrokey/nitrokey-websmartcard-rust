@@ -666,7 +666,8 @@ where
         // &k.serialize(),
         serialized_shared_secret.as_slice(),
         Location::Internal,
-        // Kind::Symmetric(32) // FIXME enable back
+        #[cfg(feature = "inject-any-key")]
+        Kind::Symmetric(32)
     ))
     .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
     .key;
@@ -1064,7 +1065,8 @@ where
         // &k.serialize(),
         req.raw_key_data.as_slice(),
         Location::Internal,
-        // Kind::P256  // FIXME enable
+        #[cfg(feature = "inject-any-key")]
+        Kind::P256
     ))
     .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
     .key;
