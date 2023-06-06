@@ -1,7 +1,6 @@
 use cbor_smol::{cbor_deserialize, cbor_serialize};
 
 use serde::{Deserialize, Serialize};
-use trussed::client;
 
 use crate::commands::*;
 use crate::state::State;
@@ -142,7 +141,7 @@ where
     fn webcrypt_read_request(&self, output: &mut Bytes<1024>, cmd: &ExtWebcryptCmd) -> ERROR_ID {
         let offset = (u8::from(cmd.packet_no)) as usize * (cmd.chunk_size) as usize;
         let offset_right = offset + cmd.this_chunk_length as usize;
-        let offset_right_clamp = min(offset_right, self.WC_OUTPUT_BUFFER.len() as usize);
+        let offset_right_clamp = min(offset_right, self.WC_OUTPUT_BUFFER.len());
 
         if self.WC_OUTPUT_BUFFER.len() == 0 {
             log::error!("No data available for read in the output buffer");

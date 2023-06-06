@@ -24,7 +24,7 @@ mod types;
 mod wcstate;
 
 pub const MAX_MESSAGE_LENGTH: usize = 1024;
-pub const DEFAULT_ENCRYPTION_PIN: &'static str = "1234";
+pub const DEFAULT_ENCRYPTION_PIN: &str = "1234";
 
 pub type Message = Bytes<MAX_MESSAGE_LENGTH>;
 
