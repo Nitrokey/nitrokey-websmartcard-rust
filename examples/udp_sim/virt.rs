@@ -21,10 +21,8 @@ pub mod dispatch {
     use trussed_auth::{AuthBackend, AuthContext, AuthExtension, MAX_HW_KEY_LEN};
 
     /// Backends used by opcard
-    pub const BACKENDS: &[BackendId<Backend>] = &[
-        BackendId::Custom(Backend::Auth),
-        BackendId::Core,
-    ];
+    pub const BACKENDS: &[BackendId<Backend>] =
+        &[BackendId::Custom(Backend::Auth), BackendId::Core];
 
     /// Id for the ExtensionDispatch implementation
     #[derive(Debug, Clone, Copy)]
@@ -141,7 +139,6 @@ pub mod dispatch {
 
         const ID: Self::Id = Self::Id::Auth;
     }
-
 }
 
 use std::path::PathBuf;

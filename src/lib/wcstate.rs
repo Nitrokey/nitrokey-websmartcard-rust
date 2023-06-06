@@ -234,10 +234,12 @@ impl WebcryptState {
             syscall!(t.delete(key));
         }
         // 2. set as key
-        let key =
-            syscall!(t.unsafe_inject_shared_key(master, Location::Internal,
-                // Kind::Shared(32) // FIXME ENABLE
-            )).key;
+        let key = syscall!(t.unsafe_inject_shared_key(
+            master,
+            Location::Internal,
+            // Kind::Shared(32) // FIXME ENABLE
+        ))
+        .key;
         self.master_key = Some(key);
         // 3. return it up to the caller
         self.save(t);
@@ -274,11 +276,12 @@ impl WebcryptState {
                 syscall!(t.delete(key));
             }
             // 2. set as key
-            let key =
-                syscall!(t.unsafe_inject_shared_key(&data, Location::Internal,
-                    // Kind::Shared(32)  // FIXME ENABLE
-                ))
-                    .key;
+            let key = syscall!(t.unsafe_inject_shared_key(
+                &data,
+                Location::Internal,
+                // Kind::Shared(32)  // FIXME ENABLE
+            ))
+            .key;
             // 3. return it up to the caller
             Some(key)
         };

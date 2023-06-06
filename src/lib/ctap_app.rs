@@ -1,3 +1,4 @@
+use crate::commands::WebcryptTrussedClient;
 use apdu_dispatch::app::Interface;
 use apdu_dispatch::app::Status;
 use apdu_dispatch::command::SIZE as APDU_SIZE;
@@ -12,7 +13,6 @@ use ctaphid_dispatch::app;
 use ctaphid_dispatch::app as ctaphid;
 use heapless_bytes::Bytes;
 use trussed::client;
-use crate::commands::WebcryptTrussedClient;
 
 use crate::helpers::hash;
 use crate::transport::Webcrypt;

@@ -303,8 +303,7 @@ impl trussed_usbip::Apps<VirtClient, dispatch::Dispatch> for Apps {
         );
         let admin = admin_app::App::new(builder.build("admin", &[BackendId::Core]), [0; 16], 0);
 
-        let webcrypt =
-            webcrypt::Webcrypt::new(builder.build("webcrypt", dispatch::BACKENDS));
+        let webcrypt = webcrypt::Webcrypt::new(builder.build("webcrypt", dispatch::BACKENDS));
 
         Self {
             fido,
@@ -371,5 +370,5 @@ fn store_file(platform: &impl Platform, host_file: &Path, device_file: &str) {
         &trussed::types::PathBuf::from(device_file),
         &data,
     )
-        .expect("failed to store file");
+    .expect("failed to store file");
 }
