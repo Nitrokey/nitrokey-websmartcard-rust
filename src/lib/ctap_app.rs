@@ -103,7 +103,7 @@ fn try_handle_ctap2<C>(
 where
     C: WebcryptTrussedClient,
 {
-    let ctap_request = ctap2::Request::deserialize(data).map_err(|error| error as u8)?;
+    let ctap_request = Request::deserialize(data).map_err(|error| error as u8)?;
 
     let ctap_response = match ctap_request {
         // 0x2
@@ -316,7 +316,7 @@ where
         apdu: &apdu::Command<{ SIZE }>,
         response: &mut apdu::Data<{ apdu_dispatch::response::SIZE }>,
     ) -> apdu::Result {
-        if interface != apdu::Interface::Contactless {
+        if interface != Interface::Contactless {
             return Err(Status::ConditionsOfUseNotSatisfied);
         }
 
@@ -332,7 +332,7 @@ where
                     Ok(ctaphid::Command::Deselect) => self.deselect(),
                     _ => {
                         info!("Unsupported ins for fido app {:02x}", instruction);
-                        return Err(iso7816::Status::InstructionNotSupportedOrInvalid);
+                        return Err(Status::InstructionNotSupportedOrInvalid);
                     }
                 }
             }
