@@ -1,5 +1,4 @@
-use crate::commands::wrap_key_to_keyhandle;
-use crate::commands_types::{DataBytes, KeyHandleSerialized, ResultW};
+use crate::commands_types::{DataBytes, ResultW};
 use crate::types::ERROR_ID;
 use crate::types::ERROR_ID::ERR_INTERNAL_ERROR;
 use heapless_bytes::Bytes;
@@ -14,9 +13,8 @@ impl KeyFingerprint {
     // TODO
     // https://www.rfc-editor.org/rfc/rfc4880#section-12.2
     // https://crypto.stackexchange.com/a/32097
-    pub fn from_public_key(trussed: &mut (impl client::Client), pk: Bytes<64>) -> Result<Self, ()> {
+    pub fn from_public_key(_trussed: &mut impl client::Client, _pk: Bytes<64>) -> Result<Self, ()> {
         todo!();
-        Ok(Default::default())
     }
 }
 

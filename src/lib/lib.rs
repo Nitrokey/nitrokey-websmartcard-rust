@@ -30,7 +30,7 @@ pub type Message = Bytes<MAX_MESSAGE_LENGTH>;
 
 fn cbor_serialize_message<T: serde::Serialize>(
     object: &T,
-) -> core::result::Result<Message, ctap_types::serde::Error> {
+) -> Result<Message, ctap_types::serde::Error> {
     trussed::cbor_serialize_bytes(object)
 }
 
