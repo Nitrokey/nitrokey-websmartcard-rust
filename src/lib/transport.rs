@@ -92,6 +92,7 @@ where
             OPENPGP_INFO => cmd_openpgp_info(self),
             OPENPGP_GENERATE => cmd_openpgp_generate(self),
 
+            #[cfg(feature = "hmacsha256p256")]
             GENERATE_KEY_FROM_DATA => cmd_generate_key_from_data(self),
 
             READ_RESIDENT_KEY_PUBLIC => cmd_read_resident_key_public(self),
