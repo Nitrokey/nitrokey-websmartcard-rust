@@ -16,7 +16,7 @@ ci:
 
 check:
 	cargo fmt --check
-	cargo clippy
+	cargo clippy -- -D warnings
 
 setup-ubuntu:
 	# git needed for the git_version crate
