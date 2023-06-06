@@ -32,7 +32,6 @@ impl Default for WebcryptConfiguration {
 use crate::openpgp::OpenPGPData;
 use cbor_smol::{cbor_deserialize, cbor_serialize};
 use serde::{Deserialize, Serialize};
-use trussed::key::Kind;
 
 #[derive(Default, Serialize, Deserialize)]
 pub struct WebcryptPIN {

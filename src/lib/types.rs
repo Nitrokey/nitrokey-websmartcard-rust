@@ -256,7 +256,7 @@ impl TryFrom<WebcryptRequest> for ExtWebcryptCmd {
     fn try_from(webcrypt_request: WebcryptRequest) -> Result<Self, Self::Error> {
         // move to serde/nom
         // let mut rdr = Cursor::new(&webcrypt_request.payload);
-        let data = webcrypt_request.payload.clone();
+        let data = webcrypt_request.payload;
         // U8 U8 U8 U8 U8 MESS
         let mut res = ExtWebcryptCmd {
             command_id_transport: data[0].into(),
@@ -267,8 +267,8 @@ impl TryFrom<WebcryptRequest> for ExtWebcryptCmd {
             data_first_byte: Default::default(),
         };
         // res.data_first_byte.extend(webcrypt_request.payload[5..]); // TODO fix magic number
-        for i in 5..webcrypt_request.payload.len() {
-            res.data_first_byte.push(webcrypt_request.payload[i]);
+        for i in 5..data.len() {
+            res.data_first_byte.push(data[i]);
         }
         Ok(res)
     }
@@ -312,7 +312,7 @@ impl TryFrom<WebcryptRequest> for Message {
 impl ExtWebcryptCmd {
     pub fn new_with_data(v: Message) -> Self {
         ExtWebcryptCmd {
-            data_first_byte: Bytes::<245>::from_slice(&**v).unwrap(),
+            data_first_byte: Bytes::<245>::from_slice(&v).unwrap(),
             ..Self::new()
         }
     }
@@ -320,7 +320,7 @@ impl ExtWebcryptCmd {
     pub fn new_with_data_packet(v: Message, p_no: u8, p_total: u8) -> Result<Self, ERROR_ID> {
         Ok(ExtWebcryptCmd {
             this_chunk_length: v.len() as u8,
-            data_first_byte: Bytes::<245>::from_slice(&**v).unwrap(),
+            data_first_byte: Bytes::<245>::from_slice(&v).unwrap(),
             packet_no: p_no.try_into()?,
             packet_count: p_total.try_into()?,
             ..Self::new()

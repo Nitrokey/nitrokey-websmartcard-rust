@@ -860,7 +860,7 @@ where
 
     let login_result = w
         .session
-        .login(req.pin.clone(), &mut w.trussed, &rpid, &mut w.state);
+        .login(req.pin, &mut w.trussed, &rpid, &mut w.state);
     w.state.save(&mut w.trussed);
     let tp = login_result?;
 
@@ -959,7 +959,7 @@ where
             let req: CommandSetPINRequest = w
                 .get_input_deserialized()
                 .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
-            w.state.pin.set_pin(req.pin.clone())?;
+            w.state.pin.set_pin(req.pin)?;
 
             #[cfg(feature = "transparent-encryption")]
             {
@@ -978,7 +978,7 @@ where
             let req: CommandChangePINRequest = w
                 .get_input_deserialized()
                 .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
-            w.state.pin.change_pin(req.pin, req.newpin.clone())?;
+            w.state.pin.change_pin(req.pin, req.newpin)?;
             #[cfg(feature = "transparent-encryption")]
             try_syscall!(w
                 .trussed
