@@ -11,8 +11,8 @@ setup-fedora:
 	sudo dnf install llvm-devel clang-devel
 
 ci:
-	cargo test
 	$(MAKE) check
+	cargo test
 
 check:
 	cargo fmt --check
