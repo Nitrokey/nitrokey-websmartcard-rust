@@ -57,7 +57,7 @@ where
         log::info!("Write");
         self.WC_INPUT_BUFFER
             .extend_from_slice(&cmd.data_first_byte)
-            .unwrap();
+            .map_err(|_| ERROR_ID::ERR_TOO_LONG_REQUEST)?;
         Ok(())
     }
 
