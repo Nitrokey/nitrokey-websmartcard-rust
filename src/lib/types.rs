@@ -85,62 +85,62 @@ pub enum ERROR_ID {
 pub enum CommandID {
     // TODO design discuss should it be non-zero, to avoid responding to empty messages
     /// Get Webcrypt's status
-    STATUS = 0x00,
+    Status = 0x00,
     /// Test command - just return the received data
-    TEST_PING = 0x01,
+    TestPing = 0x01,
     /// Test command - clear user data without confirmation
-    TEST_CLEAR = 0x02,
+    TestClear = 0x02,
     /// Test command - issue reboot command to the host, if configured
-    TEST_REBOOT = 0x03,
+    TestReboot = 0x03,
     /// Unlock access through FIDO U2F. Available for FIDO U2F compatibility.  FIDO2 should use native PIN handling.
-    LOGIN = 0x04,
+    Login = 0x04,
     /// Lock access through FIDO U2F. Available for FIDO U2F compatibility.
-    LOGOUT = 0x05,
+    Logout = 0x05,
     /// Action should be equal in effect to calling FIDO2 reset
-    FACTORY_RESET = 0x06,
+    FactoryReset = 0x06,
     /// Return PIN attempts' counter value. @DEPRECATED by STATUS command.
-    PIN_ATTEMPTS = 0x07,
+    PinAttempts = 0x07,
     /// Set user options, like when to ask for the touch confirmation or PIN
-    SET_CONFIGURATION = 0x08,
-    GET_CONFIGURATION = 0x09,
-    SET_PIN = 0x0A,
-    CHANGE_PIN = 0x0B,
+    SetConfiguration = 0x08,
+    GetConfiguration = 0x09,
+    SetPin = 0x0A,
+    ChangePin = 0x0B,
 
     /// Initialize Webcrypt's secrets
-    INITIALIZE_SEED = 0x10,
+    InitializeSeed = 0x10,
     /// Restore Webcrypt secrets from the provided data
-    RESTORE_FROM_SEED = 0x11,
+    RestoreFromSeed = 0x11,
     /// Generate a key and return it to the callee as key handle
-    GENERATE_KEY = 0x12,
+    GenerateKey = 0x12,
     /// Sign data with key handle
-    SIGN = 0x13,
+    Sign = 0x13,
     /// Decrypt data with key handle
-    DECRYPT = 0x14,
+    Decrypt = 0x14,
     /// Generate a key from the provided data
-    GENERATE_KEY_FROM_DATA = 0x15,
+    GenerateKeyFromData = 0x15,
 
     /// Write a Resident Key from the provided data
-    GENERATE_RESIDENT_KEY = 0x16,
+    GenerateResidentKey = 0x16,
     /// Read public key of the Resident Key
-    READ_RESIDENT_KEY_PUBLIC = 0x17,
+    ReadResidentKeyPublic = 0x17,
     /// Discover Resident Keys related to this RP
-    DISCOVER_RESIDENT_KEYS = 0x18,
+    DiscoverResidentKeys = 0x18,
     /// Write RAW key as received from the RP
-    WRITE_RESIDENT_KEY = 0x19,
+    WriteResidentKey = 0x19,
 
     /// OPENPGP specific commands
-    OPENPGP_DECRYPT = 0x20,
-    OPENPGP_SIGN = 0x21,
-    OPENPGP_INFO = 0x22,
-    OPENPGP_IMPORT = 0x23,
-    OPENPGP_GENERATE = 0x24,
+    OpenPgpDecrypt = 0x20,
+    OpenPgpSign = 0x21,
+    OpenPgpInfo = 0x22,
+    OpenPgpImport = 0x23,
+    OpenPgpGenerate = 0x24,
 
     /// Implementation detail: default value
     /// Add map to From<u8> for CommandID, or you will get this value: 0xFE
     #[default]
-    NOT_SET = 0xFE,
+    NotSetInvalid = 0xFE,
     /// Implementation detail: commands' total count
-    __MAX_SIZE,
+    __MaximumSize,
 }
 
 impl From<CommandID> for u8 {
@@ -154,37 +154,37 @@ impl From<u8> for CommandID {
     fn from(c: u8) -> Self {
         use CommandID::*;
         match c {
-            0x00 => STATUS,
-            0x01 => TEST_PING,
-            0x02 => TEST_CLEAR,
-            0x03 => TEST_REBOOT,
-            0x04 => LOGIN,
-            0x05 => LOGOUT,
-            0x06 => FACTORY_RESET,
-            0x07 => PIN_ATTEMPTS,
-            0x08 => SET_CONFIGURATION,
-            0x09 => GET_CONFIGURATION,
-            0x0A => SET_PIN,
-            0x0B => CHANGE_PIN,
-            0x10 => INITIALIZE_SEED,
-            0x11 => RESTORE_FROM_SEED,
-            0x12 => GENERATE_KEY,
-            0x13 => SIGN,
-            0x14 => DECRYPT,
-            0x15 => GENERATE_KEY_FROM_DATA,
-            0x16 => GENERATE_RESIDENT_KEY,
-            0x17 => READ_RESIDENT_KEY_PUBLIC,
-            0x18 => DISCOVER_RESIDENT_KEYS,
-            0x19 => WRITE_RESIDENT_KEY,
+            0x00 => Status,
+            0x01 => TestPing,
+            0x02 => TestClear,
+            0x03 => TestReboot,
+            0x04 => Login,
+            0x05 => Logout,
+            0x06 => FactoryReset,
+            0x07 => PinAttempts,
+            0x08 => SetConfiguration,
+            0x09 => GetConfiguration,
+            0x0A => SetPin,
+            0x0B => ChangePin,
+            0x10 => InitializeSeed,
+            0x11 => RestoreFromSeed,
+            0x12 => GenerateKey,
+            0x13 => Sign,
+            0x14 => Decrypt,
+            0x15 => GenerateKeyFromData,
+            0x16 => GenerateResidentKey,
+            0x17 => ReadResidentKeyPublic,
+            0x18 => DiscoverResidentKeys,
+            0x19 => WriteResidentKey,
 
-            0x20 => OPENPGP_DECRYPT,
-            0x21 => OPENPGP_SIGN,
-            0x22 => OPENPGP_INFO,
-            0x23 => OPENPGP_IMPORT,
-            0x24 => OPENPGP_GENERATE,
+            0x20 => OpenPgpDecrypt,
+            0x21 => OpenPgpSign,
+            0x22 => OpenPgpInfo,
+            0x23 => OpenPgpImport,
+            0x24 => OpenPgpGenerate,
 
-            0xFE => NOT_SET,
-            _ => NOT_SET,
+            0xFE => NotSetInvalid,
+            _ => NotSetInvalid,
         }
     }
 }
