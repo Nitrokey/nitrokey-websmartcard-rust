@@ -155,23 +155,24 @@ where
                 sign_count: 0,
 
                 attested_credential_data: {
-                    let attested_credential_data = ctap2::make_credential::AttestedCredentialData {
-                        aaguid: Bytes::from_slice(&[1u8; 16]).unwrap(),
-                        // credential_id: Bytes::from_slice(&[2u8; 255]).unwrap(),
-                        credential_id: Bytes::from_slice(&data[..]).unwrap(),
-                        credential_public_key: {
-                            // FIXME replace with a properly serialized empty cose public key
-                            let a = [
-                                165, 1, 2, 3, 38, 32, 1, 33, 88, 32, 101, 237, 165, 161, 37, 119,
-                                194, 186, 232, 41, 67, 127, 227, 56, 112, 26, 16, 170, 163, 117,
-                                225, 187, 91, 93, 225, 8, 222, 67, 156, 8, 85, 29, 34, 88, 32, 30,
-                                82, 237, 117, 112, 17, 99, 247, 249, 228, 13, 223, 159, 52, 27, 61,
-                                201, 186, 134, 10, 247, 224, 202, 124, 167, 233, 238, 205, 0, 132,
-                                209, 156,
-                            ];
-                            Bytes::from_slice(&a).unwrap()
-                        },
-                    };
+                    let _attested_credential_data =
+                        ctap2::make_credential::AttestedCredentialData {
+                            aaguid: Bytes::from_slice(&[1u8; 16]).unwrap(),
+                            // credential_id: Bytes::from_slice(&[2u8; 255]).unwrap(),
+                            credential_id: Bytes::from_slice(&data[..]).unwrap(),
+                            credential_public_key: {
+                                // FIXME replace with a properly serialized empty cose public key
+                                let a = [
+                                    165, 1, 2, 3, 38, 32, 1, 33, 88, 32, 101, 237, 165, 161, 37,
+                                    119, 194, 186, 232, 41, 67, 127, 227, 56, 112, 26, 16, 170,
+                                    163, 117, 225, 187, 91, 93, 225, 8, 222, 67, 156, 8, 85, 29,
+                                    34, 88, 32, 30, 82, 237, 117, 112, 17, 99, 247, 249, 228, 13,
+                                    223, 159, 52, 27, 61, 201, 186, 134, 10, 247, 224, 202, 124,
+                                    167, 233, 238, 205, 0, 132, 209, 156,
+                                ];
+                                Bytes::from_slice(&a).unwrap()
+                            },
+                        };
                     // Some(attested_credential_data)
                     None
                 },
@@ -189,7 +190,7 @@ where
             //     }
             // };
 
-            let user = {
+            let _user = {
                 PublicKeyCredentialUserEntity {
                     id: Bytes::from_slice(&[3u8; 16]).unwrap(),
                     icon: None,

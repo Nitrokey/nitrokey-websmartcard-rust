@@ -42,7 +42,7 @@ pub struct OpenPGPData {
 }
 
 impl OpenPGPKey {
-    pub fn clear(&self, trussed: &mut (impl client::Client)) -> Result<(), trussed::Error> {
+    pub fn clear(&self, trussed: &mut impl client::Client) -> Result<(), trussed::Error> {
         // TODO: set self.key to None after removal
         try_syscall!(trussed.delete(self.key))?;
         if self.pubkey.is_some() {
@@ -55,12 +55,10 @@ impl OpenPGPKey {
         match self.pubkey {
             Some(pk) => pk,
             None => {
-                let pk =
-                    syscall!(trussed
-                        .derive_p256_public_key(self.key, trussed::types::Location::Volatile))
-                    .key;
-                // self.pubkey = Some(pk);
-                pk
+                syscall!(
+                    trussed.derive_p256_public_key(self.key, trussed::types::Location::Volatile)
+                )
+                .key
             }
         }
     }
@@ -79,7 +77,7 @@ impl OpenPGPKey {
 }
 
 impl OpenPGPData {
-    pub fn clear(&self, trussed: &mut (impl client::Client)) -> Result<(), trussed::Error> {
+    pub fn clear(&self, trussed: &mut impl client::Client) -> Result<(), trussed::Error> {
         self.signing.clear(trussed)?;
         self.encryption.clear(trussed)?;
         self.authentication.clear(trussed)?;
@@ -129,8 +127,6 @@ impl OpenPGPData {
         enc: DataBytes,
         date: DataBytes,
     ) -> ResultW<Self> {
-        use trussed::key::Kind;
-        use trussed::try_syscall;
         use trussed::types::Location;
 
         Ok(OpenPGPData {
