@@ -19,13 +19,12 @@ jobs:
     - name: Run tests
       run: make ci
 
-#  fuzz:
-#    runs-on: ubuntu-latest
-#    steps:
-#    - uses: actions/checkout@v3
-#    - name: Setup fuzz
-#      run: make -C fuzz setup-ubuntu
-#    - name: Setup fuzz 2
-#      run: make -C fuzz setup
-#    - name: Run tests
-#      run: make -C fuzz ci
+  clippy_check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: rustup component add clippy
+      - uses: actions-rs/clippy-check@v1.0.7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # args: --all-features
