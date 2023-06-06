@@ -41,13 +41,17 @@ pub trait WebcryptTrussedClient:
 {
 }
 
-impl<C: client::Client
-+ client::P256
-+ client::Chacha8Poly1305
-+ client::HmacSha256
-+ client::Sha256
-// + client::HmacSha256P256
-+ client::Aes256Cbc> WebcryptTrussedClient for C {}
+impl<
+        C: client::Client
+            + client::P256
+            + client::Chacha8Poly1305
+            + client::HmacSha256
+            + client::Sha256
+            // + client::HmacSha256P256
+            + client::Aes256Cbc,
+    > WebcryptTrussedClient for C
+{
+}
 
 pub fn cmd_status<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
@@ -284,7 +288,7 @@ where
         Location::Volatile,
     ))
     .key
-        .ok_or(ERROR_ID::ERR_INTERNAL_ERROR)?;
+    .ok_or(ERROR_ID::ERR_INTERNAL_ERROR)?;
     Ok(key)
 }
 
@@ -712,39 +716,39 @@ where
 
     #[cfg(feature = "hmacsha256p256")]
     {
-    let derived_key = syscall!(
-        // requires support on the trussed side
-        w.trussed
-            .hmacsha256p256_derive_key(kek, data_for_key, Location::Volatile)
-    )
-    .key;
-    let private_key = derived_key;
+        let derived_key = syscall!(
+            // requires support on the trussed side
+            w.trussed
+                .hmacsha256p256_derive_key(kek, data_for_key, Location::Volatile)
+        )
+        .key;
+        let private_key = derived_key;
 
-    // public key
-    let public_key = syscall!(w
-        .trussed
-        .derive_p256_public_key(private_key, Location::Volatile))
-    .key;
-    let serialized_raw_public_key = syscall!(w
-        .trussed
-        .serialize_p256_key(public_key, KeySerialization::Raw))
-    .serialized_key;
-    let keyhandle_ser_enc = wrap_key_to_keyhandle(w, private_key)?;
+        // public key
+        let public_key = syscall!(w
+            .trussed
+            .derive_p256_public_key(private_key, Location::Volatile))
+        .key;
+        let serialized_raw_public_key = syscall!(w
+            .trussed
+            .serialize_p256_key(public_key, KeySerialization::Raw))
+        .serialized_key;
+        let keyhandle_ser_enc = wrap_key_to_keyhandle(w, private_key)?;
 
-    syscall!(w.trussed.delete(public_key));
-    syscall!(w.trussed.delete(private_key));
+        syscall!(w.trussed.delete(public_key));
+        syscall!(w.trussed.delete(private_key));
 
-    w.send_to_output({
-        let mut pubkey = Bytes65::from_slice(serialized_raw_public_key.as_slice()).unwrap();
-        // add identifier for uncompressed form - 0x04
-        pubkey
-            .insert(0, 0x04)
-            .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?;
-        CommandGenerateResponse {
-            pubkey,
-            keyhandle: KeyHandleSerialized::from_slice(&keyhandle_ser_enc[..]).unwrap(),
-        }
-    });
+        w.send_to_output({
+            let mut pubkey = Bytes65::from_slice(serialized_raw_public_key.as_slice()).unwrap();
+            // add identifier for uncompressed form - 0x04
+            pubkey
+                .insert(0, 0x04)
+                .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?;
+            CommandGenerateResponse {
+                pubkey,
+                keyhandle: KeyHandleSerialized::from_slice(&keyhandle_ser_enc[..]).unwrap(),
+            }
+        });
     }
 
     Ok(())
@@ -1047,8 +1051,7 @@ where
 
 pub fn cmd_write_resident_key<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: WebcryptTrussedClient
-        + client::Sha256,
+    C: WebcryptTrussedClient + client::Sha256,
 {
     let req: CommandWriteResidentKeyRequest = w
         .get_input_deserialized()
@@ -1111,8 +1114,7 @@ where
 
 pub fn cmd_generate_resident_key<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: WebcryptTrussedClient
-        + client::Sha256,
+    C: WebcryptTrussedClient + client::Sha256,
 {
     // write the RK similarly, as done with FIDO2, potentially with some extensions
 
