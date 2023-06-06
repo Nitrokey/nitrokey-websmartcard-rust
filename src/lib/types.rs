@@ -58,7 +58,7 @@ impl From<TRANSPORT_CMD_ID> for u8 {
 
 #[repr(u8)]
 #[allow(non_camel_case_types)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum ERROR_ID {
     ERR_SUCCESS = 0x00,
     ERR_REQ_AUTH = 0xF0,
@@ -75,18 +75,13 @@ pub enum ERROR_ID {
     ERR_MEMORY_FULL = 0xFB,
     ERR_NOT_IMPLEMENTED = 0xFC,
     ERR_BAD_ORIGIN = 0xFD,
+    #[default]
     ERR_NOT_SET = 0xFE,
     ERR_INVALID_COMMAND = 0xFF,
 }
 
-impl Default for ERROR_ID {
-    fn default() -> Self {
-        ERROR_ID::ERR_NOT_SET
-    }
-}
-
 #[repr(u8)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Default)]
 pub enum CommandID {
     // TODO design discuss should it be non-zero, to avoid responding to empty messages
     /// Get Webcrypt's status
@@ -142,15 +137,10 @@ pub enum CommandID {
 
     /// Implementation detail: default value
     /// Add map to From<u8> for CommandID, or you will get this value: 0xFE
+    #[default]
     NOT_SET = 0xFE,
     /// Implementation detail: commands' total count
     __MAX_SIZE,
-}
-
-impl Default for CommandID {
-    fn default() -> Self {
-        CommandID::NOT_SET
-    }
 }
 
 impl From<CommandID> for u8 {
@@ -342,6 +332,12 @@ impl ExtWebcryptCmd {
 
     pub fn is_final(&self) -> bool {
         self.packet_no == self.packet_count.get_previous()
+    }
+}
+
+impl Default for ExtWebcryptCmd {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
