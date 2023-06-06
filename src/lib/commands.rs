@@ -16,7 +16,7 @@ use crate::constants::GIT_VERSION;
 use crate::constants::{WEBCRYPT_AVAILABLE_SLOTS_MAX, WEBCRYPT_VERSION};
 use crate::rk_files::*;
 use crate::transport::Webcrypt;
-use crate::types::CommandID::{CHANGE_PIN, SET_PIN};
+use crate::types::CommandID::{ChangePin, SetPin};
 use crate::types::ERROR_ID;
 
 use crate::helpers::hash;
@@ -954,7 +954,7 @@ where
     // To decide: same handler for both setting and changing?
 
     match w.current_command_id {
-        SET_PIN => {
+        SetPin => {
             let req: CommandSetPINRequest = w
                 .get_input_deserialized()
                 .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
@@ -973,7 +973,7 @@ where
             w.state.initialize(&mut w.trussed);
             Ok(())
         }
-        CHANGE_PIN => {
+        ChangePin => {
             let req: CommandChangePINRequest = w
                 .get_input_deserialized()
                 .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
