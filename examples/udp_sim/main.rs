@@ -21,8 +21,7 @@ fn main() {
     env_logger::init();
 
     virt::with_ram_client("webcrypt", |client| {
-        let mut w =
-            Webcrypt::new(client);
+        let mut w = Webcrypt::new(client);
 
         let mut server = UDPServer::new();
         loop {
