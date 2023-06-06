@@ -61,6 +61,7 @@ impl From<TRANSPORT_CMD_ID> for u8 {
 #[derive(Debug, Clone, Default)]
 pub enum ERROR_ID {
     ERR_SUCCESS = 0x00,
+    ERR_TOO_LONG_REQUEST = 0xE0,
     ERR_REQ_AUTH = 0xF0,
     ERR_INVALID_PIN = 0xF1,
     ERR_NOT_ALLOWED = 0xF2,
