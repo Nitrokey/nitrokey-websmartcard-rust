@@ -268,7 +268,7 @@ impl TryFrom<WebcryptRequest> for ExtWebcryptCmd {
         };
         // res.data_first_byte.extend(webcrypt_request.payload[5..]); // TODO fix magic number
         for i in 5..data.len() {
-            res.data_first_byte.push(data[i]);
+            res.data_first_byte.push(data[i]).unwrap();
         }
         Ok(res)
     }
@@ -279,12 +279,12 @@ impl TryFrom<ExtWebcryptCmd> for Message {
 
     fn try_from(a: ExtWebcryptCmd) -> Result<Self, Self::Error> {
         let mut res = Message::new();
-        res.push(a.command_id_transport as u8);
-        res.push(a.packet_no.into());
-        res.push(a.packet_count.into());
-        res.push(a.chunk_size);
-        res.push(a.this_chunk_length);
-        res.extend_from_slice(&a.data_first_byte);
+        res.push(a.command_id_transport as u8).unwrap();
+        res.push(a.packet_no.into()).unwrap();
+        res.push(a.packet_count.into()).unwrap();
+        res.push(a.chunk_size).unwrap();
+        res.push(a.this_chunk_length).unwrap();
+        res.extend_from_slice(&a.data_first_byte).unwrap();
         Ok(res)
     }
 }
@@ -295,12 +295,14 @@ impl TryFrom<WebcryptRequest> for Message {
 
     fn try_from(a: WebcryptRequest) -> Result<Self, Self::Error> {
         let mut res = Message::new();
-        res.push(a.operation_webcrypt_constant);
-        res.push((a.tag_webcrypt_constant & 0xFF000000) as u8);
-        res.push((a.tag_webcrypt_constant & 0xFF0000) as u8);
-        res.push((a.tag_webcrypt_constant & 0xFF00) as u8);
-        res.push((a.tag_webcrypt_constant & 0xFF) as u8);
-        res.extend_from_slice(&a.payload);
+        res.push(a.operation_webcrypt_constant).unwrap();
+        res.push((a.tag_webcrypt_constant & 0xFF000000) as u8)
+            .unwrap();
+        res.push((a.tag_webcrypt_constant & 0xFF0000) as u8)
+            .unwrap();
+        res.push((a.tag_webcrypt_constant & 0xFF00) as u8).unwrap();
+        res.push((a.tag_webcrypt_constant & 0xFF) as u8).unwrap();
+        res.extend_from_slice(&a.payload).unwrap();
         // &res[..]
         // let mut res2 = [0u8; 255];
         // res2.copy_from_slice(&res);
@@ -363,7 +365,7 @@ pub struct WebcryptResult {
 impl From<WebcryptResult> for Message {
     fn from(r: WebcryptResult) -> Self {
         let mut v = Message::new();
-        v.push(r.status_code as u8);
+        v.push(r.status_code as u8).unwrap();
         v.extend(r.cbor_payload);
         v
     }
@@ -471,9 +473,9 @@ impl From<Message> for ResponseReadFirst {
 impl From<ResponseReadFirst> for Message {
     fn from(r: ResponseReadFirst) -> Self {
         let mut v: Message = Bytes::new();
-        v.push(((r.data_len >> 8) & 0xFF) as u8); // using little endian here
-        v.push((r.data_len & 0xFF) as u8);
-        v.push(r.cmd_id as u8);
+        v.push(((r.data_len >> 8) & 0xFF) as u8).unwrap(); // using little endian here
+        v.push((r.data_len & 0xFF) as u8).unwrap();
+        v.push(r.cmd_id as u8).unwrap();
         v.extend(r.data.0);
         v
     }

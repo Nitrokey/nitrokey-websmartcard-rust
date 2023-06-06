@@ -55,7 +55,9 @@ where
         cmd: &ExtWebcryptCmd,
     ) -> Result<(), WebcryptError> {
         log::info!("Write");
-        self.WC_INPUT_BUFFER.extend_from_slice(&cmd.data_first_byte);
+        self.WC_INPUT_BUFFER
+            .extend_from_slice(&cmd.data_first_byte)
+            .unwrap();
         Ok(())
     }
 
@@ -130,12 +132,12 @@ where
         let mut buffer = [0u8; 256 * 8];
         let encoded = cbor_serialize(&o, &mut buffer).unwrap();
         // log::info!("Encoded: {:?}", hex::encode(encoded));
-        self.WC_OUTPUT_BUFFER.extend_from_slice(encoded);
+        self.WC_OUTPUT_BUFFER.extend_from_slice(encoded).unwrap();
     }
 
     pub fn send_to_output_arr(&mut self, o: &Bytes<1024>) {
         log::info!("Clear write: {:?}", o);
-        self.WC_OUTPUT_BUFFER.extend_from_slice(o);
+        self.WC_OUTPUT_BUFFER.extend_from_slice(o).unwrap();
     }
 
     fn webcrypt_read_request(&self, output: &mut Bytes<1024>, cmd: &ExtWebcryptCmd) -> ERROR_ID {
@@ -156,7 +158,9 @@ where
             return ERROR_ID::ERR_FAILED_LOADING_DATA;
         }
 
-        output.extend_from_slice(&self.WC_OUTPUT_BUFFER[offset..offset_right_clamp]);
+        output
+            .extend_from_slice(&self.WC_OUTPUT_BUFFER[offset..offset_right_clamp])
+            .unwrap();
         // log::info!(
         //     "Read: [{}..{})({})/{} {:?}",
         //     offset,
@@ -269,6 +273,7 @@ where
     }
     pub fn send_input_to_output(&mut self) {
         self.WC_OUTPUT_BUFFER
-            .extend_from_slice(&self.WC_INPUT_BUFFER[3..]);
+            .extend_from_slice(&self.WC_INPUT_BUFFER[3..])
+            .unwrap();
     }
 }
