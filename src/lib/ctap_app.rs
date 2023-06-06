@@ -240,6 +240,7 @@ where
         &[app::Command::Cbor, app::Command::Msg]
     }
 
+    #[cfg(feature = "ctaphid-peek")]
     fn peek(&self, request: &ctaphid_dispatch::types::Message) -> bool {
         // let offset = 4 * 16 + 8;
         // let offset2 = 3 * 16 + 8;
@@ -341,6 +342,7 @@ where
         Ok(())
     }
 
+    #[cfg(feature = "apdu-peek")]
     fn peek(&self, apdu: Option<&apdu_dispatch::app::Command<SIZE>>) -> bool {
         match apdu {
             None => false,
