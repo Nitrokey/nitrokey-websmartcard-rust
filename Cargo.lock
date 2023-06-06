@@ -48,8 +48,9 @@ dependencies = [
 
 [[package]]
 name = "apdu-dispatch"
-version = "0.1.1"
-source = "git+https://github.com/Nitrokey/apdu-dispatch.git?branch=sz-multiple-apps#a48af4351268ef43fc86cb1a5ed3252b5de326fb"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "898c4ae30eeab17a209d5576cf7b312fdbee4d1cb739333c1308908fc841a5fb"
 dependencies = [
  "delog",
  "heapless",
