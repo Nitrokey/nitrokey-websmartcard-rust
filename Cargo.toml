@@ -74,8 +74,10 @@ name="usbip"
 # This fork contains RSA support and adds data encryption, which both nowadays are realized with backends.
 # Possibly not relevant anymore
 #trussed = { git = "https://github.com/Nitrokey/trussed.git", branch="webcrypt-devel" }
+
 # Enable this for FIDO2 transport support
 ctaphid-dispatch = { git = "https://github.com/Nitrokey/ctaphid-dispatch.git", branch="multiple_apps" }
+
 # Enable this for the NFC support, implemented in a somewhat outdated fork
 #apdu-dispatch = { git = "https://github.com/Nitrokey/apdu-dispatch.git", branch="sz-multiple-apps" }
 
