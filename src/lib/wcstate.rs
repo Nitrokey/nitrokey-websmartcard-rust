@@ -237,7 +237,8 @@ impl WebcryptState {
         let key = syscall!(t.unsafe_inject_shared_key(
             master,
             Location::Internal,
-            // Kind::Shared(32) // FIXME ENABLE
+            #[cfg(feature = "inject-any-key")]
+            Kind::Shared(32)
         ))
         .key;
         self.master_key = Some(key);
@@ -279,7 +280,8 @@ impl WebcryptState {
             let key = syscall!(t.unsafe_inject_shared_key(
                 &data,
                 Location::Internal,
-                // Kind::Shared(32)  // FIXME ENABLE
+                #[cfg(feature = "inject-any-key")]
+                Kind::Shared(32)
             ))
             .key;
             // 3. return it up to the caller

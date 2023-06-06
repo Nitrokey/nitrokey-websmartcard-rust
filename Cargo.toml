@@ -62,6 +62,9 @@ apdu-peek = []
 # Support P256 key derivation from HMAC
 hmacsha256p256 = []
 
+# Allow to inject raw key data with specified type into the Trussed key store
+inject-any-key = []
+
 log-all = []
 log-none = []
 log-info = []
