@@ -141,7 +141,8 @@ impl OpenPGPData {
                     try_syscall!(trussed.unsafe_inject_shared_key(
                         auth.as_slice(),
                         Location::Internal,
-                        // Kind::P256  //FIXME enable
+                        #[cfg(feature = "inject-any-key")]
+                        Kind::P256
                     ))
                     .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
                     .key
@@ -154,7 +155,8 @@ impl OpenPGPData {
                     try_syscall!(trussed.unsafe_inject_shared_key(
                         enc.as_slice(),
                         Location::Internal,
-                        // Kind::P256  // FIXME enable
+                        #[cfg(feature = "inject-any-key")]
+                        Kind::P256
                     ))
                     .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
                     .key
@@ -167,7 +169,8 @@ impl OpenPGPData {
                     try_syscall!(trussed.unsafe_inject_shared_key(
                         sign.as_slice(),
                         Location::Internal,
-                        // Kind::P256  // FIXME enable
+                        #[cfg(feature = "inject-any-key")]
+                        Kind::P256
                     ))
                     .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
                     .key
