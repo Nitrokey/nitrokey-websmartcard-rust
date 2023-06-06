@@ -71,43 +71,43 @@ where
         log::info!("Received operation: {:?} {:x?}", id_u8, operation);
         use CommandID::*;
         let res = match operation {
-            STATUS => cmd_status(self),
-            LOGIN => cmd_login(self),
-            LOGOUT => cmd_logout(self),
-            FACTORY_RESET => cmd_factory_reset(self),
-            GET_CONFIGURATION => cmd_configure(self),
-            SET_CONFIGURATION => cmd_configure(self),
-            SET_PIN => cmd_manage_pin(self),
-            CHANGE_PIN => cmd_manage_pin(self),
-            INITIALIZE_SEED => cmd_initialize_seed(self),
-            RESTORE_FROM_SEED => cmd_restore_from_seed(self),
+            Status => cmd_status(self),
+            Login => cmd_login(self),
+            Logout => cmd_logout(self),
+            FactoryReset => cmd_factory_reset(self),
+            GetConfiguration => cmd_configure(self),
+            SetConfiguration => cmd_configure(self),
+            SetPin => cmd_manage_pin(self),
+            ChangePin => cmd_manage_pin(self),
+            InitializeSeed => cmd_initialize_seed(self),
+            RestoreFromSeed => cmd_restore_from_seed(self),
 
-            GENERATE_KEY => cmd_generate_key(self),
-            SIGN => cmd_sign(self),
-            DECRYPT => cmd_decrypt(self),
+            GenerateKey => cmd_generate_key(self),
+            Sign => cmd_sign(self),
+            Decrypt => cmd_decrypt(self),
 
-            OPENPGP_IMPORT => cmd_openpgp_import(self),
-            OPENPGP_SIGN => cmd_openpgp_sign(self),
-            OPENPGP_DECRYPT => cmd_openpgp_decrypt(self),
-            OPENPGP_INFO => cmd_openpgp_info(self),
-            OPENPGP_GENERATE => cmd_openpgp_generate(self),
+            OpenPgpImport => cmd_openpgp_import(self),
+            OpenPgpSign => cmd_openpgp_sign(self),
+            OpenPgpDecrypt => cmd_openpgp_decrypt(self),
+            OpenPgpInfo => cmd_openpgp_info(self),
+            OpenPgpGenerate => cmd_openpgp_generate(self),
 
             #[cfg(feature = "hmacsha256p256")]
-            GENERATE_KEY_FROM_DATA => cmd_generate_key_from_data(self),
+            GenerateKeyFromData => cmd_generate_key_from_data(self),
 
-            READ_RESIDENT_KEY_PUBLIC => cmd_read_resident_key_public(self),
-            GENERATE_RESIDENT_KEY => cmd_generate_resident_key(self),
-            DISCOVER_RESIDENT_KEYS => cmd_discover_resident_key(self),
-            WRITE_RESIDENT_KEY => cmd_write_resident_key(self),
+            ReadResidentKeyPublic => cmd_read_resident_key_public(self),
+            GenerateResidentKey => cmd_generate_resident_key(self),
+            DiscoverResidentKeys => cmd_discover_resident_key(self),
+            WriteResidentKey => cmd_write_resident_key(self),
 
-            __MAX_SIZE => Err(ERROR_ID::ERR_INVALID_COMMAND),
-            TEST_PING => cmd_test_ping(self),
+            __MaximumSize => Err(ERROR_ID::ERR_INVALID_COMMAND),
+            TestPing => cmd_test_ping(self),
             #[cfg(feature = "test-commands")]
-            TEST_CLEAR => {
+            TestClear => {
                 todo!()
             }
             #[cfg(feature = "test-commands")]
-            TEST_REBOOT => {
+            TestReboot => {
                 todo!()
             }
             _ => Err(ERROR_ID::ERR_INVALID_COMMAND),
