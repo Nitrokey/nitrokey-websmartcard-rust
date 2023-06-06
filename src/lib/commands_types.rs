@@ -27,8 +27,8 @@ pub type Bytes250 = Bytes<250>;
 pub type DataBytes = Bytes<1024>;
 pub type SessionToken = Bytes32;
 pub type ExpectedSessionToken = Option<SessionToken>;
-pub(crate) type SerializedCredential = trussed::types::Message;
-pub type ResultW<T> = core::result::Result<T, ERROR_ID>;
+pub(crate) type SerializedCredential = Message;
+pub type ResultW<T> = Result<T, ERROR_ID>;
 
 // TODO move to struct, instead of the type alias
 pub type KeyHandleSerialized = Bytes250;

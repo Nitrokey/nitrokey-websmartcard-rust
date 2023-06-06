@@ -30,7 +30,6 @@ impl Default for WebcryptConfiguration {
 }
 
 use crate::openpgp::OpenPGPData;
-use crate::types::ERROR_ID::{ERR_INTERNAL_ERROR, ERR_INVALID_PIN, ERR_NOT_ALLOWED};
 use cbor_smol::{cbor_deserialize, cbor_serialize};
 use serde::{Deserialize, Serialize};
 use trussed::key::Kind;
@@ -49,7 +48,7 @@ impl WebcryptPIN {
     pub fn decrease_counter(&mut self) -> Result<(), ERROR_ID> {
         if self.counter == 0 {
             log::info!("Counter PIN used up");
-            return Err(ERR_NOT_ALLOWED);
+            return Err(ERROR_ID::ERR_NOT_ALLOWED);
         }
         self.counter -= 1;
         Ok(())
@@ -58,11 +57,11 @@ impl WebcryptPIN {
     pub fn check_pin(&mut self, pin: Bytes64) -> Result<bool, ERROR_ID> {
         if self.pin.is_none() {
             log::info!("PIN not set");
-            return Err(ERR_NOT_ALLOWED);
+            return Err(ERROR_ID::ERR_NOT_ALLOWED);
         }
         if self.counter == 0 {
             log::info!("Counter PIN used up");
-            return Err(ERR_NOT_ALLOWED);
+            return Err(ERROR_ID::ERR_NOT_ALLOWED);
         }
         self.decrease_counter()?;
 
@@ -70,7 +69,7 @@ impl WebcryptPIN {
 
         // TODO use side-channels safe comparison library, e.g. subtle
         if pin != self.pin.as_ref().unwrap() {
-            return Err(ERR_INVALID_PIN);
+            return Err(ERROR_ID::ERR_INVALID_PIN);
         }
         self.counter = 8;
 
@@ -80,7 +79,7 @@ impl WebcryptPIN {
     fn validate_pin(&self, pin: &Bytes64) -> Result<(), ERROR_ID> {
         let l = pin.len();
         if !(4..=64).contains(&l) {
-            Err(ERR_NOT_ALLOWED)
+            Err(ERROR_ID::ERR_NOT_ALLOWED)
         } else {
             Ok(())
         }
@@ -88,7 +87,7 @@ impl WebcryptPIN {
 
     pub fn set_pin(&mut self, pin: Bytes64) -> Result<bool, ERROR_ID> {
         if self.pin.is_some() {
-            return Err(ERR_NOT_ALLOWED);
+            return Err(ERROR_ID::ERR_NOT_ALLOWED);
         }
         self.validate_pin(&pin)?;
         self.pin = Some(pin);
@@ -97,7 +96,7 @@ impl WebcryptPIN {
     }
     pub fn change_pin(&mut self, pin: Bytes64, new_pin: Bytes64) -> Result<bool, ERROR_ID> {
         if self.pin.is_none() {
-            return Err(ERR_NOT_ALLOWED);
+            return Err(ERROR_ID::ERR_NOT_ALLOWED);
         }
         self.validate_pin(&new_pin)?;
         self.check_pin(pin)?;
@@ -297,18 +296,18 @@ impl WebcryptState {
     {
         let state_ser =
             try_syscall!(t.read_file(Location::Internal, PathBuf::from(STATE_FILE_PATH)))
-                .map_err(|_| ERR_INTERNAL_ERROR)?
+                .map_err(|_| ERROR_ID::ERR_INTERNAL_ERROR)?
                 .data;
         log::info!("State file found. Loading.");
 
         // todo handle errors from the data corruption separately
         let w = self
             .deserialize(state_ser.as_slice())
-            .map_err(|_| ERR_INTERNAL_ERROR)?;
+            .map_err(|_| ERROR_ID::ERR_INTERNAL_ERROR)?;
 
         if !w.initialized() {
             log::info!("Found state not initialized. Aborting load.");
-            return Err(ERR_INTERNAL_ERROR);
+            return Err(ERROR_ID::ERR_INTERNAL_ERROR);
         }
 
         *self = w;

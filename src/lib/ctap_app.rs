@@ -3,16 +3,14 @@ use apdu_dispatch::app::Interface;
 use apdu_dispatch::app::Status;
 use apdu_dispatch::command::SIZE as APDU_SIZE;
 use apdu_dispatch::iso7816::{Aid, App};
-use apdu_dispatch::{app as apdu, iso7816, response::Data, Command};
+use apdu_dispatch::{app as apdu, iso7816};
 use ctap_types::ctap1::{authenticate, Request as Request1, Response as Response1};
 use ctap_types::ctap2::{get_assertion, Request, Response};
 use ctap_types::webauthn::PublicKeyCredentialUserEntity;
 use ctap_types::{ctap1, ctap2};
-use ctap_types::{serde::error::Error as SerdeError, Error};
 use ctaphid_dispatch::app;
 use ctaphid_dispatch::app as ctaphid;
 use heapless_bytes::Bytes;
-use trussed::client;
 
 use crate::helpers::hash;
 use crate::transport::Webcrypt;
