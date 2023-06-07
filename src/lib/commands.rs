@@ -27,24 +27,49 @@ use crate::{Message, RequestSource};
 
 type CommandResult = Result<(), ERROR_ID>;
 
+#[cfg(not(feature = "hmacsha256p256"))]
 pub trait WebcryptTrussedClient:
     client::Client
     + client::P256
     + client::Chacha8Poly1305
     + client::HmacSha256
     + client::Sha256
-    // + client::HmacSha256P256
     + client::Aes256Cbc
 {
 }
 
+#[cfg(not(feature = "hmacsha256p256"))]
 impl<
         C: client::Client
             + client::P256
             + client::Chacha8Poly1305
             + client::HmacSha256
             + client::Sha256
-            // + client::HmacSha256P256
+            + client::Aes256Cbc,
+    > WebcryptTrussedClient for C
+{
+}
+
+#[cfg(feature = "hmacsha256p256")]
+pub trait WebcryptTrussedClient:
+    client::Client
+    + client::P256
+    + client::Chacha8Poly1305
+    + client::HmacSha256
+    + client::Sha256
+    + client::HmacSha256P256
+    + client::Aes256Cbc
+{
+}
+
+#[cfg(feature = "hmacsha256p256")]
+impl<
+        C: client::Client
+            + client::P256
+            + client::Chacha8Poly1305
+            + client::HmacSha256
+            + client::Sha256
+            + client::HmacSha256P256
             + client::Aes256Cbc,
     > WebcryptTrussedClient for C
 {
