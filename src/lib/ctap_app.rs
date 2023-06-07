@@ -15,7 +15,7 @@ use heapless_bytes::Bytes;
 use crate::helpers::hash;
 use crate::transport::Webcrypt;
 use crate::types::RequestSource::RS_FIDO2;
-use crate::types::{RequestDetails, RequestSource};
+use crate::types::{CtapSignatureSize, RequestDetails, RequestSource};
 use crate::Message;
 
 #[inline(never)]
@@ -127,17 +127,25 @@ where
                 &mut w.trussed,
                 Message::from_slice(request.rp_id.as_bytes()).unwrap(),
             );
-            let output = w
-                .bridge_u2f_to_webcrypt_raw(
-                    output,
-                    &data.clone(),
-                    RequestDetails {
-                        rpid: rpid_hash.clone(),
-                        source: RS_FIDO2,
-                        pin_auth: request.pin_auth,
-                    },
-                )
-                .unwrap();
+            let maybe_output = w.bridge_u2f_to_webcrypt_raw(
+                output,
+                &data.clone(),
+                RequestDetails {
+                    rpid: rpid_hash.clone(),
+                    source: RS_FIDO2,
+                    pin_auth: request.pin_auth,
+                },
+            );
+
+            let output = match maybe_output {
+                Ok(res) => res,
+                Err(e) => {
+                    log::error!("Protocol error: {:?}", e);
+                    let mut res = CtapSignatureSize::new();
+                    res.push(e as u8).unwrap();
+                    res
+                }
+            };
 
             use ctap2::AuthenticatorDataFlags as Flags;
             let authenticator_data = ctap2::make_credential::AuthenticatorData {
