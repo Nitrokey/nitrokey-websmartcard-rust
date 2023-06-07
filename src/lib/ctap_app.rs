@@ -49,17 +49,25 @@ where
                 log::info!("WC CTAP1.AUTH");
                 let output = Bytes::new();
                 let data = auth.key_handle;
-                let output = w
-                    .bridge_u2f_to_webcrypt_raw(
-                        output,
-                        &data,
-                        RequestDetails {
-                            source: RequestSource::RS_U2F,
-                            rpid: auth.app_id,
-                            pin_auth: None,
-                        },
-                    )
-                    .unwrap();
+                let maybe_output = w.bridge_u2f_to_webcrypt_raw(
+                    output,
+                    &data,
+                    RequestDetails {
+                        rpid: auth.app_id,
+                        source: RequestSource::RS_U2F,
+                        pin_auth: None,
+                    },
+                );
+
+                let output = match maybe_output {
+                    Ok(res) => res,
+                    Err(e) => {
+                        log::error!("Protocol error: {:?}", e);
+                        let mut res = CtapSignatureSize::new();
+                        res.push(e as u8).unwrap();
+                        res
+                    }
+                };
                 Ok(Response1::Authenticate(authenticate::Response {
                     user_presence: 0x01,
                     count: 0,
