@@ -46,7 +46,7 @@ fido-authenticator = { git = "https://github.com/Nitrokey/fido-authenticator", t
 admin-app = { version = "0.1", features = ["log-all"] }
 
 [features]
-default = ["ctaphid-peek"]
+default = ["ctaphid-peek", "inject-any-key"]
 enable-logs = ["pretty_env_logger", "log-all", "delog/std-log"]
 
 # Disable ClientContext PIN encryption
@@ -87,5 +87,7 @@ ctaphid-dispatch = { git = "https://github.com/Nitrokey/ctaphid-dispatch.git", b
 # Enable this for the NFC support, implemented in a somewhat outdated fork
 #apdu-dispatch = { git = "https://github.com/Nitrokey/apdu-dispatch.git", branch="sz-multiple-apps" }
 
-trussed = { git = "https://github.com/Nitrokey/trussed", tag = "v0.1.0-nitrokey.11" }
+#trussed = { git = "https://github.com/Nitrokey/trussed", tag = "v0.1.0-nitrokey.11" }
+# Required for inject-any-key
+trussed = { git = "https://github.com/Nitrokey/trussed", branch = "webcrypt-devel-0.1.0-nk11" }
 trussed-auth = { git = "https://github.com/trussed-dev/trussed-auth/", tag = "v0.2.2" }

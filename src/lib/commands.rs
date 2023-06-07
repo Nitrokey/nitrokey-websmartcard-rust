@@ -4,7 +4,9 @@ use heapless::Vec;
 
 use heapless_bytes::{Bytes, Bytes32};
 use trussed::api::reply::Encrypt;
+use trussed::key::Kind;
 use trussed::types::KeyId;
+
 use trussed::types::PathBuf;
 use trussed::{
     client, syscall, try_syscall,
