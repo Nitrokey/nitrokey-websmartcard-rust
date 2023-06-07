@@ -8,7 +8,7 @@ use trussed::{
 
 // use std::borrow::Borrow;
 use crate::constants::RESIDENT_KEY_COUNT;
-use crate::types::ERROR_ID;
+use crate::types::Error;
 use crate::Message;
 use trussed::key::Kind;
 use trussed::types::PathBuf;
@@ -46,23 +46,23 @@ impl WebcryptPIN {
         self.counter
     }
 
-    pub fn decrease_counter(&mut self) -> Result<(), ERROR_ID> {
+    pub fn decrease_counter(&mut self) -> Result<(), Error> {
         if self.counter == 0 {
             log::info!("Counter PIN used up");
-            return Err(ERROR_ID::ERR_NOT_ALLOWED);
+            return Err(Error::NotAllowed);
         }
         self.counter -= 1;
         Ok(())
     }
 
-    pub fn check_pin(&mut self, pin: Bytes64) -> Result<bool, ERROR_ID> {
+    pub fn check_pin(&mut self, pin: Bytes64) -> Result<bool, Error> {
         if self.pin.is_none() {
             log::info!("PIN not set");
-            return Err(ERROR_ID::ERR_NOT_ALLOWED);
+            return Err(Error::NotAllowed);
         }
         if self.counter == 0 {
             log::info!("Counter PIN used up");
-            return Err(ERROR_ID::ERR_NOT_ALLOWED);
+            return Err(Error::NotAllowed);
         }
         self.decrease_counter()?;
 
@@ -70,34 +70,34 @@ impl WebcryptPIN {
 
         // TODO use side-channels safe comparison library, e.g. subtle
         if pin != self.pin.as_ref().unwrap() {
-            return Err(ERROR_ID::ERR_INVALID_PIN);
+            return Err(Error::InvalidPin);
         }
         self.counter = 8;
 
         Ok(true)
     }
 
-    fn validate_pin(&self, pin: &Bytes64) -> Result<(), ERROR_ID> {
+    fn validate_pin(&self, pin: &Bytes64) -> Result<(), Error> {
         let l = pin.len();
         if !(4..=64).contains(&l) {
-            Err(ERROR_ID::ERR_NOT_ALLOWED)
+            Err(Error::NotAllowed)
         } else {
             Ok(())
         }
     }
 
-    pub fn set_pin(&mut self, pin: Bytes64) -> Result<bool, ERROR_ID> {
+    pub fn set_pin(&mut self, pin: Bytes64) -> Result<bool, Error> {
         if self.pin.is_some() {
-            return Err(ERROR_ID::ERR_NOT_ALLOWED);
+            return Err(Error::NotAllowed);
         }
         self.validate_pin(&pin)?;
         self.pin = Some(pin);
         self.counter = 8;
         Ok(true)
     }
-    pub fn change_pin(&mut self, pin: Bytes64, new_pin: Bytes64) -> Result<bool, ERROR_ID> {
+    pub fn change_pin(&mut self, pin: Bytes64, new_pin: Bytes64) -> Result<bool, Error> {
         if self.pin.is_none() {
-            return Err(ERROR_ID::ERR_NOT_ALLOWED);
+            return Err(Error::NotAllowed);
         }
         self.validate_pin(&new_pin)?;
         self.check_pin(pin)?;
@@ -156,12 +156,12 @@ impl WebcryptSession {
         trussed: &mut C,
         rp_id_hash: &Bytes<32>,
         state: &mut WebcryptState,
-    ) -> Result<Bytes32, ERROR_ID> {
+    ) -> Result<Bytes32, Error> {
         let tp: Bytes32 = if state.pin.check_pin(pin)? {
             self.get_new_token(trussed)
         } else {
             log::info!("PIN invalid");
-            return Err(ERROR_ID::ERR_INVALID_PIN);
+            return Err(Error::InvalidPin);
         };
         self.set_token(tp.clone(), rp_id_hash.clone());
         Ok(tp)
@@ -299,24 +299,24 @@ impl WebcryptState {
         self.master_key
     }
 
-    pub fn load<T>(&mut self, t: &mut T) -> Result<(), ERROR_ID>
+    pub fn load<T>(&mut self, t: &mut T) -> Result<(), Error>
     where
         T: client::Client,
     {
         let state_ser =
             try_syscall!(t.read_file(Location::Internal, PathBuf::from(STATE_FILE_PATH)))
-                .map_err(|_| ERROR_ID::ERR_INTERNAL_ERROR)?
+                .map_err(|_| Error::InternalError)?
                 .data;
         log::info!("State file found. Loading.");
 
         // todo handle errors from the data corruption separately
         let w = self
             .deserialize(state_ser.as_slice())
-            .map_err(|_| ERROR_ID::ERR_INTERNAL_ERROR)?;
+            .map_err(|_| Error::InternalError)?;
 
         if !w.initialized() {
             log::info!("Found state not initialized. Aborting load.");
-            return Err(ERROR_ID::ERR_INTERNAL_ERROR);
+            return Err(Error::InternalError);
         }
 
         *self = w;
@@ -325,11 +325,11 @@ impl WebcryptState {
         Ok(())
     }
 
-    fn deserialize(&self, data: &[u8]) -> Result<Self, ERROR_ID> {
+    fn deserialize(&self, data: &[u8]) -> Result<Self, Error> {
         if data.is_empty() {
-            return Err(ERROR_ID::ERR_INTERNAL_ERROR);
+            return Err(Error::InternalError);
         }
-        cbor_deserialize(data).map_err(|_| ERROR_ID::ERR_INTERNAL_ERROR)
+        cbor_deserialize(data).map_err(|_| Error::InternalError)
     }
 
     fn serialize(&self) -> Message {
@@ -370,7 +370,7 @@ impl WebcryptState {
             self.serialize(),
             None,
         ))
-        .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)
+        .map_err(|_| Error::MemoryFull)
         .unwrap();
         log::info!("State saved");
     }
