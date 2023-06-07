@@ -21,7 +21,7 @@ pub struct Webcrypt<C: WebcryptTrussedClient> {
     pub session: WebcryptSession,
     pub req_details: Option<RequestDetails>,
 }
-pub type WebcryptError = ERROR_ID;
+pub type WebcryptError = Error;
 
 impl<C> Webcrypt<C>
 where
@@ -43,7 +43,7 @@ where
     pub fn set_trussed_client(&mut self, _client: C) {}
 
     fn get_webcrypt_cmd(&self, keyh: &Bytes<255>) -> Result<ExtWebcryptCmd, WebcryptError> {
-        let webcrypt: WebcryptRequest = keyh.try_into().map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
+        let webcrypt: WebcryptRequest = keyh.try_into().map_err(|_| Error::BadFormat)?;
         webcrypt.try_into()
     }
 
@@ -55,11 +55,11 @@ where
         log::info!("Write");
         self.WC_INPUT_BUFFER
             .extend_from_slice(&cmd.data_first_byte)
-            .map_err(|_| ERROR_ID::ERR_TOO_LONG_REQUEST)?;
+            .map_err(|_| Error::TooLongRequest)?;
         Ok(())
     }
 
-    fn parse_execute(&mut self) -> Result<(ERROR_ID, CommandID), ()> {
+    fn parse_execute(&mut self) -> Result<(Error, CommandID), ()> {
         self.WC_OUTPUT_BUFFER.clear();
         let parsed: ResponseReadFirst = self.WC_INPUT_BUFFER.clone().into();
         let id_u8 = parsed.cmd_id;
@@ -98,7 +98,6 @@ where
             DiscoverResidentKeys => cmd_discover_resident_key(self),
             WriteResidentKey => cmd_write_resident_key(self),
 
-            __MaximumSize => Err(ERROR_ID::ERR_INVALID_COMMAND),
             TestPing => cmd_test_ping(self),
             #[cfg(feature = "test-commands")]
             TestClear => {
@@ -108,12 +107,12 @@ where
             TestReboot => {
                 todo!()
             }
-            _ => Err(ERROR_ID::ERR_INVALID_COMMAND),
+            _ => Err(Error::InvalidCommand),
         };
         if res.is_err() {
             return Ok((res.err().unwrap(), operation));
         }
-        Ok((ERROR_ID::ERR_SUCCESS, operation))
+        Ok((Error::Success, operation))
     }
 
     pub fn get_input(&self) -> &[u8] {
@@ -138,7 +137,7 @@ where
         self.WC_OUTPUT_BUFFER.extend_from_slice(o).unwrap();
     }
 
-    fn webcrypt_read_request(&self, output: &mut Bytes<1024>, cmd: &ExtWebcryptCmd) -> ERROR_ID {
+    fn webcrypt_read_request(&self, output: &mut Bytes<1024>, cmd: &ExtWebcryptCmd) -> Error {
         let offset = (u8::from(cmd.packet_no)) as usize * (cmd.chunk_size) as usize;
         let offset_right = offset + cmd.this_chunk_length as usize;
         let offset_right_clamp = offset_right.min(self.WC_OUTPUT_BUFFER.len());
@@ -153,7 +152,7 @@ where
                 offset,
                 self.WC_OUTPUT_BUFFER.len()
             );
-            return ERROR_ID::ERR_FAILED_LOADING_DATA;
+            return Error::FailedLoadingData;
         }
 
         output
@@ -167,7 +166,7 @@ where
         //     self.WC_OUTPUT_BUFFER.len(),
         //     hex::encode(output)
         // );
-        ERROR_ID::ERR_SUCCESS
+        Error::Success
     }
     /// The main transport function, gateway to the extension from the Webauthn perspective
     /// Decodes incoming request low-level packet data, and either saves it to the input buffer,
@@ -177,7 +176,7 @@ where
         mut output: CtapSignatureSize,
         keyh: &Bytes<255>,
         req_details: RequestDetails,
-    ) -> Result<CtapSignatureSize, ERROR_ID> {
+    ) -> Result<CtapSignatureSize, Error> {
         let cmd = self.get_webcrypt_cmd(keyh)?;
         log::info!("< cmd: {:?}", cmd);
         let ret = self.bridge_u2f_to_webcrypt(cmd, req_details)?;
@@ -207,7 +206,7 @@ where
         &mut self,
         webcrypt_req: ExtWebcryptCmd,
         req_details: RequestDetails,
-    ) -> Result<WebcryptResponseType, ERROR_ID> {
+    ) -> Result<WebcryptResponseType, Error> {
         let operation = &webcrypt_req.command_id_transport;
         let mut output = WebcryptResult::default();
         match operation {
@@ -219,18 +218,16 @@ where
                 } else if self.req_details != Some(req_details) {
                     // either method or host changes, while not writing the first packet, abort
                     return Ok(WebcryptResponseType::Write(ResponseWrite {
-                        result: ERROR_ID::ERR_BAD_ORIGIN,
+                        result: Error::BadOrigin,
                     }));
                 }
 
                 self.webcrypt_write_request(&output.cbor_payload, &webcrypt_req)?;
 
-                output.status_code = ERROR_ID::ERR_SUCCESS;
+                output.status_code = Error::Success;
                 let should_execute = webcrypt_req.is_final();
                 if should_execute {
-                    let res = self
-                        .parse_execute()
-                        .map_err(|_| ERROR_ID::ERR_INTERNAL_ERROR)?;
+                    let res = self.parse_execute().map_err(|_| Error::InternalError)?;
                     output.status_code = res.0;
                     self.current_command_id = res.1;
                 }
@@ -242,7 +239,7 @@ where
             TRANSPORT_CMD_ID::COMM_CMD_READ => {
                 if self.req_details != Some(req_details) {
                     // on bad request return first packet format
-                    output.status_code = ERROR_ID::ERR_BAD_ORIGIN;
+                    output.status_code = Error::BadOrigin;
                     output.cbor_payload = Default::default();
                     return Ok(WebcryptResponseType::First(ResponseReadFirst {
                         data_len: 3, // size (2) + commandID (1)
