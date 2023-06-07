@@ -143,7 +143,7 @@ where
     let wrapped_key =
         syscall!(w
             .trussed
-            .wrap_key_chacha8poly1305(wrapping_key, private_key, &appid,))
+            .wrap_key_chacha8poly1305(wrapping_key, private_key, &appid))
         .wrapped_key;
 
     let nonce_2 = syscall!(w.trussed.random_bytes(12));
@@ -286,7 +286,7 @@ where
     let key = syscall!(w.trussed.unwrap_key_chacha8poly1305(
         wrapping_key,
         &keywrapped,
-        b"",
+        &appid,
         Location::Volatile,
     ))
     .key
