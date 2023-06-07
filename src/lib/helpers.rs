@@ -27,3 +27,9 @@ where
     .hash;
     Bytes32::from_slice(hash.as_slice()).unwrap()
 }
+
+pub fn cbor_serialize_message<T: serde::Serialize>(
+    object: &T,
+) -> Result<Message, ctap_types::serde::Error> {
+    trussed::cbor_serialize_bytes(object)
+}

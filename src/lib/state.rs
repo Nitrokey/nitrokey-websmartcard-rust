@@ -62,7 +62,7 @@ impl PersistentState {
     }
 
     pub fn save<T: TrussedClient>(&self, trussed: &mut T) -> Result<()> {
-        let data = crate::cbor_serialize_message(self).unwrap();
+        let data = crate::helpers::cbor_serialize_message(self).unwrap();
 
         syscall!(trussed.write_file(
             Location::Internal,
