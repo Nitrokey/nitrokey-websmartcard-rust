@@ -157,7 +157,7 @@ where
         .ok_or(ERROR_ID::ERR_BAD_ORIGIN)?;
 
     // The wrapping operation is reused from the fido-authenticator crate.
-    // 1. The private key is wrapped using a persistent wrapping key using ChaCha20-Poly1305 AEAD algorithm.
+    // 1. The private key is wrapped using a persistent wrapping key using ChaCha8-Poly1305 AEAD algorithm.
     // 2. The wrapped key is embedded into a KeyHandle data structure, containing additional metadata (RP ID, Usage Flags).
     // 3. The serialized KeyHandle structure is finally CBOR serialized and encrypted, resulting in a binary blob to be used with other commands.
 
