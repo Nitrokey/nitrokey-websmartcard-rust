@@ -26,14 +26,8 @@ pub const DEFAULT_ENCRYPTION_PIN: &str = "12345678";
 
 pub type Message = Bytes<MAX_MESSAGE_LENGTH>;
 
-fn cbor_serialize_message<T: serde::Serialize>(
-    object: &T,
-) -> Result<Message, ctap_types::serde::Error> {
-    trussed::cbor_serialize_bytes(object)
-}
-
 pub use constants::GIT_VERSION;
 
-pub type Webcrypt<C> = transport::Webcrypt<C>;
+pub use transport::Webcrypt;
 pub use types::RequestDetails;
 pub use types::RequestSource;
