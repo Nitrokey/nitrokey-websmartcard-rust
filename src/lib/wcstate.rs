@@ -30,6 +30,7 @@ impl Default for WebcryptConfiguration {
     }
 }
 
+use crate::commands_types::ExpectedSessionToken;
 use crate::openpgp::OpenPGPData;
 use cbor_smol::{cbor_deserialize, cbor_serialize};
 use serde::{Deserialize, Serialize};
@@ -173,9 +174,17 @@ impl WebcryptSession {
         }
     }
 
-    pub fn check_token_res(&self, token: Bytes32) -> Result<(), ()> {
+    pub fn check_token_res(&self, token: ExpectedSessionToken) -> Result<(), ()> {
         #[cfg(feature = "no-authentication")]
         return Ok(());
+
+        let token = match token {
+            None => {
+                return Err(());
+            }
+            Some(token) => token,
+        };
+
         // TODO should allow empty tokens, if user was verified through CTAP2 already
         match &self.temporary_password_token {
             None => Err(()),
