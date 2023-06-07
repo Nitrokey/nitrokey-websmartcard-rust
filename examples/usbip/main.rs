@@ -316,7 +316,7 @@ impl trussed_usbip::Apps<VirtClient, dispatch::Dispatch> for Apps {
         &mut self,
         f: impl FnOnce(&mut [&mut dyn ctaphid_dispatch::app::App]) -> T,
     ) -> T {
-        f(&mut [&mut self.fido, &mut self.admin, &mut self.webcrypt])
+        f(&mut [&mut self.webcrypt, &mut self.fido, &mut self.admin])
     }
 
     #[cfg(feature = "ccid")]
