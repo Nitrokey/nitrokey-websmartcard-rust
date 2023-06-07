@@ -3,6 +3,7 @@ use crate::types::ERROR_ID;
 use crate::types::ERROR_ID::ERR_INTERNAL_ERROR;
 use heapless_bytes::Bytes;
 use serde::{Deserialize, Serialize};
+use trussed::key::Kind;
 use trussed::types::KeyId;
 use trussed::{client, syscall, try_syscall};
 

@@ -10,6 +10,7 @@ use trussed::{
 use crate::constants::RESIDENT_KEY_COUNT;
 use crate::types::ERROR_ID;
 use crate::Message;
+use trussed::key::Kind;
 use trussed::types::PathBuf;
 
 type ResidentKeyID = u8;
