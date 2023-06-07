@@ -21,8 +21,6 @@ pub struct Webcrypt<C: WebcryptTrussedClient> {
     pub session: WebcryptSession,
     pub req_details: Option<RequestDetails>,
 }
-use crate::helpers::min;
-
 pub type WebcryptError = ERROR_ID;
 
 impl<C> Webcrypt<C>
@@ -143,7 +141,7 @@ where
     fn webcrypt_read_request(&self, output: &mut Bytes<1024>, cmd: &ExtWebcryptCmd) -> ERROR_ID {
         let offset = (u8::from(cmd.packet_no)) as usize * (cmd.chunk_size) as usize;
         let offset_right = offset + cmd.this_chunk_length as usize;
-        let offset_right_clamp = min(offset_right, self.WC_OUTPUT_BUFFER.len());
+        let offset_right_clamp = offset_right.min(self.WC_OUTPUT_BUFFER.len());
 
         if self.WC_OUTPUT_BUFFER.len() == 0 {
             log::error!("No data available for read in the output buffer");

@@ -2,14 +2,6 @@ use crate::Message;
 use heapless_bytes::{Bytes, Bytes32};
 use trussed::{client, syscall};
 
-pub fn min(a: usize, b: usize) -> usize {
-    if a < b {
-        a
-    } else {
-        b
-    }
-}
-
 pub fn hash<C>(trussed: &mut C, data: Message) -> Bytes<32>
 where
     C: trussed::Client
