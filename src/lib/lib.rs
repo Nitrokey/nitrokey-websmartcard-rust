@@ -3,10 +3,7 @@
 #[macro_use]
 extern crate delog;
 
-pub use heapless;
-pub use heapless::{String, Vec};
-pub use heapless_bytes;
-pub use heapless_bytes::Bytes;
+use heapless_bytes::Bytes;
 
 generate_macros!();
 
@@ -24,7 +21,8 @@ mod types;
 mod wcstate;
 
 pub const MAX_MESSAGE_LENGTH: usize = 1024;
-pub const DEFAULT_ENCRYPTION_PIN: &str = "1234";
+#[cfg(feature = "transparent-encryption")]
+pub const DEFAULT_ENCRYPTION_PIN: &str = "12345678";
 
 pub type Message = Bytes<MAX_MESSAGE_LENGTH>;
 
