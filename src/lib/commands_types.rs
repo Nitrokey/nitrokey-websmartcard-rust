@@ -2,7 +2,7 @@ use heapless_bytes::{Bytes, Bytes32, Bytes64};
 use serde::{Deserialize, Serialize};
 use trussed::types::{KeyId, Message};
 
-use crate::types::ERROR_ID;
+use crate::types::Error;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "UPPERCASE")]
@@ -28,7 +28,7 @@ pub type DataBytes = Bytes<1024>;
 pub type SessionToken = Bytes32;
 pub type ExpectedSessionToken = Option<SessionToken>;
 pub(crate) type SerializedCredential = Message;
-pub type ResultW<T> = Result<T, ERROR_ID>;
+pub type ResultW<T> = Result<T, Error>;
 
 // TODO move to struct, instead of the type alias
 pub type KeyHandleSerialized = Bytes250;
@@ -52,7 +52,7 @@ impl CredentialData {
         }
     }
     pub fn serialize(&self) -> ResultW<SerializedCredential> {
-        trussed::cbor_serialize_bytes(self).map_err(|_| ERROR_ID::ERR_INTERNAL_ERROR)
+        trussed::cbor_serialize_bytes(self).map_err(|_| Error::InternalError)
     }
     // TODO remove if unused
     // pub fn deserialize(&self, buffer: SerializedCredential) -> ResultW<Self> {

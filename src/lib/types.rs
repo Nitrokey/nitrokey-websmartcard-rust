@@ -1,6 +1,6 @@
 #![allow(non_camel_case_types)]
 
-use crate::types::ERROR_ID::ERR_BAD_FORMAT;
+use crate::types::Error::BadFormat;
 use crate::types::TRANSPORT_CMD_ID::COMM_CMD_WRITE;
 use crate::{Bytes, Message};
 use ctap_types::ctap2::PinAuth;
@@ -59,26 +59,26 @@ impl From<TRANSPORT_CMD_ID> for u8 {
 #[repr(u8)]
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Default)]
-pub enum ERROR_ID {
-    ERR_SUCCESS = 0x00,
-    ERR_TOO_LONG_REQUEST = 0xE0,
-    ERR_REQ_AUTH = 0xF0,
-    ERR_INVALID_PIN = 0xF1,
-    ERR_NOT_ALLOWED = 0xF2,
-    ERR_BAD_FORMAT = 0xF3,
-    ERR_USER_NOT_PRESENT = 0xF4,
-    ERR_FAILED_LOADING_DATA = 0xF5,
-    ERR_INVALID_CHECKSUM = 0xF6,
-    ERR_ALREADY_IN_DATABASE = 0xF7,
-    ERR_NOT_FOUND = 0xF8,
-    ERR_ASSERT_FAILED = 0xF9,
-    ERR_INTERNAL_ERROR = 0xFA,
-    ERR_MEMORY_FULL = 0xFB,
-    ERR_NOT_IMPLEMENTED = 0xFC,
-    ERR_BAD_ORIGIN = 0xFD,
+pub enum Error {
+    Success = 0x00,
+    TooLongRequest = 0xE0,
+    RequireAuthentication = 0xF0,
+    InvalidPin = 0xF1,
+    NotAllowed = 0xF2,
+    BadFormat = 0xF3,
+    UserNotPresent = 0xF4,
+    FailedLoadingData = 0xF5,
+    InvalidChecksum = 0xF6,
+    AlreadyInDatabase = 0xF7,
+    NotFound = 0xF8,
+    AssertFailed = 0xF9,
+    InternalError = 0xFA,
+    MemoryFull = 0xFB,
+    NotImplemented = 0xFC,
+    BadOrigin = 0xFD,
     #[default]
-    ERR_NOT_SET = 0xFE,
-    ERR_INVALID_COMMAND = 0xFF,
+    NotSetInvalid = 0xFE,
+    InvalidCommand = 0xFF,
 }
 
 #[repr(u8)]
@@ -140,8 +140,6 @@ pub enum CommandID {
     /// Add map to From<u8> for CommandID, or you will get this value: 0xFE
     #[default]
     NotSetInvalid = 0xFE,
-    /// Implementation detail: commands' total count
-    __MaximumSize,
 }
 
 impl From<CommandID> for u8 {
@@ -242,7 +240,7 @@ impl From<&Bytes<255>> for WebcryptRequest {
 }
 
 impl TryFrom<WebcryptRequest> for ExtWebcryptCmd {
-    type Error = ERROR_ID;
+    type Error = Error;
 
     fn try_from(webcrypt_request: WebcryptRequest) -> Result<Self, Self::Error> {
         // move to serde/nom
@@ -266,7 +264,7 @@ impl TryFrom<WebcryptRequest> for ExtWebcryptCmd {
 }
 
 impl TryFrom<ExtWebcryptCmd> for Message {
-    type Error = ERROR_ID;
+    type Error = Error;
 
     fn try_from(a: ExtWebcryptCmd) -> Result<Self, Self::Error> {
         let mut res = Message::new();
@@ -282,7 +280,7 @@ impl TryFrom<ExtWebcryptCmd> for Message {
 
 // impl From<WebcryptRequest<'_>> for &[u8] {
 impl TryFrom<WebcryptRequest> for Message {
-    type Error = ERROR_ID;
+    type Error = Error;
 
     fn try_from(a: WebcryptRequest) -> Result<Self, Self::Error> {
         let mut res = Message::new();
@@ -310,7 +308,7 @@ impl ExtWebcryptCmd {
         }
     }
 
-    pub fn new_with_data_packet(v: Message, p_no: u8, p_total: u8) -> Result<Self, ERROR_ID> {
+    pub fn new_with_data_packet(v: Message, p_no: u8, p_total: u8) -> Result<Self, Error> {
         Ok(ExtWebcryptCmd {
             this_chunk_length: v.len() as u8,
             data_first_byte: Bytes::<245>::from_slice(&v).unwrap(),
@@ -343,7 +341,7 @@ impl Default for ExtWebcryptCmd {
 }
 
 impl WebcryptRequest {
-    pub fn new(payload: ExtWebcryptCmd) -> Result<Self, ERROR_ID> {
+    pub fn new(payload: ExtWebcryptCmd) -> Result<Self, Error> {
         Ok(WebcryptRequest {
             operation_webcrypt_constant: WEBCRYPT_CONSTANT,
             tag_webcrypt_constant: 0xABCDEFAB,
@@ -354,7 +352,7 @@ impl WebcryptRequest {
 
 #[derive(Debug, Default)]
 pub struct WebcryptResult {
-    pub status_code: ERROR_ID,
+    pub status_code: Error,
     // pub reply_length: u16,
     pub cbor_payload: Message,
 }
@@ -397,11 +395,11 @@ impl PacketNum {
 }
 
 impl TryFrom<u8> for PacketNum {
-    type Error = ERROR_ID;
+    type Error = Error;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         if value > PACKET_NUM_MAX {
-            return Err(ERR_BAD_FORMAT);
+            return Err(BadFormat);
         }
         Ok(PacketNum(value))
     }
@@ -439,7 +437,7 @@ impl From<Message> for CborPart {
 // this is response for the protocol WRITE command
 #[derive(Debug)]
 pub struct ResponseWrite {
-    pub(crate) result: ERROR_ID,
+    pub(crate) result: Error,
 }
 
 // this is response for the protocol READ command

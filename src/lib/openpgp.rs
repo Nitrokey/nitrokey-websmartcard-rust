@@ -1,6 +1,6 @@
 use crate::commands_types::{DataBytes, ResultW};
-use crate::types::ERROR_ID;
-use crate::types::ERROR_ID::ERR_INTERNAL_ERROR;
+use crate::types::Error;
+use crate::types::Error::InternalError;
 use heapless_bytes::Bytes;
 use serde::{Deserialize, Serialize};
 use trussed::key::Kind;
@@ -139,7 +139,7 @@ impl OpenPGPData {
                         #[cfg(feature = "inject-any-key")]
                         Kind::P256
                     ))
-                    .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
+                    .map_err(|_| Error::FailedLoadingData)?
                     .key
                 },
                 pubkey: None,
@@ -153,7 +153,7 @@ impl OpenPGPData {
                         #[cfg(feature = "inject-any-key")]
                         Kind::P256
                     ))
-                    .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
+                    .map_err(|_| Error::FailedLoadingData)?
                     .key
                 },
                 pubkey: None,
@@ -167,13 +167,13 @@ impl OpenPGPData {
                         #[cfg(feature = "inject-any-key")]
                         Kind::P256
                     ))
-                    .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
+                    .map_err(|_| Error::FailedLoadingData)?
                     .key
                 },
                 pubkey: None,
                 fingerprint: Default::default(),
             },
-            date: Bytes::<32>::from_slice(&date).map_err(|_| ERR_INTERNAL_ERROR)?,
+            date: Bytes::<32>::from_slice(&date).map_err(|_| InternalError)?,
         })
     }
 
