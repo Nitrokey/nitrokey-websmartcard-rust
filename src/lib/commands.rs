@@ -107,7 +107,7 @@ where
         .get_input_deserialized()
         .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     w.session
-        .check_token_res(req.tp.unwrap())
+        .check_token_res(req.tp)
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
 
     // Generate a new P256 key pair.
@@ -209,7 +209,7 @@ where
         .get_input_deserialized()
         .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     w.session
-        .check_token_res(req.tp.unwrap())
+        .check_token_res(req.tp)
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
 
     if !(req.keyhandle.len() > 0 && req.hash.len() > 0) {
@@ -404,7 +404,7 @@ where
 
     let req: CommandOpenPGPImportRequest = req.map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     w.session
-        .check_token_res(req.tp.unwrap())
+        .check_token_res(req.tp)
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
 
     w.state.openpgp_data = Some(OpenPGPData::import(
@@ -433,7 +433,7 @@ where
 
     let req: CommandOpenPGPSignRequest = req.map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     w.session
-        .check_token_res(req.tp.unwrap())
+        .check_token_res(req.tp)
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
 
     // FIXME remove -> initialize in a separate command
@@ -475,7 +475,7 @@ where
 
     let req: CommandOpenPGPDecryptRequest = req.map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     w.session
-        .check_token_res(req.tp.unwrap())
+        .check_token_res(req.tp)
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
 
     // FIXME remove -> initialize in a separate command
@@ -593,7 +593,7 @@ where
 
     let req: CommandDecryptRequest = req.map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     w.session
-        .check_token_res(req.tp.unwrap())
+        .check_token_res(req.tp)
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
 
     if !(req.keyhandle.len() > 0
@@ -731,7 +731,7 @@ where
         .get_input_deserialized()
         .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     w.session
-        .check_token_res(req.tp.unwrap())
+        .check_token_res(req.tp)
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
 
     let kek = w.state.get_key_master(&mut w.trussed).unwrap();
@@ -791,7 +791,7 @@ where
         .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     log::info!("WC cmd_read_resident_key_public {:?}", req);
     w.session
-        .check_token_res(req.tp.unwrap())
+        .check_token_res(req.tp)
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
 
     // Get private keyid
@@ -961,7 +961,7 @@ where
         .get_input_deserialized()
         .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     w.session
-        .check_token_res(req.tp.unwrap())
+        .check_token_res(req.tp)
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
 
     if req.confirmation.is_some() {
@@ -1027,7 +1027,7 @@ where
         .get_input_deserialized()
         .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     w.session
-        .check_token_res(req.tp.unwrap())
+        .check_token_res(req.tp)
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
 
     // then store key, making it resident
@@ -1085,7 +1085,7 @@ where
         .get_input_deserialized()
         .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     w.session
-        .check_token_res(req.tp.unwrap())
+        .check_token_res(req.tp)
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
 
     let private_key = try_syscall!(w.trussed.unsafe_inject_shared_key(
@@ -1153,7 +1153,7 @@ where
         .get_input_deserialized()
         .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     w.session
-        .check_token_res(req.tp.unwrap())
+        .check_token_res(req.tp)
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
 
     // writing RKs
@@ -1237,7 +1237,7 @@ where
         .get_input_deserialized()
         .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     w.session
-        .check_token_res(req.tp.unwrap())
+        .check_token_res(req.tp)
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
 
     let master = &req.master;
@@ -1274,7 +1274,7 @@ where
         .get_input_deserialized()
         .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
     w.session
-        .check_token_res(req.tp.unwrap())
+        .check_token_res(req.tp)
         .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
 
     if req.entropy.is_some() && req.entropy.unwrap().len() > 0 {
