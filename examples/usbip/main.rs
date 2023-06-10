@@ -18,11 +18,20 @@ mod dispatch {
     };
     use trussed_auth::{AuthBackend, AuthContext, AuthExtension, MAX_HW_KEY_LEN};
 
-    pub const BACKENDS: &[BackendId<Backend>] =
-        &[BackendId::Custom(Backend::Auth), BackendId::Core];
+    #[cfg(feature = "rsa")]
+    use trussed_rsa_alloc::SoftwareRsa;
+
+    pub const BACKENDS: &[BackendId<Backend>] = &[
+        BackendId::Custom(Backend::Auth),
+        #[cfg(feature = "rsa")]
+        BackendId::Custom(Backend::Rsa),
+        BackendId::Core,
+    ];
 
     pub enum Backend {
         Auth,
+        #[cfg(feature = "rsa")]
+        Rsa,
     }
 
     pub enum Extension {
@@ -88,6 +97,8 @@ mod dispatch {
                     self.auth
                         .request(&mut ctx.core, &mut ctx.backends.auth, request, resources)
                 }
+                #[cfg(feature = "rsa")]
+                Backend::Rsa => SoftwareRsa.request(&mut ctx.core, &mut (), request, resources),
             }
         }
 
@@ -108,6 +119,8 @@ mod dispatch {
                         resources,
                     ),
                 },
+                #[cfg(feature = "rsa")]
+                Backend::Rsa => Err(Error::RequestNotAvailable),
             }
         }
     }
