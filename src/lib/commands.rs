@@ -691,7 +691,7 @@ where
     let decrypted = try_syscall!(w.trussed.decrypt_rsa2kpkcs(kh_key, &req.data))
         .map_err(|e| {
             log::error!("Decryption error: {:?}", e);
-            Error::ERR_FAILED_LOADING_DATA
+            Error::FailedLoadingData
         })?
         .plaintext
         .ok_or(InternalError)?;
@@ -854,7 +854,7 @@ where
     // let rpid = w.session.rp_id_hash.as_ref().unwrap();
     // req.hash
     //     .extend_from_slice(rpid.as_slice())
-    //     .map_err(|_| Error::ERR_FAILED_LOADING_DATA)?;
+    //     .map_err(|_| Error::FailedLoadingData)?;
     let data_for_key = &req.hash[..];
     if req.hash.len() < 32 {
         return Err(Error::FailedLoadingData);
@@ -918,7 +918,7 @@ where
     //             &Bytes32::from_slice(req.keyhandle.as_slice()).unwrap()
     //         )
     //     ))
-    //     .map_err(|_| Error::MemoryFull)? // TODO Change to Error::ERR_FAILED_LOADING_DATA
+    //     .map_err(|_| Error::MemoryFull)? // TODO Change to Error::FailedLoadingData
     //     .data;
     //     let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
     //     cred.key_id
@@ -998,7 +998,7 @@ where
     log::info!("WC loading state");
     w.state
         .load(&mut w.trussed)
-        // the cause might be in the corrupted storage as well (Error::ERR_FAILED_LOADING_DATA),
+        // the cause might be in the corrupted storage as well (Error::FailedLoadingData),
         // but we can't differentiate at this point
         .map_err(|_| Error::InvalidPin)?;
 
@@ -1284,7 +1284,7 @@ where
             let public_key = try_syscall!(w
                 .trussed
                 .derive_p256_public_key(private_key, Location::Volatile))
-            .map_err(|_| Error::ERR_FAILED_LOADING_DATA)?
+            .map_err(|_| Error::FailedLoadingData)?
             .key;
 
             let serialized_raw_public_key = syscall!(w
