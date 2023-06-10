@@ -12,8 +12,8 @@ use crate::{Bytes, Message};
 
 #[allow(non_snake_case)]
 pub struct Webcrypt<C: WebcryptTrussedClient> {
-    WC_INPUT_BUFFER: Bytes<1024>,
-    WC_OUTPUT_BUFFER: Bytes<1024>,
+    WC_INPUT_BUFFER: Bytes<1500>,
+    WC_OUTPUT_BUFFER: Bytes<1500>,
     pub current_command_id: CommandID,
     pub trussed: C,
     pub state: WebcryptState,
@@ -132,12 +132,12 @@ where
         self.WC_OUTPUT_BUFFER.extend_from_slice(encoded).unwrap();
     }
 
-    pub fn send_to_output_arr(&mut self, o: &Bytes<1024>) {
+    pub fn send_to_output_arr(&mut self, o: &Bytes<1500>) {
         log::info!("Clear write: {:?}", o);
         self.WC_OUTPUT_BUFFER.extend_from_slice(o).unwrap();
     }
 
-    fn webcrypt_read_request(&self, output: &mut Bytes<1024>, cmd: &ExtWebcryptCmd) -> Error {
+    fn webcrypt_read_request(&self, output: &mut Bytes<1500>, cmd: &ExtWebcryptCmd) -> Error {
         let offset = (u8::from(cmd.packet_no)) as usize * (cmd.chunk_size) as usize;
         let offset_right = offset + cmd.this_chunk_length as usize;
         let offset_right_clamp = offset_right.min(self.WC_OUTPUT_BUFFER.len());

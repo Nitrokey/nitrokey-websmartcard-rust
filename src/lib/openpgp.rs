@@ -4,7 +4,7 @@ use crate::types::Error::InternalError;
 use heapless_bytes::Bytes;
 use serde::{Deserialize, Serialize};
 use trussed::key::Kind;
-use trussed::types::KeyId;
+use trussed::types::{KeyId, Mechanism};
 use trussed::{client, syscall, try_syscall};
 
 #[derive(Serialize, Deserialize, Default)]
@@ -32,6 +32,7 @@ pub struct OpenPGPKey {
     pub key: KeyId,
     pub pubkey: Option<KeyId>,
     pub fingerprint: KeyFingerprint,
+    pub key_mechanism: Mechanism,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -102,6 +103,7 @@ impl OpenPGPData {
                         .key,
                 pubkey: None,
                 fingerprint: Default::default(),
+                key_mechanism: Mechanism::P256,
             },
             encryption: OpenPGPKey {
                 key:
@@ -109,6 +111,7 @@ impl OpenPGPData {
                         .key,
                 pubkey: None,
                 fingerprint: Default::default(),
+                key_mechanism: Mechanism::P256,
             },
             signing: OpenPGPKey {
                 key:
@@ -116,6 +119,7 @@ impl OpenPGPData {
                         .key,
                 pubkey: None,
                 fingerprint: Default::default(),
+                key_mechanism: Mechanism::P256,
             },
             date: Default::default(),
         }
@@ -144,6 +148,7 @@ impl OpenPGPData {
                 },
                 pubkey: None,
                 fingerprint: Default::default(),
+                key_mechanism: Mechanism::P256,
             },
             encryption: OpenPGPKey {
                 key: {
@@ -158,6 +163,7 @@ impl OpenPGPData {
                 },
                 pubkey: None,
                 fingerprint: Default::default(),
+                key_mechanism: Mechanism::P256,
             },
             signing: OpenPGPKey {
                 key: {
@@ -172,6 +178,7 @@ impl OpenPGPData {
                 },
                 pubkey: None,
                 fingerprint: Default::default(),
+                key_mechanism: Mechanism::P256,
             },
             date: Bytes::<32>::from_slice(&date).map_err(|_| InternalError)?,
         })
