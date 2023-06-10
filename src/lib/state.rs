@@ -67,7 +67,7 @@ impl PersistentState {
         syscall!(trussed.write_file(
             Location::Internal,
             PathBuf::from(Self::FILENAME),
-            data,
+            heapless_bytes::Bytes::from_slice(data.as_slice()).unwrap(),
             None,
         ));
         Ok(())

@@ -65,6 +65,7 @@ pub trait WebcryptTrussedClient:
 #[cfg(feature = "hmacsha256p256")]
 impl<
         C: client::Client
+            + client::Rsa2kPkcs
             + client::P256
             + client::Chacha8Poly1305
             + client::HmacSha256
@@ -179,6 +180,7 @@ where
             .map_err(|_| Error::FailedLoadingData)?,
         nonce: Bytes::<12>::from_slice(nonce).unwrap(),
         usage_flags: None,
+        mechanism: None,
     };
 
     let kek = w
@@ -208,32 +210,45 @@ where
         return Err(Error::FailedLoadingData);
     }
 
-    let (key, keyhandle_points_to_rk) = if req.keyhandle.len() > 32 {
-        // invalid keyhandle or lack of memory
-        (import_key_from_keyhandle(w, &req.keyhandle)?, false)
-    } else {
-        // this is RK
-        let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
-        let cred_data = try_syscall!(w.trussed.read_file(
-            Location::Internal,
-            rk_path(
-                rp_id_hash,
-                &Bytes32::from_slice(req.keyhandle.as_slice()).unwrap()
-            )
-        ))
-        .map_err(|_| Error::MemoryFull)?
-        .data;
-        let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
-        (cred.key_id, true)
+    // let (key, keyhandle_points_to_rk) = if req.keyhandle.len() > 32 {
+    //     // invalid keyhandle or lack of memory
+    //     (import_key_from_keyhandle(w, &req.keyhandle)?, false)
+    // } else {
+    //     // this is RK
+    //     let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
+    //     let cred_data = try_syscall!(w.trussed.read_file(
+    //         Location::Internal,
+    //         rk_path(
+    //             rp_id_hash,
+    //             &Bytes32::from_slice(req.keyhandle.as_slice()).unwrap()
+    //         )
+    //     ))
+    //     .map_err(|_| Error::MemoryFull)?
+    //     .data;
+    //     let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
+    //     (cred.key_id, true)
+    // };
+    let (key, mechanism, keyhandle_points_to_RK) = get_key_from_keyhandle(w, req.keyhandle)?;
+
+    let signature = match mechanism {
+        Mechanism::P256 => {
+            syscall!(w.trussed.sign(
+                Mechanism::P256,
+                key,
+                req.hash.as_slice(),
+                SignatureSerialization::Raw
+            ))
+            .signature
+        }
+        Mechanism::Rsa2kPkcs => {
+            let digest_to_sign = req.hash.as_slice();
+            syscall!(w.trussed.sign_rsa2kpkcs(key, &digest_to_sign)).signature
+        }
+        _ => {
+            todo!()
+        }
     };
 
-    let signature = syscall!(w.trussed.sign(
-        Mechanism::P256,
-        key,
-        req.hash.as_slice(),
-        SignatureSerialization::Raw
-    ))
-    .signature;
     let signature = signature.to_bytes().expect("Too small target buffer");
 
     if !keyhandle_points_to_rk {
@@ -250,10 +265,61 @@ where
     Ok(())
 }
 
+fn get_key_from_keyhandle<C>(
+    w: &mut Webcrypt<C>,
+    keyhandle: KeyHandleSerialized,
+) -> ResultW<(KeyId, Mechanism, bool)>
+where
+    C: trussed::Client
+        + client::Client
+        + client::Rsa2kPkcs
+        + client::P256
+        + client::Aes256Cbc
+        + client::HmacSha256
+        + client::HmacSha256P256
+        + client::Sha256
+        + client::Chacha8Poly1305,
+{
+    if keyhandle.len() == 0 {
+        return Err(ERR_BAD_FORMAT);
+    }
+
+    let res = if keyhandle.len() > 32 {
+        // invalid keyhandle or lack of memory
+        let (keyid, mechanism) = import_key_from_keyhandle(w, &keyhandle)?;
+        (keyid, mechanism, false)
+    } else {
+        // this is RK
+        let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
+        let cred_data = try_syscall!(w.trussed.read_file(
+            Location::Internal,
+            rk_path(
+                rp_id_hash,
+                &Bytes32::from_slice(keyhandle.as_slice()).unwrap()
+            )
+        ))
+        .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)?
+        .data;
+        let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
+        let mech = cred_to_mechanism(&cred);
+        (cred.key_id, mech, true)
+    };
+    Ok(res)
+}
+
+fn cred_to_mechanism(cred: &CredentialData) -> Mechanism {
+    let mech = match cred.algorithm {
+        0 => Mechanism::P256,
+        1 => Mechanism::Rsa2kPkcs,
+        _ => Mechanism::P256,
+    };
+    mech
+}
+
 fn import_key_from_keyhandle<C>(
     w: &mut Webcrypt<C>,
     encrypted_serialized_keyhandle: &KeyHandleSerialized,
-) -> Result<KeyId, Error>
+) -> Result<(KeyId, Mechanism), Error>
 where
     C: WebcryptTrussedClient,
 {
@@ -306,7 +372,10 @@ where
     ))
     .key
     .ok_or(Error::InternalError)?;
-    Ok(key)
+
+    let m = key_handle.mechanism.unwrap_or(Mechanism::P256);
+
+    Ok((key, m))
 }
 
 pub fn cmd_openpgp_generate<C>(w: &mut Webcrypt<C>) -> CommandResult
@@ -475,46 +544,52 @@ where
     // TODO find via provided fingerprint if not, get from openpgp info struct, or use the first one
     // Currently check for the exact match of the held openpgp keys and their fingerprints
     // if provided, use keyhandle or just default encryption key
-    let kh_key = if req.fingerprint.is_none() && req.keyhandle.is_none() {
-        w.state
+    let (kh_key, mech, is_rk) = if req.fingerprint.is_none() && req.keyhandle.is_none() {
+        let open_pgpkey = &w
+            .state
             .openpgp_data
             .as_ref()
             .ok_or(Error::FailedLoadingData)?
-            .encryption
-            .key
+            .encryption;
+        (open_pgpkey.key, open_pgpkey.key_mechanism, true)
     } else if req.fingerprint.is_some() {
-        w.state
-            .openpgp_data
-            .as_ref()
-            .ok_or(Error::NotFound)?
-            .get_id_by_fingerprint(
-                req.fingerprint
-                    .unwrap()
-                    .as_slice()
-                    .try_into()
-                    .map_err(|_| Error::FailedLoadingData)?,
-            )
-            .ok_or(Error::NotFound)?
+        (
+            w.state
+                .openpgp_data
+                .as_ref()
+                .ok_or(Error::NotFound)?
+                .get_id_by_fingerprint(
+                    req.fingerprint
+                        .unwrap()
+                        .as_slice()
+                        .try_into()
+                        .map_err(|_| Error::FailedLoadingData)?,
+                )
+                .ok_or(Error::NotFound)?,
+            Mechanism::P256,
+            true,
+        )
     } else {
         let keyhandle = req.keyhandle.unwrap();
         // regular keyhandle unpacking below
         // TODO remove duplication / extract unpacking
-        if keyhandle.len() > 32 {
-            import_key_from_keyhandle(w, &keyhandle)?
-        } else {
-            let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
-            let cred_data = try_syscall!(w.trussed.read_file(
-                Location::Internal,
-                rk_path(
-                    rp_id_hash,
-                    &Bytes32::from_slice(keyhandle.as_slice()).unwrap()
-                )
-            ))
-            .map_err(|_| Error::MemoryFull)?
-            .data;
-            let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
-            cred.key_id
-        }
+        // if keyhandle.len() > 32 {
+        //     import_key_from_keyhandle(w, &keyhandle)?
+        // } else {
+        //     let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
+        //     let cred_data = try_syscall!(w.trussed.read_file(
+        //         Location::Internal,
+        //         rk_path(
+        //             rp_id_hash,
+        //             &Bytes32::from_slice(keyhandle.as_slice()).unwrap()
+        //         )
+        //     ))
+        //     .map_err(|_| Error::MemoryFull)?
+        //     .data;
+        //     let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
+        //     cred.key_id
+        // }
+        get_key_from_keyhandle(w, keyhandle)?
     };
 
     let agreed_shared_secret_id = {
@@ -583,34 +658,108 @@ where
         .check_token_res(req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
 
+    let (kh_key, mech, is_rk) = get_key_from_keyhandle(w, req.keyhandle.clone())?;
+
+    let decrypted = match mech {
+        Mechanism::P256 => decrypt_ecc_p256(w, req, kh_key),
+        Mechanism::Rsa2kPkcs => decrypt_rsa(w, req, kh_key),
+        _ => Err(ERR_INTERNAL_ERROR),
+    }?;
+
+    if !is_rk {
+        // FIXME introduce types to distinct derived and resident keys
+        syscall!(w.trussed.delete(kh_key));
+    }
+
+    w.send_to_output(CommandDecryptResponse {
+        data: Bytes::from_slice(decrypted.as_slice()).unwrap(),
+    });
+
+    Ok(())
+}
+
+fn decrypt_rsa<C>(
+    w: &mut Webcrypt<C>,
+    req: CommandDecryptRequest,
+    kh_key: KeyId,
+) -> ResultW<Message>
+where
+    C: trussed::Client
+        + client::Client
+        + client::Rsa2kPkcs
+        + client::P256
+        + client::Aes256Cbc
+        + client::HmacSha256
+        + client::HmacSha256P256
+        + client::Sha256
+        + client::Chacha8Poly1305,
+{
     if !(req.keyhandle.len() > 0
-        && req.eccekey.len() > 0
         && req.data.len() > 0
-        && req.hmac.len() > 0)
+        && req.hmac.is_none()
+        && req.eccekey.is_none())
     {
         return Err(Error::BadFormat);
     }
+    // TODO HMAC?
 
-    let kh_key = if req.keyhandle.len() > 32 {
-        import_key_from_keyhandle(w, &req.keyhandle)?
-    } else {
-        let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
-        let cred_data = try_syscall!(w.trussed.read_file(
-            Location::Internal,
-            rk_path(
-                rp_id_hash,
-                &Bytes32::from_slice(req.keyhandle.as_slice()).unwrap()
-            )
-        ))
-        .map_err(|_| Error::MemoryFull)?
-        .data;
-        let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
-        cred.key_id
-    };
+    let decrypted = try_syscall!(w.trussed.decrypt_rsa2kpkcs(kh_key, &req.data))
+        .map_err(|e| {
+            log::error!("Decryption error: {:?}", e);
+            ERROR_ID::ERR_FAILED_LOADING_DATA
+        })?
+        .plaintext
+        .ok_or(ERR_INTERNAL_ERROR)?;
 
-    let ecc_key: Vec<u8, 64> = match req.eccekey.len() {
-        65 => Vec::<u8, 64>::from_slice(&req.eccekey[1..65]).unwrap(),
-        64 => Vec::<u8, 64>::from_slice(&req.eccekey[0..64]).unwrap(),
+    // FIXME merge: from cmd_decrypt??
+    // let kh_key = if req.keyhandle.len() > 32 {
+    //     import_key_from_keyhandle(w, &req.keyhandle)?
+    // } else {
+    //     let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
+    //     let cred_data = try_syscall!(w.trussed.read_file(
+    //         Location::Internal,
+    //         rk_path(
+    //             rp_id_hash,
+    //             &Bytes32::from_slice(req.keyhandle.as_slice()).unwrap()
+    //         )
+    //     ))
+    //     .map_err(|_| Error::MemoryFull)?
+    //     .data;
+    //     let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
+    //     cred.key_id
+    // };
+    Ok(decrypted)
+}
+
+fn decrypt_ecc_p256<C>(
+    w: &mut Webcrypt<C>,
+    req: CommandDecryptRequest,
+    kh_key: KeyId,
+) -> ResultW<Message>
+where
+    C: trussed::Client
+        + client::Client
+        + client::Rsa2kPkcs
+        + client::P256
+        + client::Aes256Cbc
+        + client::HmacSha256
+        + client::HmacSha256P256
+        + client::Sha256
+        + client::Chacha8Poly1305,
+{
+    let req_eccekey = req.eccekey.ok_or(ERR_BAD_FORMAT)?;
+    let req_hmac = req.hmac.ok_or(ERR_BAD_FORMAT)?;
+    if !(req.keyhandle.len() > 0
+        && req_eccekey.len() > 0
+        && req.data.len() > 0
+        && req_hmac.len() > 0)
+    {
+        return Err(ERR_BAD_FORMAT);
+    }
+
+    let ecc_key: Vec<u8, 64> = match req_eccekey.len() {
+        65 => Vec::<u8, 64>::from_slice(&req_eccekey[1..65]).unwrap(),
+        64 => Vec::<u8, 64>::from_slice(&req_eccekey[0..64]).unwrap(),
         _ => return Err(Error::FailedLoadingData),
     };
 
@@ -641,7 +790,7 @@ where
     let encoded_ciphertext_len: [u8; 2] = (req.data.len() as u16).to_le_bytes();
     let mut data_to_hmac = Message::new(); // FIXME check length
     data_to_hmac.extend(req.data.clone());
-    data_to_hmac.extend(req.eccekey);
+    data_to_hmac.extend(req_eccekey);
     data_to_hmac.extend(encoded_ciphertext_len);
     data_to_hmac.extend(req.keyhandle);
 
@@ -654,7 +803,7 @@ where
     .map_err(|_| Error::FailedLoadingData)?
     .signature;
 
-    let hmac_correct = calculated_hmac == req.hmac;
+    let hmac_correct = calculated_hmac == req_hmac;
     if !hmac_correct {
         // abort decryption on invalid hmac value
         return Err(Error::InvalidChecksum);
@@ -699,14 +848,10 @@ where
     .plaintext
     .ok_or(Error::InternalError)?;
 
-    syscall!(w.trussed.delete(kh_key));
     syscall!(w.trussed.delete(shared_secret));
     syscall!(w.trussed.delete(serialized_reimported));
     syscall!(w.trussed.delete(ephem_pub_bin_key));
-
-    w.send_to_output(CommandDecryptResponse { data: decrypted });
-
-    Ok(())
+    Ok(decrypted)
 }
 
 #[cfg(feature = "hmacsha256p256")]
@@ -780,52 +925,58 @@ where
         .map_err(|_| Error::RequireAuthentication)?;
 
     // Get private keyid
-    let private_key = {
-        let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
-        let cred_data = try_syscall!(w.trussed.read_file(
-            Location::Internal,
-            rk_path(
-                rp_id_hash,
-                &Bytes32::from_slice(req.keyhandle.as_slice()).unwrap()
-            )
-        ))
-        .map_err(|_| Error::MemoryFull)? // TODO Change to ERROR_ID::ERR_FAILED_LOADING_DATA
-        .data;
-        let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
-        cred.key_id
+    // let private_key = {
+    //     let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
+    //     let cred_data = try_syscall!(w.trussed.read_file(
+    //         Location::Internal,
+    //         rk_path(
+    //             rp_id_hash,
+    //             &Bytes32::from_slice(req.keyhandle.as_slice()).unwrap()
+    //         )
+    //     ))
+    //     .map_err(|_| Error::MemoryFull)? // TODO Change to ERROR_ID::ERR_FAILED_LOADING_DATA
+    //     .data;
+    //     let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
+    //     cred.key_id
+    // };
+    //
+    // let public_key = try_syscall!(w
+    //     .trussed
+    //     .derive_p256_public_key(private_key, Location::Volatile))
+    // .map_err(|_| Error::NotFound)?
+    // .key;
+    //
+    // // generate keyhandle for the reply
+    // let cred = CredentialData::new(private_key);
+    // let serialized_credential = cred.serialize()?;
+    // let credential_id_hash = syscall!(w.trussed.hash_sha256(serialized_credential.as_slice()))
+    //     .hash
+    //     .to_bytes()
+    //     .unwrap();
+
+    let (private_key, mech, is_rk) = get_key_from_keyhandle(w, req.keyhandle.clone())?;
+
+    let kind = match mech {
+        Mechanism::P256 => Kind::P256,
+        Mechanism::Rsa2kPkcs => Kind::Rsa2k,
+        _ => todo!(),
     };
-
-    let public_key = try_syscall!(w
-        .trussed
-        .derive_p256_public_key(private_key, Location::Volatile))
-    .map_err(|_| Error::NotFound)?
-    .key;
-
-    // generate keyhandle for the reply
-    let cred = CredentialData::new(private_key);
-    let serialized_credential = cred.serialize()?;
-    let credential_id_hash = syscall!(w.trussed.hash_sha256(serialized_credential.as_slice()))
-        .hash
-        .to_bytes()
-        .unwrap();
-
-    // public key preparation
-    let serialized_raw_public_key = syscall!(w
-        .trussed
-        .serialize_p256_key(public_key, KeySerialization::Raw))
-    .serialized_key;
+    let (public_key, serialized_raw_public_key) = get_public_key(w, kind, private_key)?;
 
     syscall!(w.trussed.delete(public_key));
-
+    if !is_rk {
+        // FIXME introduce types to distinct derived and resident keys
+        syscall!(w.trussed.delete(private_key));
+    }
     w.send_to_output({
-        let mut pubkey = Bytes65::from_slice(serialized_raw_public_key.as_slice()).unwrap();
-        // add identifier for uncompressed form - 0x04
-        pubkey
-            .insert(0, 0x04)
-            .map_err(|_| Error::FailedLoadingData)?;
+        let mut pubkey = Message::from_slice(serialized_raw_public_key.as_slice()).unwrap();
+        if kind == Kind::P256 {
+            // add identifier for uncompressed form - 0x04
+            pubkey.insert(0, 0x04).map_err(|_| ERR_INTERNAL_ERROR)?;
+        }
         CommandGenerateResidentKeyResponse {
             pubkey,
-            keyhandle: credential_id_hash,
+            keyhandle: req.keyhandle,
         }
     });
 
@@ -1064,12 +1215,15 @@ where
         .check_token_res(req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
 
+    let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
+    // write private key
+    let kind = keytype_to_kind(&req.key_type);
+
     let private_key = try_syscall!(w.trussed.unsafe_inject_shared_key(
-        // &k.serialize(),
         req.raw_key_data.as_slice(),
         Location::Internal,
         #[cfg(feature = "inject-any-key")]
-        Kind::P256
+        kind
     ))
     .map_err(|_| Error::FailedLoadingData)?
     .key;
@@ -1079,10 +1233,16 @@ where
     .map_err(|_| Error::FailedLoadingData)?
     .key;
 
-    let cred = CredentialData::new(private_key);
+    // write file
+
+    let cred = CredentialData {
+        key_id: private_key,
+        algorithm: req.key_type.unwrap_or(0) as i32,
+        creation_time: 0,
+        allowed_use: 0,
+    };
     let serialized_credential = cred.serialize()?;
 
-    let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
     let credential_id_hash = syscall!(w.trussed.hash_sha256(serialized_credential.as_slice()))
         .hash
         .to_bytes()
@@ -1096,25 +1256,73 @@ where
     ))
     .map_err(|_| Error::MemoryFull)?;
 
-    // public key
-    let serialized_raw_public_key = syscall!(w
-        .trussed
-        .serialize_p256_key(public_key, KeySerialization::Raw))
-    .serialized_key;
+    // get public key
+    let (public_key, serialized_raw_public_key) = get_public_key(w, kind, private_key)?;
 
     syscall!(w.trussed.delete(public_key));
 
     w.send_to_output({
-        let mut pubkey = Bytes65::from_slice(serialized_raw_public_key.as_slice()).unwrap();
-        // add identifier for uncompressed form - 0x04
-        pubkey.insert(0, 0x04).map_err(|_| Error::InternalError)?;
+        let mut pubkey = Message::from_slice(serialized_raw_public_key.as_slice()).unwrap();
+        if kind == Kind::P256 {
+            // add identifier for uncompressed form - 0x04
+            pubkey.insert(0, 0x04).map_err(|_| Error::InternalError)?;
+        }
         CommandWriteResidentKeyResponse {
             pubkey,
-            keyhandle: credential_id_hash,
+            keyhandle: Bytes::from_slice(credential_id_hash.as_slice()).unwrap(),
         }
     });
 
     Ok(())
+}
+
+fn keytype_to_kind(key_type: &KeyType) -> Kind {
+    match key_type {
+        None => Kind::P256,
+        Some(kind) => match kind {
+            0 => Kind::P256,
+            1 => Kind::Rsa2k,
+            _ => Kind::P256,
+        },
+    }
+}
+
+fn get_public_key<C>(
+    w: &mut Webcrypt<C>,
+    kind: Kind,
+    private_key: KeyId,
+) -> ResultW<(KeyId, Message)>
+where
+    C: trussed::Client + client::Client + client::Rsa2kPkcs + client::P256,
+{
+    let (public_key, serialized_raw_public_key) = match kind {
+        Kind::P256 => {
+            let public_key = try_syscall!(w
+                .trussed
+                .derive_p256_public_key(private_key, Location::Volatile))
+            .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
+            .key;
+
+            let serialized_raw_public_key = syscall!(w
+                .trussed
+                .serialize_p256_key(public_key, KeySerialization::Raw))
+            .serialized_key;
+            (public_key, serialized_raw_public_key)
+        }
+        Kind::Rsa2k => {
+            let pk = syscall!(w
+                .trussed
+                .derive_rsa2kpkcs_public_key(private_key, Location::Volatile))
+            .key;
+            let serialized_key = syscall!(w
+                .trussed
+                .serialize_rsa2kpkcs_key(pk, KeySerialization::RsaPkcs1))
+            .serialized_key;
+            (pk, serialized_key)
+        }
+        _ => todo!(),
+    };
+    Ok((public_key, serialized_raw_public_key))
 }
 
 pub fn cmd_generate_resident_key<C>(w: &mut Webcrypt<C>) -> CommandResult
@@ -1128,29 +1336,6 @@ where
     w.session
         .check_token_res(req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
-
-    // writing RKs
-    //
-    // if rk_requested {
-    //     // serialization with all metadata
-    //     let serialized_credential = credential.serialize()?;
-    //
-    //     // first delete any other RK cred with same RP + UserId if there is one.
-    //     self.delete_resident_key_by_user_id(&rp_id_hash, &credential.user.id)
-    //         .ok();
-    //
-    //     // then store key, making it resident
-    //     let credential_id_hash = self.hash(credential_id.0.as_ref());
-    //     try_syscall!(self.trussed.write_file(
-    //             Location::Internal,
-    //             rk_path(&rp_id_hash, &credential_id_hash),
-    //             serialized_credential,
-    //             // user attribute for later easy lookup
-    //             // Some(rp_id_hash.clone()),
-    //             None,
-    //         ))
-    //         .map_err(|_| Error::KeyStoreFull)?;
-    // }
 
     // Generate a new P256 key pair.
     // Can fail with FilesystemWriteFailure, if the full capacity is reached
@@ -1188,12 +1373,12 @@ where
     syscall!(w.trussed.delete(public_key));
 
     w.send_to_output({
-        let mut pubkey = Bytes65::from_slice(serialized_raw_public_key.as_slice()).unwrap();
+        let mut pubkey = Message::from_slice(serialized_raw_public_key.as_slice()).unwrap();
         // add identifier for uncompressed form - 0x04
         pubkey.insert(0, 0x04).map_err(|_| Error::InternalError)?;
         CommandGenerateResidentKeyResponse {
             pubkey,
-            keyhandle: credential_id_hash,
+            keyhandle: Bytes::from_slice(credential_id_hash.as_slice()).unwrap(),
         }
     });
 

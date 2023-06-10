@@ -20,7 +20,7 @@ mod transport;
 mod types;
 mod wcstate;
 
-pub const MAX_MESSAGE_LENGTH: usize = 1024;
+pub const MAX_MESSAGE_LENGTH: usize = 1500;
 #[cfg(feature = "transparent-encryption")]
 pub const DEFAULT_ENCRYPTION_PIN: &str = "12345678";
 
