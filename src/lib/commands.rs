@@ -23,6 +23,7 @@ use crate::types::Error;
 
 use crate::helpers::hash;
 use crate::openpgp::OpenPGPData;
+use crate::types::Error::{BadFormat, InternalError};
 use crate::{Message, RequestSource};
 
 type CommandResult = Result<(), Error>;
@@ -65,7 +66,7 @@ pub trait WebcryptTrussedClient:
 #[cfg(feature = "hmacsha256p256")]
 impl<
         C: client::Client
-            + client::Rsa2kPkcs
+            // + client::Rsa2kPkcs
             + client::P256
             + client::Chacha8Poly1305
             + client::HmacSha256
@@ -228,7 +229,7 @@ where
     //     let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
     //     (cred.key_id, true)
     // };
-    let (key, mechanism, keyhandle_points_to_RK) = get_key_from_keyhandle(w, req.keyhandle)?;
+    let (key, mechanism, keyhandle_points_to_rk) = get_key_from_keyhandle(w, req.keyhandle)?;
 
     let signature = match mechanism {
         Mechanism::P256 => {
@@ -270,18 +271,10 @@ fn get_key_from_keyhandle<C>(
     keyhandle: KeyHandleSerialized,
 ) -> ResultW<(KeyId, Mechanism, bool)>
 where
-    C: trussed::Client
-        + client::Client
-        + client::Rsa2kPkcs
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Sha256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     if keyhandle.len() == 0 {
-        return Err(ERR_BAD_FORMAT);
+        return Err(BadFormat);
     }
 
     let res = if keyhandle.len() > 32 {
@@ -298,7 +291,7 @@ where
                 &Bytes32::from_slice(keyhandle.as_slice()).unwrap()
             )
         ))
-        .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)?
+        .map_err(|_| Error::MemoryFull)?
         .data;
         let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
         let mech = cred_to_mechanism(&cred);
@@ -663,7 +656,7 @@ where
     let decrypted = match mech {
         Mechanism::P256 => decrypt_ecc_p256(w, req, kh_key),
         Mechanism::Rsa2kPkcs => decrypt_rsa(w, req, kh_key),
-        _ => Err(ERR_INTERNAL_ERROR),
+        _ => Err(InternalError),
     }?;
 
     if !is_rk {
@@ -684,15 +677,7 @@ fn decrypt_rsa<C>(
     kh_key: KeyId,
 ) -> ResultW<Message>
 where
-    C: trussed::Client
-        + client::Client
-        + client::Rsa2kPkcs
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Sha256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     if !(req.keyhandle.len() > 0
         && req.data.len() > 0
@@ -706,10 +691,10 @@ where
     let decrypted = try_syscall!(w.trussed.decrypt_rsa2kpkcs(kh_key, &req.data))
         .map_err(|e| {
             log::error!("Decryption error: {:?}", e);
-            ERROR_ID::ERR_FAILED_LOADING_DATA
+            Error::ERR_FAILED_LOADING_DATA
         })?
         .plaintext
-        .ok_or(ERR_INTERNAL_ERROR)?;
+        .ok_or(InternalError)?;
 
     // FIXME merge: from cmd_decrypt??
     // let kh_key = if req.keyhandle.len() > 32 {
@@ -739,7 +724,6 @@ fn decrypt_ecc_p256<C>(
 where
     C: trussed::Client
         + client::Client
-        + client::Rsa2kPkcs
         + client::P256
         + client::Aes256Cbc
         + client::HmacSha256
@@ -747,14 +731,14 @@ where
         + client::Sha256
         + client::Chacha8Poly1305,
 {
-    let req_eccekey = req.eccekey.ok_or(ERR_BAD_FORMAT)?;
-    let req_hmac = req.hmac.ok_or(ERR_BAD_FORMAT)?;
+    let req_eccekey = req.eccekey.ok_or(BadFormat)?;
+    let req_hmac = req.hmac.ok_or(BadFormat)?;
     if !(req.keyhandle.len() > 0
         && req_eccekey.len() > 0
         && req.data.len() > 0
         && req_hmac.len() > 0)
     {
-        return Err(ERR_BAD_FORMAT);
+        return Err(BadFormat);
     }
 
     let ecc_key: Vec<u8, 64> = match req_eccekey.len() {
@@ -870,7 +854,7 @@ where
     // let rpid = w.session.rp_id_hash.as_ref().unwrap();
     // req.hash
     //     .extend_from_slice(rpid.as_slice())
-    //     .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?;
+    //     .map_err(|_| Error::ERR_FAILED_LOADING_DATA)?;
     let data_for_key = &req.hash[..];
     if req.hash.len() < 32 {
         return Err(Error::FailedLoadingData);
@@ -934,7 +918,7 @@ where
     //             &Bytes32::from_slice(req.keyhandle.as_slice()).unwrap()
     //         )
     //     ))
-    //     .map_err(|_| Error::MemoryFull)? // TODO Change to ERROR_ID::ERR_FAILED_LOADING_DATA
+    //     .map_err(|_| Error::MemoryFull)? // TODO Change to Error::ERR_FAILED_LOADING_DATA
     //     .data;
     //     let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
     //     cred.key_id
@@ -972,7 +956,7 @@ where
         let mut pubkey = Message::from_slice(serialized_raw_public_key.as_slice()).unwrap();
         if kind == Kind::P256 {
             // add identifier for uncompressed form - 0x04
-            pubkey.insert(0, 0x04).map_err(|_| ERR_INTERNAL_ERROR)?;
+            pubkey.insert(0, 0x04).map_err(|_| InternalError)?;
         }
         CommandGenerateResidentKeyResponse {
             pubkey,
@@ -1014,7 +998,7 @@ where
     log::info!("WC loading state");
     w.state
         .load(&mut w.trussed)
-        // the cause might be in the corrupted storage as well (ERROR_ID::ERR_FAILED_LOADING_DATA),
+        // the cause might be in the corrupted storage as well (Error::ERR_FAILED_LOADING_DATA),
         // but we can't differentiate at this point
         .map_err(|_| Error::InvalidPin)?;
 
@@ -1293,14 +1277,14 @@ fn get_public_key<C>(
     private_key: KeyId,
 ) -> ResultW<(KeyId, Message)>
 where
-    C: trussed::Client + client::Client + client::Rsa2kPkcs + client::P256,
+    C: WebcryptTrussedClient,
 {
     let (public_key, serialized_raw_public_key) = match kind {
         Kind::P256 => {
             let public_key = try_syscall!(w
                 .trussed
                 .derive_p256_public_key(private_key, Location::Volatile))
-            .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
+            .map_err(|_| Error::ERR_FAILED_LOADING_DATA)?
             .key;
 
             let serialized_raw_public_key = syscall!(w
