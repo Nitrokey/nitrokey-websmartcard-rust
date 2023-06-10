@@ -1,6 +1,6 @@
 use heapless_bytes::{Bytes, Bytes32, Bytes64};
 use serde::{Deserialize, Serialize};
-use trussed::types::{KeyId, Message};
+use trussed::types::{KeyId, Mechanism, Message};
 
 use crate::types::Error;
 
@@ -24,14 +24,17 @@ pub type Bytes40 = Bytes<40>;
 pub type Bytes65 = Bytes<65>;
 pub type Bytes200 = Bytes<200>;
 pub type Bytes250 = Bytes<250>;
-pub type DataBytes = Bytes<1024>;
+pub type Bytes512 = Bytes<512>;
+pub type DataBytes = Bytes<1500>;
 pub type SessionToken = Bytes32;
 pub type ExpectedSessionToken = Option<SessionToken>;
 pub(crate) type SerializedCredential = Message;
 pub type ResultW<T> = Result<T, Error>;
 
+pub type KeyType = Option<i16>;
+
 // TODO move to struct, instead of the type alias
-pub type KeyHandleSerialized = Bytes250;
+pub type KeyHandleSerialized = Bytes512;
 
 #[derive(Clone, Debug, serde_indexed::DeserializeIndexed, serde_indexed::SerializeIndexed)]
 pub struct CredentialData {
@@ -82,7 +85,7 @@ pub struct CommandSignResponse {
     pub(crate) inhash: Bytes32,
 
     /// signature, should be less than 100 bytes
-    pub(crate) signature: Bytes200,
+    pub(crate) signature: Message,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -189,11 +192,13 @@ pub struct CommandDecryptRequest {
     /// data to decrypt
     pub(crate) data: DataBytes,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
     /// ciphertext's hmac
-    pub(crate) hmac: DataBytes,
+    pub(crate) hmac: Option<DataBytes>,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
     /// ephemeral ecc encryption key
-    pub(crate) eccekey: DataBytes,
+    pub(crate) eccekey: Option<DataBytes>,
 
     /// key handle, should be less than 200 bytes
     pub(crate) keyhandle: KeyHandleSerialized,
@@ -218,7 +223,6 @@ pub struct CommandEmptyRequest {
     pub(crate) tp: ExpectedSessionToken,
 }
 
-pub type CommandGenerateRequest = CommandEmptyRequest;
 pub type CommandLogoutRequest = CommandEmptyRequest;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -226,6 +230,17 @@ pub type CommandLogoutRequest = CommandEmptyRequest;
 pub struct CommandGenerateFromDataRequest {
     /// data to be used for key derivation
     pub(crate) hash: DataBytes,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) tp: ExpectedSessionToken,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "UPPERCASE")]
+pub struct CommandGenerateRequest {
+    /// data to be used for key derivation
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) key_type: KeyType,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) tp: ExpectedSessionToken,
@@ -287,7 +302,10 @@ pub struct CommandRestoreResponse {
 #[serde(rename_all = "UPPERCASE")]
 pub struct CommandWriteResidentKeyRequest {
     /// Sent in P256 serialized private key
-    pub(crate) raw_key_data: Bytes32,
+    pub(crate) raw_key_data: DataBytes,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) key_type: KeyType,
 
     // a placeholder for metadata
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -308,12 +326,12 @@ pub type CommandWriteResidentKeyResponse = CommandGenerateResidentKeyResponse;
 #[serde(rename_all = "UPPERCASE")]
 pub struct CommandGenerateResidentKeyResponse {
     /// resulting public key
-    pub(crate) pubkey: Bytes65,
+    pub(crate) pubkey: Message,
 
     /// key handle, should be less than 200 bytes
     /// should contain short KH, with the type==RK
     // pub(crate) keyhandle: KeyHandleSerialized,
-    pub(crate) keyhandle: Bytes32,
+    pub(crate) keyhandle: KeyHandleSerialized,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -342,7 +360,7 @@ pub struct CommandDiscoverResidentKeyResponse {
 pub struct CommandReadResidentKeyRequest {
     /// key handle, should be less than 200 bytes
     /// should contain short KH, with the type==RK
-    pub(crate) keyhandle: Bytes32,
+    pub(crate) keyhandle: KeyHandleSerialized,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) tp: ExpectedSessionToken,
@@ -408,20 +426,27 @@ pub struct CommandLoginResponse {
 pub(crate) struct KeyHandle {
     pub(crate) appid: Bytes32,
     /// encrypted private key, containing appid info
-    pub(crate) wrapped_private_key: Bytes<256>,
+    pub(crate) wrapped_private_key: Bytes<512>,
     /// nonce for encryption
     pub(crate) nonce: Bytes<12>,
     /// usage flags for key
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) usage_flags: Option<u8>,
+    /// type of the key, default: P256
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) mechanism: Option<Mechanism>,
 }
 
 impl KeyHandle {
-    pub(crate) fn ser(self) -> Bytes200 {
+    pub(crate) fn ser(self) -> KeyHandleSerialized {
         trussed::cbor_serialize_bytes(&self).unwrap()
     }
 
     pub(crate) fn deser(b: Message) -> Self {
         trussed::cbor_deserialize(b.as_slice()).unwrap()
+    }
+
+    pub(crate) fn get_mechanism(&self) -> Mechanism {
+        self.mechanism.unwrap_or(Mechanism::P256)
     }
 }
