@@ -26,10 +26,7 @@ apdu-dispatch = "0.1"
 trussed = "0.1.0"
 pretty_env_logger = { version = "0.4.0", optional = true }
 git-version = "0.3.5"
-
-
-# extension
-trussed-auth = "0.2.2"
+trussed-rsa-alloc = { version = "0.1.0", features = ["virt"] }
 
 
 [dev-dependencies]
@@ -45,9 +42,13 @@ delog = { version = "0.1.6", features = ["std-log"] }
 fido-authenticator = { git = "https://github.com/Nitrokey/fido-authenticator", tag = "v0.1.1-nitrokey.4",  features = ["dispatch", "log-all"] }
 admin-app = { version = "0.1", features = ["log-all"] }
 
+# extensions
+trussed-auth = "0.2.2"
+
+
 [features]
 default = ["ctaphid-peek", "inject-any-key", "hmacsha256p256"]
-enable-logs = ["pretty_env_logger", "log-all", "delog/std-log"]
+enable-logs = ["pretty_env_logger", "log-all", "delog/std-log", "trussed-rsa-alloc/log-all"]
 
 # Disable ClientContext PIN encryption
 transparent-encryption = []
@@ -64,6 +65,9 @@ hmacsha256p256 = []
 
 # Allow to inject raw key data with specified type into the Trussed key store
 inject-any-key = []
+
+# Support RSA
+rsa = []
 
 log-all = []
 log-none = []
@@ -90,4 +94,8 @@ ctaphid-dispatch = { git = "https://github.com/Nitrokey/ctaphid-dispatch.git", b
 #trussed = { git = "https://github.com/Nitrokey/trussed", tag = "v0.1.0-nitrokey.11" }
 # Required for inject-any-key and hmacsha256p256
 trussed = { git = "https://github.com/Nitrokey/trussed", branch = "webcrypt-devel-0.1.0-nk11" }
+#trussed = { path = "/home/sz/work/webcrypt/trussed" }
 trussed-auth = { git = "https://github.com/trussed-dev/trussed-auth/", tag = "v0.2.2" }
+
+#trussed-rsa-alloc = { git = "https://github.com/Nitrokey/trussed-rsa-backend", tag = "v0.1.0" }
+trussed-rsa-alloc = { path = "/home/sz/work/webcrypt/trussed-rsa-backend" }
