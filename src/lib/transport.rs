@@ -8,12 +8,13 @@ use crate::types::*;
 use crate::types::{ExtWebcryptCmd, WebcryptRequest};
 use crate::wcstate::{WebcryptSession, WebcryptState};
 
+use crate::commands_types::WebcryptMessage;
 use crate::{Bytes, Message};
 
 #[allow(non_snake_case)]
 pub struct Webcrypt<C: WebcryptTrussedClient> {
-    WC_INPUT_BUFFER: Bytes<1500>,
-    WC_OUTPUT_BUFFER: Bytes<1500>,
+    WC_INPUT_BUFFER: WebcryptMessage,
+    WC_OUTPUT_BUFFER: WebcryptMessage,
     pub current_command_id: CommandID,
     pub trussed: C,
     pub state: WebcryptState,
@@ -132,12 +133,12 @@ where
         self.WC_OUTPUT_BUFFER.extend_from_slice(encoded).unwrap();
     }
 
-    pub fn send_to_output_arr(&mut self, o: &Bytes<1500>) {
+    pub fn send_to_output_arr(&mut self, o: &WebcryptMessage) {
         log::info!("Clear write: {:?}", o);
         self.WC_OUTPUT_BUFFER.extend_from_slice(o).unwrap();
     }
 
-    fn webcrypt_read_request(&self, output: &mut Bytes<1500>, cmd: &ExtWebcryptCmd) -> Error {
+    fn webcrypt_read_request(&self, output: &mut WebcryptMessage, cmd: &ExtWebcryptCmd) -> Error {
         let offset = (u8::from(cmd.packet_no)) as usize * (cmd.chunk_size) as usize;
         let offset_right = offset + cmd.this_chunk_length as usize;
         let offset_right_clamp = offset_right.min(self.WC_OUTPUT_BUFFER.len());
@@ -178,9 +179,9 @@ where
         req_details: RequestDetails,
     ) -> Result<CtapSignatureSize, Error> {
         let cmd = self.get_webcrypt_cmd(keyh)?;
-        log::info!("< cmd: {:?}", cmd);
+        log::info!(" in < cmd: {:?}", cmd);
         let ret = self.bridge_u2f_to_webcrypt(cmd, req_details)?;
-        log::info!("> ret: {:?}", ret);
+        log::info!("out > ret: {:?}", ret);
         ret.log_hex();
 
         match ret {
@@ -244,7 +245,12 @@ where
                     return Ok(WebcryptResponseType::First(ResponseReadFirst {
                         data_len: 3, // size (2) + commandID (1)
                         cmd_id: Default::default(),
-                        data: output.cbor_payload.into(),
+                        data: CborPart(
+                            output
+                                .cbor_payload
+                                .try_convert_into()
+                                .map_err(|_| Error::InternalError)?,
+                        ),
                     }));
                 }
 
@@ -256,11 +262,21 @@ where
                         Ok(WebcryptResponseType::First(ResponseReadFirst {
                             data_len: self.WC_OUTPUT_BUFFER.len() as u16 + 3, // +3, // size (2) + commandID (1)
                             cmd_id: self.current_command_id,
-                            data: output.cbor_payload.into(),
+                            data: CborPart(
+                                output
+                                    .cbor_payload
+                                    .try_convert_into()
+                                    .map_err(|_| Error::InternalError)?,
+                            ),
                         }))
                     }
                     _ => Ok(WebcryptResponseType::Next(ResponseReadNext {
-                        data: output.cbor_payload.into(),
+                        data: CborPart(
+                            output
+                                .cbor_payload
+                                .try_convert_into()
+                                .map_err(|_| Error::InternalError)?,
+                        ),
                     })),
                 }
             }

@@ -1,10 +1,12 @@
 #![allow(non_camel_case_types)]
 
+use crate::commands_types::WebcryptMessage;
 use crate::types::Error::BadFormat;
 use crate::types::TRANSPORT_CMD_ID::COMM_CMD_WRITE;
 use crate::{Bytes, Message};
 use ctap_types::ctap2::PinAuth;
 use heapless_bytes::Bytes32;
+
 pub type CtapSignatureSize = Bytes<72>;
 
 // pub const WR_PAYLOAD_SIZE: usize = 255 - 4 - 1;
@@ -354,7 +356,7 @@ impl WebcryptRequest {
 pub struct WebcryptResult {
     pub status_code: Error,
     // pub reply_length: u16,
-    pub cbor_payload: Message,
+    pub cbor_payload: WebcryptMessage,
 }
 
 impl From<WebcryptResult> for Message {
@@ -464,6 +466,17 @@ impl From<Message> for ResponseReadFirst {
         rr
     }
 }
+// impl From<WebcryptMessage> for ResponseReadFirst {
+//     // FIXME copy of from<message>
+//     fn from(v: WebcryptMessage) -> Self {
+//         let mut rr = ResponseReadFirst::new();
+//         rr.data_len = u16::from_le_bytes(v[0..2].try_into().unwrap());
+//         rr.cmd_id = v[2].into();
+//         // rr.data = CborPart::from_slice(v[3..]); // TODO
+//         rr.data = CborPart{ 0: Message::from_slice(&v[3..]).unwrap() };
+//         rr
+//     }
+// }
 
 impl From<ResponseReadFirst> for Message {
     fn from(r: ResponseReadFirst) -> Self {

@@ -22,9 +22,9 @@ mod dispatch {
     use trussed_rsa_alloc::SoftwareRsa;
 
     pub const BACKENDS: &[BackendId<Backend>] = &[
-        BackendId::Custom(Backend::Auth),
         #[cfg(feature = "rsa")]
         BackendId::Custom(Backend::Rsa),
+        BackendId::Custom(Backend::Auth),
         BackendId::Core,
     ];
 

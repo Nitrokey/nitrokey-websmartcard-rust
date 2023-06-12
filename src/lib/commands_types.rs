@@ -25,7 +25,9 @@ pub type Bytes65 = Bytes<65>;
 pub type Bytes200 = Bytes<200>;
 pub type Bytes250 = Bytes<250>;
 pub type Bytes512 = Bytes<512>;
-pub type DataBytes = Bytes<1500>;
+pub type WebcryptMessage = Bytes<1500>;
+pub type DataBytes = WebcryptMessage;
+// pub type WebcryptMessage = Message;
 pub type SessionToken = Bytes32;
 pub type ExpectedSessionToken = Option<SessionToken>;
 pub(crate) type SerializedCredential = Message;
@@ -302,7 +304,7 @@ pub struct CommandRestoreResponse {
 #[serde(rename_all = "UPPERCASE")]
 pub struct CommandWriteResidentKeyRequest {
     /// Sent in P256 serialized private key
-    pub(crate) raw_key_data: DataBytes,
+    pub(crate) raw_key_data: Option<DataBytes>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) key_type: KeyType,
@@ -310,6 +312,13 @@ pub struct CommandWriteResidentKeyRequest {
     // a placeholder for metadata
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) tp: ExpectedSessionToken,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) rsa_e: Option<DataBytes>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) rsa_p: Option<DataBytes>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) rsa_q: Option<DataBytes>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -444,9 +453,5 @@ impl KeyHandle {
 
     pub(crate) fn deser(b: Message) -> Self {
         trussed::cbor_deserialize(b.as_slice()).unwrap()
-    }
-
-    pub(crate) fn get_mechanism(&self) -> Mechanism {
-        self.mechanism.unwrap_or(Mechanism::P256)
     }
 }
