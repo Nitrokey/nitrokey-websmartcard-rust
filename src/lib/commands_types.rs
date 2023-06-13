@@ -84,7 +84,7 @@ pub struct CommandGenerateResponse {
 #[serde(rename_all = "UPPERCASE")]
 pub struct CommandSignResponse {
     /// signed hash, the same given on input, 32 bytes
-    pub(crate) inhash: Bytes32,
+    pub(crate) inhash: Bytes64,
 
     /// signature, should be less than 100 bytes
     pub(crate) signature: Message,
@@ -94,7 +94,7 @@ pub struct CommandSignResponse {
 #[serde(rename_all = "UPPERCASE")]
 pub struct CommandSignRequest {
     /// hash to sign, 32 bytes
-    pub(crate) hash: Bytes32,
+    pub(crate) hash: Bytes64,
 
     /// key handle, should be less than 200 bytes
     pub(crate) keyhandle: KeyHandleSerialized,
