@@ -1177,11 +1177,6 @@ where
             .key
         }
     };
-    // let public_key = try_syscall!(w
-    //     .trussed
-    //     .derive_p256_public_key(private_key, Location::Volatile))
-    // .map_err(|_| Error::FailedLoadingData)?
-    // .key;
 
     // write file
 
@@ -1270,7 +1265,6 @@ where
             .key;
             let serialized_key = syscall!(w
                 .trussed
-                // .serialize_Rsa2048Pkcs1v15_key(pk, KeySerialization::RsaPkcs1)) // TODO check if this works
                 .serialize_key(Mechanism::Rsa2048Pkcs1v15, pk, KeySerialization::Pkcs8Der))
             .serialized_key;
             (pk, serialized_key)
