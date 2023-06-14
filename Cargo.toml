@@ -26,7 +26,7 @@ apdu-dispatch = "0.1"
 trussed = "0.1.0"
 pretty_env_logger = { version = "0.4.0", optional = true }
 git-version = "0.3.5"
-trussed-rsa-alloc = { version = "0.1.0", features = ["virt"] }
+trussed-rsa-alloc = { version = "0.1.0", optional = true }
 
 
 [dev-dependencies]
@@ -43,11 +43,12 @@ fido-authenticator = { git = "https://github.com/Nitrokey/fido-authenticator", t
 admin-app = { version = "0.1", features = ["log-all"] }
 
 # extensions
+trussed-rsa-alloc = { version = "0.1.0", features = ["virt"] }
 trussed-auth = "0.2.2"
 
 
 [features]
-default = ["ctaphid-peek", "inject-any-key", "hmacsha256p256"]
+default = ["ctaphid-peek", "inject-any-key", "hmacsha256p256", "rsa"]
 enable-logs = ["pretty_env_logger", "log-all", "delog/std-log", "trussed-rsa-alloc/log-all"]
 
 # Disable ClientContext PIN encryption
@@ -67,7 +68,7 @@ hmacsha256p256 = []
 inject-any-key = []
 
 # Support RSA
-rsa = []
+rsa = ["trussed-rsa-alloc"]
 
 log-all = []
 log-none = []
