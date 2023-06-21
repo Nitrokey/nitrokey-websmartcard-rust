@@ -137,7 +137,6 @@ use apdu_dispatch::command::SIZE as ApduCommandSize;
 
 use clap::Parser;
 use clap_num::maybe_hex;
-use log::{debug, info, warn};
 use trussed::backend::BackendId;
 use trussed::platform::{consent, reboot, ui};
 use trussed::types::Location;
@@ -145,6 +144,7 @@ use trussed::{virt, ClientImplementation, Platform};
 use trussed_usbip::ClientBuilder;
 
 use usbd_ctaphid::constants::MESSAGE_SIZE;
+use webcrypt::{debug,try_debug, warn,try_warn, info, try_info};
 
 pub type FidoConfig = fido_authenticator::Config;
 pub type VirtClient = ClientImplementation<

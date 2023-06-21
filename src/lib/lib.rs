@@ -2,10 +2,10 @@
 
 #[macro_use]
 extern crate delog;
+delog::generate_macros!();
 
 use heapless_bytes::Bytes;
 
-generate_macros!();
 
 mod commands;
 mod commands_types;
