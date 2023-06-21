@@ -53,7 +53,7 @@ where
         _output: &[u8],
         cmd: &ExtWebcryptCmd,
     ) -> Result<(), WebcryptError> {
-        log::info!("Write");
+        info!("Write");
         self.WC_INPUT_BUFFER
             .extend_from_slice(&cmd.data_first_byte)
             .map_err(|_| Error::TooLongRequest)?;
@@ -66,8 +66,8 @@ where
         let id_u8 = parsed.cmd_id;
         let operation = id_u8;
         self.current_command_id = operation;
-        log::info!("Input buffer: {:?}", parsed);
-        log::info!("Received operation: {:?} {:x?}", id_u8, operation);
+        info!("Input buffer: {:?}", parsed);
+        info!("Received operation: {:?} {:x?}", id_u8, operation);
         use CommandID::*;
         let res = match operation {
             Status => cmd_status(self),
@@ -129,12 +129,12 @@ where
         // limited to 256*8 bytes for now for a single write
         let mut buffer = [0u8; 256 * 8];
         let encoded = cbor_serialize(&o, &mut buffer).unwrap();
-        // log::info!("Encoded: {:?}", hex::encode(encoded));
+        // info!("Encoded: {:?}", hex::encode(encoded));
         self.WC_OUTPUT_BUFFER.extend_from_slice(encoded).unwrap();
     }
 
     pub fn send_to_output_arr(&mut self, o: &WebcryptMessage) {
-        log::info!("Clear write: {:?}", o);
+        info!("Clear write: {:?}", o);
         self.WC_OUTPUT_BUFFER.extend_from_slice(o).unwrap();
     }
 
@@ -144,11 +144,11 @@ where
         let offset_right_clamp = offset_right.min(self.WC_OUTPUT_BUFFER.len());
 
         if self.WC_OUTPUT_BUFFER.len() == 0 {
-            log::error!("No data available for read in the output buffer");
+            error!("No data available for read in the output buffer");
         }
 
         if offset >= self.WC_OUTPUT_BUFFER.len() {
-            log::error!(
+            error!(
                 "Requested offset bigger than available buffer length: {} > {}",
                 offset,
                 self.WC_OUTPUT_BUFFER.len()
@@ -159,7 +159,7 @@ where
         output
             .extend_from_slice(&self.WC_OUTPUT_BUFFER[offset..offset_right_clamp])
             .unwrap();
-        // log::info!(
+        // info!(
         //     "Read: [{}..{})({})/{} {:?}",
         //     offset,
         //     offset_right_clamp,
@@ -179,9 +179,9 @@ where
         req_details: RequestDetails,
     ) -> Result<CtapSignatureSize, Error> {
         let cmd = self.get_webcrypt_cmd(keyh)?;
-        log::info!(" in < cmd: {:?}", cmd);
+        info!(" in < cmd: {:?}", cmd);
         let ret = self.bridge_u2f_to_webcrypt(cmd, req_details)?;
-        log::info!("out > ret: {:?}", ret);
+        info!("out > ret: {:?}", ret);
         ret.log_hex();
 
         match ret {
@@ -197,7 +197,7 @@ where
                 output.extend([x.result as u8]);
             }
         }
-        // log::info!("> outputH: {:?}", hex::encode(output.clone()));
+        // info!("> outputH: {:?}", hex::encode(output.clone()));
         Ok(output)
     }
 
@@ -256,7 +256,7 @@ where
 
                 output.status_code =
                     self.webcrypt_read_request(&mut output.cbor_payload, &webcrypt_req);
-                log::info!("output status_code: {:?}", output.status_code);
+                info!("output status_code: {:?}", output.status_code);
                 match webcrypt_req.packet_no.0 {
                     0 => {
                         Ok(WebcryptResponseType::First(ResponseReadFirst {
