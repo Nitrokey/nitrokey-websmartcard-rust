@@ -419,7 +419,7 @@ where
     let req = match w.get_input_deserialized() {
         Ok(x) => Ok(x),
         Err(e) => {
-            log::error!("Deserialization error: {:?}", e);
+            error!("Deserialization error: {:?}", e);
             Err(e)
         }
     };
@@ -448,7 +448,7 @@ where
     let req = match w.get_input_deserialized() {
         Ok(x) => Ok(x),
         Err(e) => {
-            log::error!("Deserialization error: {:?}", e);
+            error!("Deserialization error: {:?}", e);
             Err(e)
         }
     };
@@ -472,7 +472,7 @@ where
         SignatureSerialization::Raw
     ))
     .map_err(|e| {
-        log::error!("Signing error: {:?}", e);
+        error!("Signing error: {:?}", e);
         Error::FailedLoadingData
     })?
     .signature;
@@ -490,7 +490,7 @@ where
     let req = match w.get_input_deserialized() {
         Ok(x) => Ok(x),
         Err(e) => {
-            log::error!("Deserialization error: {:?}", e);
+            error!("Deserialization error: {:?}", e);
             Err(e)
         }
     };
@@ -576,7 +576,7 @@ where
         KeySerialization::Raw
     ))
     .map_err(|e| {
-        log::error!("Deserialization error: {:?}", e);
+        error!("Deserialization error: {:?}", e);
         Error::InternalError
     })?;
     syscall!(w.trussed.delete(agreed_shared_secret_id));
@@ -596,7 +596,7 @@ where
     let req = match w.get_input_deserialized() {
         Ok(x) => Ok(x),
         Err(e) => {
-            log::error!("Deserialization error: {:?}", e);
+            error!("Deserialization error: {:?}", e);
             Err(e)
         }
     };
@@ -644,7 +644,7 @@ where
     // TODO HMAC?
     // let decrypted = try_syscall!(w.trussed.decrypt_Rsa2048Pkcs1v15(kh_key, &req.data))
     //     .map_err(|e| {
-    //         log::error!("Decryption error: {:?}", e);
+    //         error!("Decryption error: {:?}", e);
     //         Error::FailedLoadingData
     //     })?
     //     .plaintext
@@ -745,7 +745,7 @@ where
         KeySerialization::Raw
     ))
     .map_err(|e| {
-        log::error!("Deserialization error: {:?}", e);
+        error!("Deserialization error: {:?}", e);
         Error::InternalError
     })?
     .serialized_key;
@@ -764,7 +764,7 @@ where
         .trussed
         .decrypt_aes256cbc(serialized_reimported, &req.data))
     .map_err(|e| {
-        log::error!("Decryption error: {:?}", e);
+        error!("Decryption error: {:?}", e);
         Error::FailedLoadingData
     })?
     .plaintext
@@ -843,7 +843,7 @@ where
 {
     let req: CommandReadResidentKeyRequest =
         w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
-    log::info!("WC cmd_read_resident_key_public {:?}", req);
+    info!("WC cmd_read_resident_key_public {:?}", req);
     w.session
         .check_token_res(req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -935,7 +935,7 @@ where
     .map_err(|_| Error::InternalError)?;
 
     // ignore loading errors for now
-    log::info!("WC loading state");
+    info!("WC loading state");
     w.state
         .load(&mut w.trussed)
         // the cause might be in the corrupted storage as well (Error::FailedLoadingData),

@@ -36,7 +36,7 @@ where
 
         match ctap_request {
             // Request1::Register(reg) => {
-            //     log::info!("WC CTAP1.REG");
+            //     info!("WC CTAP1.REG");
             //     Ok(Response1::Register(register::Response {
             //         header_byte: 0,
             //         public_key: Default::default(),
@@ -46,7 +46,7 @@ where
             //     }))
             // }
             Request1::Authenticate(auth) => {
-                log::info!("WC CTAP1.AUTH");
+                info!("WC CTAP1.AUTH");
                 let output = Bytes::new();
                 let data = auth.key_handle;
                 let maybe_output = w.bridge_u2f_to_webcrypt_raw(
@@ -62,7 +62,7 @@ where
                 let output = match maybe_output {
                     Ok(res) => res,
                     Err(e) => {
-                        log::error!("Protocol error: {:?}", e);
+                        error!("Protocol error: {:?}", e);
                         let mut res = CtapSignatureSize::new();
                         res.push(e as u8).unwrap();
                         res
@@ -87,7 +87,7 @@ fn handle_ctap1<C>(w: &mut Webcrypt<C>, data: &[u8], response: &mut apdu_dispatc
 where
     C: WebcryptTrussedClient,
 {
-    log::info!("WC handle CTAP1");
+    info!("WC handle CTAP1");
     match try_handle_ctap1(w, data, response) {
         Ok(()) => {
             info!("WC U2F response {} bytes", response.len());
@@ -95,11 +95,11 @@ where
         }
         Err(status) => {
             let code: [u8; 2] = status.into();
-            log::info!("WC CTAP1 error: {:?} ({})", status, hex_str!(&code));
+            info!("WC CTAP1 error: {:?} ({})", status, hex_str!(&code));
             response.extend_from_slice(&code).ok();
         }
     }
-    log::info!("WC end handle CTAP1");
+    info!("WC end handle CTAP1");
 }
 
 #[inline(never)]
@@ -116,7 +116,7 @@ where
     let ctap_response = match ctap_request {
         // 0x2
         // Request::MakeCredential(request) => {
-        //     log::info!("CTAP2.MC");
+        //     info!("CTAP2.MC");
         //     Ok(Response::MakeCredential(
         //         self.make_credential(request).map_err(|e| {
         //             debug!("error: {:?}", e);
@@ -127,7 +127,7 @@ where
 
         // 0x1
         Request::GetAssertion(request) => {
-            log::info!("WC CTAP2.GA");
+            info!("WC CTAP2.GA");
             let output = Bytes::new();
             let data = request.allow_list.unwrap();
             let data = &data[0].id;
@@ -148,7 +148,7 @@ where
             let output = match maybe_output {
                 Ok(res) => res,
                 Err(e) => {
-                    log::error!("Protocol error: {:?}", e);
+                    error!("Protocol error: {:?}", e);
                     let mut res = CtapSignatureSize::new();
                     res.push(e as u8).unwrap();
                     res
@@ -240,9 +240,9 @@ fn handle_ctap2<C>(
 ) where
     C: WebcryptTrussedClient,
 {
-    log::info!("WC handle CTAP2");
+    info!("WC handle CTAP2");
     if let Err(error) = try_handle_ctap2(authenticator, data, response) {
-        log::info!("WC CTAP2 error: {:02X}", error);
+        info!("WC CTAP2 error: {:02X}", error);
         response.push(error).ok();
     }
 }
@@ -271,7 +271,7 @@ where
 
         for offset in 1..request.len() - 5 {
             if request[offset..=4 + offset] == [0x22, 0x8c, 0x27, 0x90, 0xF6] {
-                log::info!("Found WC constant at offset {offset}");
+                info!("Found WC constant at offset {offset}");
                 return true;
             }
         }
@@ -286,7 +286,7 @@ where
         response: &mut app::Message,
     ) -> app::AppResult {
         if request.is_empty() {
-            log::info!("WC invalid request length in ctaphid.call");
+            info!("WC invalid request length in ctaphid.call");
             return Err(app::Error::InvalidLength);
         }
 
@@ -294,7 +294,7 @@ where
             app::Command::Cbor => handle_ctap2(self, request, response),
             app::Command::Msg => handle_ctap1(self, request, response),
             _ => {
-                log::info!("WC ctaphid trying to dispatch {:?}", command);
+                info!("WC ctaphid trying to dispatch {:?}", command);
             }
         };
         Ok(())
@@ -370,7 +370,7 @@ where
 
                 for offset in 0..data_len - 5 {
                     if data[offset..=4 + offset] == [0x22, 0x8c, 0x27, 0x90, 0xF6] {
-                        log::info!("NFC Found WC constant at offset {offset}");
+                        info!("NFC Found WC constant at offset {offset}");
                         return true;
                     }
                 }

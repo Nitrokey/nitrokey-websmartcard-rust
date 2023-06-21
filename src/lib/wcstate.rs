@@ -48,7 +48,7 @@ impl WebcryptPIN {
 
     pub fn decrease_counter(&mut self) -> Result<(), Error> {
         if self.counter == 0 {
-            log::info!("Counter PIN used up");
+            info!("Counter PIN used up");
             return Err(Error::NotAllowed);
         }
         self.counter -= 1;
@@ -57,16 +57,16 @@ impl WebcryptPIN {
 
     pub fn check_pin(&mut self, pin: Bytes64) -> Result<bool, Error> {
         if self.pin.is_none() {
-            log::info!("PIN not set");
+            info!("PIN not set");
             return Err(Error::NotAllowed);
         }
         if self.counter == 0 {
-            log::info!("Counter PIN used up");
+            info!("Counter PIN used up");
             return Err(Error::NotAllowed);
         }
         self.decrease_counter()?;
 
-        log::info!("Counter PIN value: {:?}", self.counter);
+        info!("Counter PIN value: {:?}", self.counter);
 
         // TODO use side-channels safe comparison library, e.g. subtle
         if pin != self.pin.as_ref().unwrap() {
@@ -160,7 +160,7 @@ impl WebcryptSession {
         let tp: Bytes32 = if state.pin.check_pin(pin)? {
             self.get_new_token(trussed)
         } else {
-            log::info!("PIN invalid");
+            info!("PIN invalid");
             return Err(Error::InvalidPin);
         };
         self.set_token(tp.clone(), rp_id_hash.clone());
@@ -192,7 +192,7 @@ impl WebcryptSession {
                 if token == current {
                     Ok(())
                 } else {
-                    log::warn!("Token invalid: {:?}, expected: {:?}", token, current);
+                    warn!("Token invalid: {:?}, expected: {:?}", token, current);
                     Err(())
                 }
             }
@@ -211,11 +211,11 @@ impl WebcryptState {
     where
         C: client::Client,
     {
-        log::info!("Resetting state");
+        info!("Resetting state");
         self.pin = Default::default();
         if let Some(x) = &self.openpgp_data {
             if let Err(e) = x.clear(t) {
-                log::error!("Failed resetting state: {:?}", e);
+                error!("Failed resetting state: {:?}", e);
             }
         }
         self.openpgp_data = None;
@@ -276,7 +276,7 @@ impl WebcryptState {
             syscall!(t.delete(key));
         }
 
-        log::info!("Rotating master key");
+        info!("Rotating master key");
         // 1. get random data
         let data = syscall!(t.random_bytes(32)).bytes;
         self.master_key_raw = Some(data.to_bytes().unwrap());
@@ -307,7 +307,7 @@ impl WebcryptState {
             try_syscall!(t.read_file(Location::Internal, PathBuf::from(STATE_FILE_PATH)))
                 .map_err(|_| Error::InternalError)?
                 .data;
-        log::info!("State file found. Loading.");
+        info!("State file found. Loading.");
 
         // todo handle errors from the data corruption separately
         let w = self
@@ -315,13 +315,13 @@ impl WebcryptState {
             .map_err(|_| Error::InternalError)?;
 
         if !w.initialized() {
-            log::info!("Found state not initialized. Aborting load.");
+            info!("Found state not initialized. Aborting load.");
             return Err(Error::InternalError);
         }
 
         *self = w;
         // TODO test that
-        log::info!("State loaded");
+        info!("State loaded");
         Ok(())
     }
 
@@ -344,7 +344,7 @@ impl WebcryptState {
     {
         let r = try_syscall!(t.remove_file(Location::Internal, PathBuf::from(STATE_FILE_PATH)));
         if r.is_ok() {
-            log::info!("State removed");
+            info!("State removed");
         }
     }
 
@@ -356,9 +356,9 @@ impl WebcryptState {
     where
         T: client::Client,
     {
-        log::info!("State save called");
+        info!("State save called");
         if !self.initialized() {
-            log::info!("State not initialized, aborting");
+            info!("State not initialized, aborting");
             // abort save on uninitialized structure
             return;
         }
@@ -372,7 +372,7 @@ impl WebcryptState {
         ))
         .map_err(|_| Error::MemoryFull)
         .unwrap();
-        log::info!("State saved");
+        info!("State saved");
     }
 
     pub fn logout(&mut self) {
