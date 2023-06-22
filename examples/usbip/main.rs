@@ -294,9 +294,58 @@ impl trussed::platform::UserInterface for UserInterface {
     }
 }
 
+
+#[derive(Copy, Clone)]
+pub enum Variant {
+    Usbip,
+    Lpc55,
+    Nrf52,
+}
+impl From<Variant> for u8 {
+    fn from(variant: Variant) -> Self {
+        match variant {
+            Variant::Usbip => 0,
+            Variant::Lpc55 => 1,
+            Variant::Nrf52 => 2,
+        }
+    }
+}
+
+pub struct AdminData {
+    pub init_status: u8,
+    pub ifs_blocks: u8,
+    pub efs_blocks: u16,
+    pub variant: Variant,
+}
+impl AdminData {
+    pub fn new(variant: Variant) -> Self {
+        Self {
+            init_status: 0,
+            ifs_blocks: u8::MAX,
+            efs_blocks: u16::MAX,
+            variant,
+        }
+    }
+}
+
+pub type AdminStatus = [u8; 5];
+impl AdminData {
+    fn encode(&self) -> AdminStatus {
+        let efs_blocks = self.efs_blocks.to_be_bytes();
+        [
+            self.init_status,
+            self.ifs_blocks,
+            efs_blocks[0],
+            efs_blocks[1],
+            self.variant.into(),
+        ]
+    }
+}
+
+
 struct Apps {
     fido: fido_authenticator::Authenticator<fido_authenticator::Conforming, VirtClient>,
-    admin: admin_app::App<VirtClient, Reboot>,
+    admin: admin_app::App<VirtClient, Reboot, AdminStatus>,
     webcrypt: webcrypt::Webcrypt<VirtClient>,
 }
 
@@ -314,7 +363,8 @@ impl trussed_usbip::Apps<'static, VirtClient, dispatch::Dispatch> for Apps {
                 max_resident_credential_count: Some(MAX_RESIDENT_CREDENTIAL_COUNT),
             },
         );
-        let admin = admin_app::App::new(builder.build("admin", &[BackendId::Core]), [0; 16], 0);
+        let data = AdminData::new(Variant::Usbip);
+        let admin = admin_app::App::new(builder.build("admin", &[BackendId::Core]), [0; 16], 0, "", data.encode());
 
         let webcrypt = webcrypt::Webcrypt::new(builder.build("webcrypt", dispatch::BACKENDS));
 
