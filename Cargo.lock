@@ -5,8 +5,7 @@ version = 3
 [[package]]
 name = "admin-app"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67d9f4831720ac3f95d708922b71cbec0d085548affb935f4af35395af28366c"
+source = "git+https://github.com/Nitrokey/admin-app?tag=v0.1.0-nitrokey.3#15aec92ff3f30f2ad1ff157ac5077c7211a04c77"
 dependencies = [
  "apdu-dispatch",
  "ctaphid-dispatch",
@@ -28,9 +27,9 @@ dependencies = [
 
 [[package]]
 name = "aes"
-version = "0.8.2"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "433cfd6710c9986c576a25ca913c39d66a6474107b406f34f91d4a8923395241"
+checksum = "ac1f845298e95f983ff1944b728ae08b8cebab80d684f0a832ed0fc74dfa27e2"
 dependencies = [
  "cfg-if",
  "cipher",
@@ -49,12 +48,11 @@ dependencies = [
 [[package]]
 name = "apdu-dispatch"
 version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "898c4ae30eeab17a209d5576cf7b312fdbee4d1cb739333c1308908fc841a5fb"
+source = "git+https://github.com/Nitrokey/apdu-dispatch?tag=v0.1.2-nitrokey.1#b72d5eb9f4d7a3f107a78a2f0e41f3c403f4c7a4"
 dependencies = [
  "delog",
  "heapless",
- "interchange 0.2.2",
+ "interchange 0.3.0",
  "iso7816",
 ]
 
@@ -303,9 +301,9 @@ dependencies = [
 
 [[package]]
 name = "cpufeatures"
-version = "0.2.7"
+version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e4c1eaa2012c47becbbad2ab175484c2a84d1185b566fb2cc5b8707343dfe58"
+checksum = "03e69e28e9f7f77debdedbaafa2866e1de9ba56df55a8bd7cfc724c25a09987c"
 dependencies = [
  "libc",
 ]
@@ -361,8 +359,7 @@ dependencies = [
 [[package]]
 name = "ctap-types"
 version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e4fa005ff525537460e1fd70a1ff4f417ae4a6ed14887f3e4720221e20f7562"
+source = "git+https://github.com/Nitrokey/ctap-types?tag=v0.1.2-nitrokey.1#d6cc1f56ab6ea45e041b3bd04df6a991cb96a8c8"
 dependencies = [
  "bitflags",
  "cbor-smol",
@@ -380,12 +377,14 @@ dependencies = [
 [[package]]
 name = "ctaphid-dispatch"
 version = "0.1.1"
-source = "git+https://github.com/Nitrokey/ctaphid-dispatch.git?branch=multiple_apps#50e89c7e3ec2bd9d17977d9af5ed719b9c86afd0"
+source = "git+https://github.com/Nitrokey/ctaphid-dispatch.git?branch=multiple_apps#abf6d0b25daae4971d9a00e3cd9e7b44aa5d9509"
 dependencies = [
  "delog",
  "heapless",
  "heapless-bytes",
- "interchange 0.2.2",
+ "interchange 0.3.0",
+ "ref-swap",
+ "trussed",
 ]
 
 [[package]]
@@ -546,7 +545,7 @@ dependencies = [
 [[package]]
 name = "fido-authenticator"
 version = "0.1.1"
-source = "git+https://github.com/Nitrokey/fido-authenticator?tag=v0.1.1-nitrokey.4#857899bff75331b2c9a419f95457f541440c3a0d"
+source = "git+https://github.com/Nitrokey/fido-authenticator.git?tag=v0.1.1-nitrokey.5#c471c81e25506d40b03f22f1b56fbc3441220ab8"
 dependencies = [
  "apdu-dispatch",
  "ctap-types",
@@ -789,8 +788,7 @@ dependencies = [
 [[package]]
 name = "iso7816"
 version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7e6ac743d509349b7865595ce90bbfcfbe59f42b8ec0db9e76ec361ace3f652"
+source = "git+https://github.com/Nitrokey/iso7816.git?tag=v0.1.1-nitrokey.1#d1ee4146c43b9f25d21821c70fefdd87b886f4a9"
 dependencies = [
  "delog",
  "heapless",
@@ -872,9 +870,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.18"
+version = "0.4.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "518ef76f2f87365916b142844c16d8fefd85039bc5699050210a7778ee1cd1de"
+checksum = "b06a4cde4c0f271a446782e3eff8de789548ce57dbc8eca9292c27f4a42004b4"
 
 [[package]]
 name = "loom"
@@ -1034,9 +1032,9 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
 name = "os_str_bytes"
-version = "6.5.0"
+version = "6.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ceedf44fb00f2d1984b0bc98102627ce622e083e49a5bacdb3e514fa4238e267"
+checksum = "4d5d9eb14b174ee9aa2ef96dc2b94637a2d4b6e7cb873c7e171f0c20c6cf3eac"
 
 [[package]]
 name = "overload"
@@ -1191,9 +1189,9 @@ checksum = "dc375e1527247fe1a97d8b7156678dfe7c1af2fc075c9a4db3690ecd2a148068"
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.59"
+version = "1.0.60"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6aeca18b86b413c660b781aa319e4e2648a3e6f9eadc9b47e9038e6fe9f3451b"
+checksum = "dec2b086b7a862cf4de201096214fa870344cf922b2b30c167badb3af3195406"
 dependencies = [
  "unicode-ident",
 ]
@@ -1238,6 +1236,12 @@ name = "rand_core"
 version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
+
+[[package]]
+name = "ref-swap"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09c30c54dffee5b40af088d5d50aa3455c91a0127164b51f0215efc4cb28fb3c"
 
 [[package]]
 name = "regex"
@@ -1286,7 +1290,7 @@ dependencies = [
  "pkcs1",
  "pkcs8",
  "rand_core",
- "sha2 0.10.6",
+ "sha2 0.10.7",
  "signature 2.1.0",
  "subtle",
  "zeroize",
@@ -1345,9 +1349,9 @@ checksum = "bebd363326d05ec3e2f532ab7660680f3b02130d780c299bca73469d521bc0ed"
 
 [[package]]
 name = "serde"
-version = "1.0.163"
+version = "1.0.164"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2113ab51b87a539ae008b5c6c02dc020ffa39afd2d83cffcb3f4eb2722cebec2"
+checksum = "9e8c8cf938e98f769bc164923b06dce91cea1751522f46f8466461af04c9027d"
 dependencies = [
  "serde_derive",
 ]
@@ -1384,9 +1388,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.163"
+version = "1.0.164"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c805777e3930c8883389c602315a24224bcc738b63905ef87cd1420353ea93e"
+checksum = "d9735b638ccc51c28bf6914d90a2e9725b377144fc612c49a611fddd1b631d68"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1430,9 +1434,9 @@ dependencies = [
 
 [[package]]
 name = "sha2"
-version = "0.10.6"
+version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "82e6b795fe2e3b1e845bafcb27aa35405c4d47cdfc92af5fc8d3002f76cebdc0"
+checksum = "479fb9d862239e610720565ca91403019f2f00410f1864c5aa7479b950a76ed8"
 dependencies = [
  "cfg-if",
  "cpufeatures",
@@ -1596,9 +1600,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-attributes"
-version = "0.1.24"
+version = "0.1.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f57e3ca2a01450b1a921183a9c9cbfda207fd822cef4ccb00a65402cbba7a74"
+checksum = "5f4f31f56159e98206da9efd823404b79b6ef3143b4a7ab76e67b1751b25a4ab"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1647,7 +1651,7 @@ dependencies = [
 [[package]]
 name = "trussed"
 version = "0.1.0"
-source = "git+https://github.com/Nitrokey/trussed?branch=webcrypt-devel-0.1.0-nk11#2908c9684492a057b9a50d19d22ff01bbdebb021"
+source = "git+https://github.com/Nitrokey/trussed?branch=webcrypt-devel-0.1.0-nk12#d012438942e5b9a305e89b886cad7b695c988d3b"
 dependencies = [
  "aes",
  "bitflags",
@@ -1677,14 +1681,14 @@ dependencies = [
  "serde",
  "serde-indexed",
  "sha-1",
- "sha2 0.10.6",
+ "sha2 0.10.7",
  "zeroize",
 ]
 
 [[package]]
 name = "trussed-auth"
 version = "0.2.2"
-source = "git+https://github.com/trussed-dev/trussed-auth/?tag=v0.2.2#d704b046acb7b766a89adb95539805ee705b6710"
+source = "git+https://github.com/Nitrokey/trussed-auth?tag=v0.2.2-nitrokey.1#203a90dd13a7378f596b3099cd986a8da6185137"
 dependencies = [
  "chacha20poly1305",
  "hkdf",
@@ -1692,7 +1696,7 @@ dependencies = [
  "rand_core",
  "serde",
  "serde-byte-array",
- "sha2 0.10.6",
+ "sha2 0.10.7",
  "subtle",
  "trussed",
 ]
@@ -1700,6 +1704,7 @@ dependencies = [
 [[package]]
 name = "trussed-rsa-alloc"
 version = "0.1.0"
+source = "git+https://github.com/Nitrokey/trussed-rsa-backend.git?tag=v0.1.0#a72ce195a4495a8db26debfb0240a4dc712d8dbe"
 dependencies = [
  "delog",
  "heapless-bytes",
@@ -1713,10 +1718,10 @@ dependencies = [
 [[package]]
 name = "trussed-usbip"
 version = "0.0.1"
-source = "git+https://github.com/trussed-dev/pc-usbip-runner?rev=f3a680ca4c9a1411838ae0774f1713f79d4c2979#f3a680ca4c9a1411838ae0774f1713f79d4c2979"
+source = "git+https://github.com/Nitrokey/pc-usbip-runner?tag=v0.0.1-nitrokey.1#e78883847fb01ac93179074ff29e13a0d470775b"
 dependencies = [
  "ctaphid-dispatch",
- "interchange 0.2.2",
+ "interchange 0.3.0",
  "log",
  "trussed",
  "usb-device",
@@ -1761,8 +1766,7 @@ checksum = "1f6cc3adc849b5292b4075fc0d5fdcf2f24866e88e336dd27a8943090a520508"
 [[package]]
 name = "usbd-ctaphid"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddb69f660f962236eb21565780c433412ad0ba35e5106f53191cdf443c1d03d2"
+source = "git+https://github.com/Nitrokey/usbd-ctaphid?tag=v0.1.0-nitrokey.1#e9cbf904f548979685c4c06d75479b75e3695160"
 dependencies = [
  "ctap-types",
  "ctaphid-dispatch",
@@ -1770,8 +1774,10 @@ dependencies = [
  "embedded-time",
  "heapless",
  "heapless-bytes",
- "interchange 0.2.2",
+ "interchange 0.3.0",
+ "ref-swap",
  "serde",
+ "trussed",
  "usb-device",
 ]
 
@@ -1821,7 +1827,6 @@ dependencies = [
  "git-version",
  "heapless",
  "heapless-bytes",
- "log",
  "pretty_env_logger",
  "serde",
  "serde-indexed",

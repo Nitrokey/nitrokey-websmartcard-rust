@@ -246,8 +246,9 @@ fn handle_ctap2<C>(
         response.push(error).ok();
     }
 }
+use trussed::{client, interrupt::InterruptFlag};
 
-impl<C> app::App for Webcrypt<C>
+impl<C> app::App<'static> for Webcrypt<C>
 where
     C: WebcryptTrussedClient,
 {
@@ -298,6 +299,10 @@ where
             }
         };
         Ok(())
+    }
+
+    fn interrupt(&self) -> Option<&'static InterruptFlag> {
+        self.trussed.interrupt()
     }
 }
 
