@@ -144,6 +144,7 @@ use trussed::{virt, ClientImplementation, Platform};
 use trussed_usbip::ClientBuilder;
 
 use usbd_ctaphid::constants::MESSAGE_SIZE;
+use webcrypt::PeekingBypass;
 use webcrypt::{debug, info, try_debug, try_info, try_warn, warn};
 
 pub type FidoConfig = fido_authenticator::Config;
@@ -341,15 +342,17 @@ impl AdminData {
     }
 }
 
+type FidoAuthApp = fido_authenticator::Authenticator<fido_authenticator::Conforming, VirtClient>;
+type WebcryptApp = webcrypt::Webcrypt<VirtClient>;
+
 struct Apps {
-    fido: fido_authenticator::Authenticator<fido_authenticator::Conforming, VirtClient>,
     admin: admin_app::App<VirtClient, Reboot, AdminStatus>,
-    webcrypt: webcrypt::Webcrypt<VirtClient>,
+    peeking_fido: PeekingBypass<'static, FidoAuthApp, WebcryptApp>,
 }
 
 const MAX_RESIDENT_CREDENTIAL_COUNT: u32 = 50;
 
-impl trussed_usbip::Apps<'static, VirtClient, dispatch::Dispatch> for Apps {
+impl<'a> trussed_usbip::Apps<'static, VirtClient, dispatch::Dispatch> for Apps {
     type Data = ();
     fn new<B: ClientBuilder<VirtClient, dispatch::Dispatch>>(builder: &B, _data: ()) -> Self {
         let fido = fido_authenticator::Authenticator::new(
@@ -373,9 +376,8 @@ impl trussed_usbip::Apps<'static, VirtClient, dispatch::Dispatch> for Apps {
         let webcrypt = webcrypt::Webcrypt::new(builder.build("webcrypt", dispatch::BACKENDS));
 
         Self {
-            fido,
             admin,
-            webcrypt,
+            peeking_fido: PeekingBypass::new(fido, webcrypt),
         }
     }
 
@@ -383,7 +385,7 @@ impl trussed_usbip::Apps<'static, VirtClient, dispatch::Dispatch> for Apps {
         &mut self,
         f: impl FnOnce(&mut [&mut dyn ctaphid_dispatch::app::App<'static>]) -> T,
     ) -> T {
-        f(&mut [&mut self.webcrypt, &mut self.fido, &mut self.admin])
+        f(&mut [&mut self.peeking_fido, &mut self.admin])
     }
 
     #[cfg(feature = "ccid")]

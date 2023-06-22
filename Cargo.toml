@@ -46,16 +46,13 @@ trussed-auth = "0.2.2"
 
 
 [features]
-default = ["ctaphid-peek", "inject-any-key", "hmacsha256p256", "rsa"]
+default = ["inject-any-key", "hmacsha256p256", "rsa"]
 enable-logs = ["pretty_env_logger", "log-all", "delog/std-log", "trussed-rsa-alloc/log-all"]
 
 # Disable ClientContext PIN encryption
 transparent-encryption = []
 # Disable authentication token check. FIXME rename to mark it as dangerous, and remove from the features
 no-authentication = []
-
-# Enable to make FIDO2 transport work. Needs updated ctaphid-dispatch for Peek implementation / multiple apps support.
-ctaphid-peek = []
 
 # Enable to make NFC transport work. Needs updated apdu-dispatch for Peek implementation / multiple apps support.
 apdu-peek = []
@@ -82,7 +79,7 @@ name="usbip"
 
 [patch.crates-io]
 # Enable this for FIDO2 transport support
-ctaphid-dispatch = { git = "https://github.com/Nitrokey/ctaphid-dispatch.git", branch="multiple_apps" }
+ctaphid-dispatch = { git = "https://github.com/Nitrokey/ctaphid-dispatch", tag = "v0.1.1-nitrokey.2" }
 
 # Enable this for the NFC support, implemented in a somewhat outdated fork
 #apdu-dispatch = { git = "https://github.com/Nitrokey/apdu-dispatch.git", branch="sz-multiple-apps" }
