@@ -302,7 +302,7 @@ struct Apps {
 
 const MAX_RESIDENT_CREDENTIAL_COUNT: u32 = 50;
 
-impl trussed_usbip::Apps<VirtClient, dispatch::Dispatch> for Apps {
+impl trussed_usbip::Apps<'static, VirtClient, dispatch::Dispatch> for Apps {
     type Data = ();
     fn new<B: ClientBuilder<VirtClient, dispatch::Dispatch>>(builder: &B, _data: ()) -> Self {
         let fido = fido_authenticator::Authenticator::new(
@@ -327,7 +327,7 @@ impl trussed_usbip::Apps<VirtClient, dispatch::Dispatch> for Apps {
 
     fn with_ctaphid_apps<T>(
         &mut self,
-        f: impl FnOnce(&mut [&mut dyn ctaphid_dispatch::app::App]) -> T,
+        f: impl FnOnce(&mut [&mut dyn ctaphid_dispatch::app::App<'static>]) -> T,
     ) -> T {
         f(&mut [&mut self.webcrypt, &mut self.fido, &mut self.admin])
     }
