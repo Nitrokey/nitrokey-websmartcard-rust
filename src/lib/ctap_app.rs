@@ -10,6 +10,7 @@ use ctap_types::webauthn::PublicKeyCredentialUserEntity;
 use ctap_types::{ctap1, ctap2};
 use ctaphid_dispatch::app;
 use ctaphid_dispatch::app as ctaphid;
+use ctaphid_dispatch::app::{AppResult, Command};
 use heapless_bytes::Bytes;
 
 use crate::helpers::hash;
@@ -256,29 +257,6 @@ where
         &[app::Command::Cbor, app::Command::Msg]
     }
 
-    #[cfg(feature = "ctaphid-peek")]
-    fn peek(&self, request: &ctaphid_dispatch::types::Message) -> bool {
-        // let offset = 4 * 16 + 8;
-        // let offset2 = 3 * 16 + 8;
-        // let res = request.len() > 3 + offset
-        //     && request[0 + offset..=2 + offset] == [0x22, 0x8c, 0x27]
-        //     || request.len() > 3 + offset2
-        //         && request[0 + offset2..=2 + offset2] == [0x22, 0x8c, 0x27];
-        // res
-
-        if request.len() < 7 {
-            return false;
-        }
-
-        for offset in 1..request.len() - 5 {
-            if request[offset..=4 + offset] == [0x22, 0x8c, 0x27, 0x90, 0xF6] {
-                info!("Found WC constant at offset {offset}");
-                return true;
-            }
-        }
-        false
-    }
-
     #[inline(never)]
     fn call(
         &mut self,
@@ -313,6 +291,7 @@ where
     C: WebcryptTrussedClient,
 {
     fn aid(&self) -> Aid {
+        // FIXME check if AID needs to be changed / unique for Webcrypt
         Aid::new(&[0xA0, 0x00, 0x00, 0x06, 0x47, 0x2F, 0x00, 0x01])
     }
 }
@@ -382,5 +361,33 @@ where
                 false
             }
         }
+    }
+}
+
+
+impl<C> crate::Peeking for Webcrypt<C>
+    where
+        C: WebcryptTrussedClient,
+{
+    fn peek(&self, request: &ctaphid_dispatch::types::Message) -> bool {
+        // let offset = 4 * 16 + 8;
+        // let offset2 = 3 * 16 + 8;
+        // let res = request.len() > 3 + offset
+        //     && request[0 + offset..=2 + offset] == [0x22, 0x8c, 0x27]
+        //     || request.len() > 3 + offset2
+        //         && request[0 + offset2..=2 + offset2] == [0x22, 0x8c, 0x27];
+        // res
+
+        if request.len() < 7 {
+            return false;
+        }
+
+        for offset in 1..request.len() - 5 {
+            if request[offset..=4 + offset] == [0x22, 0x8c, 0x27, 0x90, 0xF6] {
+                info!("Found WC constant at offset {offset}");
+                return true;
+            }
+        }
+        false
     }
 }
