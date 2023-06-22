@@ -15,12 +15,12 @@ use crate::{Bytes, Message};
 pub struct Webcrypt<C: WebcryptTrussedClient> {
     WC_INPUT_BUFFER: WebcryptMessage,
     WC_OUTPUT_BUFFER: WebcryptMessage,
-    pub current_command_id: CommandID,
-    pub trussed: C,
-    pub state: WebcryptState,
-    pub store: State,
-    pub session: WebcryptSession,
-    pub req_details: Option<RequestDetails>,
+    pub(crate) current_command_id: CommandID,
+    pub(crate) trussed: C,
+    pub(crate) state: WebcryptState,
+    pub(crate) store: State,
+    pub(crate) session: WebcryptSession,
+    pub(crate) req_details: Option<RequestDetails>,
 }
 pub type WebcryptError = Error;
 
