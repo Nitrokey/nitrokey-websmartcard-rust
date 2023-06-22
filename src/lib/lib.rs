@@ -13,11 +13,15 @@ mod ctap_app;
 mod helpers;
 // mod nfc_app;
 mod openpgp;
+mod peeking;
 mod rk_files;
 mod state;
 mod transport;
 mod types;
 mod wcstate;
+
+pub use peeking::Peeking;
+pub use peeking::PeekingBypass;
 
 pub const MAX_MESSAGE_LENGTH: usize = 1500; // FIXME increase to 1500
 #[cfg(feature = "transparent-encryption")]

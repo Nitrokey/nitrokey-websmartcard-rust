@@ -1,11 +1,13 @@
 all: example
 
+FEATURES=log-all,enable-logs
+
 .PHONY: example setup-fedora ci setup-ubuntu usbip check
 example:
-	env RUST_BACKTRACE=full RUST_LOG=debug cargo run --example udp_sim --features log-all,enable-logs
+	env RUST_BACKTRACE=full RUST_LOG=debug cargo run --example udp_sim --features $(FEATURES)
 
 usbip:
-	env RUST_BACKTRACE=full RUST_LOG=debug cargo run --example usbip --features log-all,enable-logs,ctaphid-peek
+	env RUST_BACKTRACE=full RUST_LOG=debug cargo run --example usbip --features $(FEATURES)
 
 setup-fedora:
 	sudo dnf install llvm-devel clang-devel
