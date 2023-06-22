@@ -32,12 +32,12 @@ trussed-rsa-alloc = { version = "0.1.0", optional = true }
 pretty_env_logger = "0.4.0"
 
 # below are for running the usbip example
-trussed-usbip = { git = "https://github.com/trussed-dev/pc-usbip-runner", default-features = false, features = ["ctaphid"], rev = "f3a680ca4c9a1411838ae0774f1713f79d4c2979" }
 usbd-ctaphid = "0.1"
 clap = { version = "3.0.0", features = ["cargo", "derive"] }
 clap-num = "1.0.0"
 delog = { version = "0.1.6", features = ["std-log"] }
-fido-authenticator = { git = "https://github.com/Nitrokey/fido-authenticator", tag = "v0.1.1-nitrokey.4",  features = ["dispatch", "log-all"] }
+fido-authenticator = {version = "0.1.1", features = ["dispatch", "log-all"]}
+trussed-usbip = { version = "0.0.1", features = ["ctaphid"], default-features = false }
 admin-app = { version = "0.1", features = ["log-all"] }
 
 # extensions
@@ -56,6 +56,7 @@ no-authentication = []
 
 # Enable to make FIDO2 transport work. Needs updated ctaphid-dispatch for Peek implementation / multiple apps support.
 ctaphid-peek = []
+
 # Enable to make NFC transport work. Needs updated apdu-dispatch for Peek implementation / multiple apps support.
 apdu-peek = []
 
@@ -80,21 +81,30 @@ name="usbip"
 
 
 [patch.crates-io]
-# This fork contains RSA support and adds data encryption, which both nowadays are realized with backends.
-# Possibly not relevant anymore
-#trussed = { git = "https://github.com/Nitrokey/trussed.git", branch="webcrypt-devel" }
-
 # Enable this for FIDO2 transport support
 ctaphid-dispatch = { git = "https://github.com/Nitrokey/ctaphid-dispatch.git", branch="multiple_apps" }
 
 # Enable this for the NFC support, implemented in a somewhat outdated fork
 #apdu-dispatch = { git = "https://github.com/Nitrokey/apdu-dispatch.git", branch="sz-multiple-apps" }
 
-#trussed = { git = "https://github.com/Nitrokey/trussed", tag = "v0.1.0-nitrokey.11" }
 # Required for inject-any-key and hmacsha256p256
-trussed = { git = "https://github.com/Nitrokey/trussed", branch = "webcrypt-devel-0.1.0-nk11" }
-#trussed = { path = "/home/sz/work/webcrypt/trussed" }
-trussed-auth = { git = "https://github.com/trussed-dev/trussed-auth/", tag = "v0.2.2" }
+trussed = { git = "https://github.com/Nitrokey/trussed", branch = "webcrypt-devel-0.1.0-nk12" }
 
-#trussed-rsa-alloc = { git = "https://github.com/Nitrokey/trussed-rsa-backend", tag = "v0.1.0" }
-trussed-rsa-alloc = { path = "/home/sz/work/webcrypt/trussed-rsa-backend" }
+# Local development
+#trussed = { path = "../trussed" }
+#trussed-rsa-alloc = { path = "../trussed-rsa-backend" }
+
+# forked
+admin-app = { git = "https://github.com/Nitrokey/admin-app", tag = "v0.1.0-nitrokey.3" }
+ctap-types = { git = "https://github.com/Nitrokey/ctap-types", tag = "v0.1.2-nitrokey.1" }
+fido-authenticator = { git = "https://github.com/Nitrokey/fido-authenticator.git", tag = "v0.1.1-nitrokey.5" }
+
+# unreleased upstream changes
+usbd-ctaphid = { git = "https://github.com/Nitrokey/usbd-ctaphid", tag = "v0.1.0-nitrokey.1" }
+apdu-dispatch = { git = "https://github.com/Nitrokey/apdu-dispatch", tag = "v0.1.2-nitrokey.1" }
+
+# unreleased crates
+trussed-auth = { git = "https://github.com/Nitrokey/trussed-auth", tag = "v0.2.2-nitrokey.1" }
+trussed-rsa-alloc = { git = "https://github.com/Nitrokey/trussed-rsa-backend.git", tag = "v0.1.0"}
+iso7816 = { git = "https://github.com/Nitrokey/iso7816.git", tag = "v0.1.1-nitrokey.1" }
+trussed-usbip = { git = "https://github.com/Nitrokey/pc-usbip-runner", tag = "v0.0.1-nitrokey.1" }
