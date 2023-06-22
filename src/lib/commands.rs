@@ -660,14 +660,7 @@ fn decrypt_ecc_p256<C>(
     kh_key: KeyId,
 ) -> ResultW<Message>
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Sha256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     let req_eccekey = req.eccekey.ok_or(BadFormat)?;
     let req_hmac = req.hmac.ok_or(BadFormat)?;
