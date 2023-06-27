@@ -1256,9 +1256,11 @@ where
                 StorageAttributes::new().set_persistence(Location::Volatile)
             ))
             .key;
-            let serialized_key = syscall!(w
-                .trussed
-                .serialize_key(Mechanism::Rsa2048Pkcs1v15, pk, KeySerialization::Pkcs8Der))
+            let serialized_key = syscall!(w.trussed.serialize_key(
+                Mechanism::Rsa2048Pkcs1v15,
+                pk,
+                KeySerialization::Pkcs8Der
+            ))
             .serialized_key;
             (pk, serialized_key)
         }
