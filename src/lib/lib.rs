@@ -6,7 +6,6 @@ delog::generate_macros!();
 
 use heapless_bytes::Bytes;
 
-
 mod commands;
 mod commands_types;
 mod constants;
