@@ -144,7 +144,7 @@ use trussed::{virt, ClientImplementation, Platform};
 use trussed_usbip::ClientBuilder;
 
 use usbd_ctaphid::constants::MESSAGE_SIZE;
-use webcrypt::{debug,try_debug, warn,try_warn, info, try_info};
+use webcrypt::{debug, info, try_debug, try_info, try_warn, warn};
 
 pub type FidoConfig = fido_authenticator::Config;
 pub type VirtClient = ClientImplementation<
@@ -294,7 +294,6 @@ impl trussed::platform::UserInterface for UserInterface {
     }
 }
 
-
 #[derive(Copy, Clone)]
 pub enum Variant {
     Usbip,
@@ -342,7 +341,6 @@ impl AdminData {
     }
 }
 
-
 struct Apps {
     fido: fido_authenticator::Authenticator<fido_authenticator::Conforming, VirtClient>,
     admin: admin_app::App<VirtClient, Reboot, AdminStatus>,
@@ -364,7 +362,13 @@ impl trussed_usbip::Apps<'static, VirtClient, dispatch::Dispatch> for Apps {
             },
         );
         let data = AdminData::new(Variant::Usbip);
-        let admin = admin_app::App::new(builder.build("admin", &[BackendId::Core]), [0; 16], 0, "", data.encode());
+        let admin = admin_app::App::new(
+            builder.build("admin", &[BackendId::Core]),
+            [0; 16],
+            0,
+            "",
+            data.encode(),
+        );
 
         let webcrypt = webcrypt::Webcrypt::new(builder.build("webcrypt", dispatch::BACKENDS));
 
