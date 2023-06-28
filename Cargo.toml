@@ -87,7 +87,9 @@ ctaphid-dispatch = { git = "https://github.com/Nitrokey/ctaphid-dispatch", tag =
 #apdu-dispatch = { git = "https://github.com/Nitrokey/apdu-dispatch.git", branch="sz-multiple-apps" }
 
 # Required for inject-any-key and hmacsha256p256
-trussed = { git = "https://github.com/Nitrokey/trussed", branch = "webcrypt-devel-0.1.0-nk12" }
+#trussed = { git = "https://github.com/Nitrokey/trussed", branch = "webcrypt-devel-0.1.0-nk12" }
+trussed = { git = "https://github.com/Nitrokey/trussed", tag = "v0.1.0-nitrokey.12" }
+
 
 # Local development
 #trussed = { path = "../trussed" }

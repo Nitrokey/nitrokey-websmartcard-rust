@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use trussed::key::Kind;
 use trussed::types::{KeyId, Mechanism};
 use trussed::{client, syscall, try_syscall};
+use crate::commands::WebcryptTrussedClient;
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct KeyFingerprint(Bytes<8>);
@@ -126,7 +127,7 @@ impl OpenPGPData {
     }
 
     pub fn import(
-        trussed: &mut (impl client::Client + client::P256),
+        trussed: &mut (impl WebcryptTrussedClient),
         auth: DataBytes,
         sign: DataBytes,
         enc: DataBytes,
@@ -137,14 +138,14 @@ impl OpenPGPData {
         Ok(OpenPGPData {
             authentication: OpenPGPKey {
                 key: {
-                    try_syscall!(trussed.unsafe_inject_shared_key(
-                        auth.as_slice(),
+                    try_syscall!(trussed.inject_any_key(
+                        auth.try_convert_into().map_err(|_| Error::FailedLoadingData)?,
                         Location::Internal,
                         #[cfg(feature = "inject-any-key")]
                         Kind::P256
                     ))
                     .map_err(|_| Error::FailedLoadingData)?
-                    .key
+                    .key.ok_or(Error::FailedLoadingData)?
                 },
                 pubkey: None,
                 fingerprint: Default::default(),
@@ -152,14 +153,14 @@ impl OpenPGPData {
             },
             encryption: OpenPGPKey {
                 key: {
-                    try_syscall!(trussed.unsafe_inject_shared_key(
-                        enc.as_slice(),
+                    try_syscall!(trussed.inject_any_key(
+                        enc.try_convert_into().map_err(|_| Error::FailedLoadingData)?,
                         Location::Internal,
                         #[cfg(feature = "inject-any-key")]
                         Kind::P256
                     ))
                     .map_err(|_| Error::FailedLoadingData)?
-                    .key
+                        .key.ok_or(Error::FailedLoadingData)?
                 },
                 pubkey: None,
                 fingerprint: Default::default(),
@@ -167,14 +168,14 @@ impl OpenPGPData {
             },
             signing: OpenPGPKey {
                 key: {
-                    try_syscall!(trussed.unsafe_inject_shared_key(
-                        sign.as_slice(),
+                    try_syscall!(trussed.inject_any_key(
+                        sign.try_convert_into().map_err(|_| Error::FailedLoadingData)?,
                         Location::Internal,
                         #[cfg(feature = "inject-any-key")]
                         Kind::P256
                     ))
                     .map_err(|_| Error::FailedLoadingData)?
-                    .key
+                        .key.ok_or(Error::FailedLoadingData)?
                 },
                 pubkey: None,
                 fingerprint: Default::default(),

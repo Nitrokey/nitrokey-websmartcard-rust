@@ -34,6 +34,7 @@ use crate::commands_types::ExpectedSessionToken;
 use crate::openpgp::OpenPGPData;
 use cbor_smol::{cbor_deserialize, cbor_serialize};
 use serde::{Deserialize, Serialize};
+use crate::commands::WebcryptTrussedClient;
 
 #[derive(Default, Serialize, Deserialize)]
 pub struct WebcryptPIN {
@@ -209,7 +210,7 @@ impl WebcryptState {
 
     pub fn reset<C>(&mut self, t: &mut C)
     where
-        C: client::Client,
+        C: WebcryptTrussedClient,
     {
         info!("Resetting state");
         self.pin = Default::default();
@@ -224,7 +225,7 @@ impl WebcryptState {
 
     pub fn initialize<C>(&mut self, t: &mut C)
     where
-        C: client::Client,
+        C: WebcryptTrussedClient,
     {
         self.initialized_tag = 0xA5_u8;
 
@@ -234,7 +235,7 @@ impl WebcryptState {
 
     pub fn restore<C>(&mut self, t: &mut C, master: &Bytes32)
     where
-        C: client::Client,
+        C: WebcryptTrussedClient,
     {
         self.initialized_tag = 0xA5_u8;
 
@@ -242,13 +243,13 @@ impl WebcryptState {
             syscall!(t.delete(key));
         }
         // 2. set as key
-        let key = syscall!(t.unsafe_inject_shared_key(
-            master,
+        let key = syscall!(t.inject_any_key(
+            master.try_convert_into().map_err(|_| Error::FailedLoadingData).unwrap(), // FIXME handle error
             Location::Internal,
             #[cfg(feature = "inject-any-key")]
             Kind::Shared(32)
         ))
-        .key;
+        .key.ok_or(Error::FailedLoadingData).unwrap(); // FIXME handle error
         self.master_key = Some(key);
         // 3. return it up to the caller
         self.save(t);
@@ -256,7 +257,7 @@ impl WebcryptState {
 
     pub fn get_key_master<T>(&mut self, trussed: &mut T) -> Option<KeyId>
     where
-        T: client::Client,
+        T: WebcryptTrussedClient,
     {
         match self.master_key {
             Some(key) => Some(key),
@@ -270,7 +271,7 @@ impl WebcryptState {
 
     pub fn rotate_key_master<T>(&mut self, t: &mut T) -> Option<KeyId>
     where
-        T: client::Client,
+        T: WebcryptTrussedClient,
     {
         if let Some(key) = self.master_key {
             syscall!(t.delete(key));
@@ -285,13 +286,13 @@ impl WebcryptState {
                 syscall!(t.delete(key));
             }
             // 2. set as key
-            let key = syscall!(t.unsafe_inject_shared_key(
-                &data,
+            let key = syscall!(t.inject_any_key(
+                data.try_convert_into().map_err(|_| Error::FailedLoadingData).unwrap(), // FIXME handle error
                 Location::Internal,
                 #[cfg(feature = "inject-any-key")]
                 Kind::Shared(32)
             ))
-            .key;
+                .key.ok_or(Error::FailedLoadingData).unwrap(); // FIXME handle error
             // 3. return it up to the caller
             Some(key)
         };

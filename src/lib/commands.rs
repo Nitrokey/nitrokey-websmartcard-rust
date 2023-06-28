@@ -745,15 +745,15 @@ where
         Error::InternalError
     })?
     .serialized_key;
-    let serialized_reimported = try_syscall!(w.trussed.unsafe_inject_shared_key(
+    let serialized_reimported = try_syscall!(w.trussed.inject_any_key(
         // &k.serialize(),
-        serialized_shared_secret.as_slice(),
+        serialized_shared_secret,
         Location::Internal,
         #[cfg(feature = "inject-any-key")]
         Kind::Symmetric(32)
     ))
     .map_err(|_| Error::FailedLoadingData)?
-    .key;
+    .key.ok_or(Error::FailedLoadingData)?;
 
     // decrypt with shared secret
     let decrypted = try_syscall!(w
