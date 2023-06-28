@@ -364,10 +364,9 @@ where
     }
 }
 
-
 impl<C> crate::Peeking for Webcrypt<C>
-    where
-        C: WebcryptTrussedClient,
+where
+    C: WebcryptTrussedClient,
 {
     fn peek(&self, request: &ctaphid_dispatch::types::Message) -> bool {
         // let offset = 4 * 16 + 8;
