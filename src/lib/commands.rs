@@ -1139,19 +1139,22 @@ where
     let mechanism = match kind {
         Kind::Rsa2048 => Mechanism::Rsa2048Pkcs1v15,
         Kind::P256 => Mechanism::P256,
-        _ => {
-            todo!()
-        }
+        _ => return Err(Error::BadFormat),
     };
 
     let private_key = {
         if req.rsa_e.is_none() {
-            try_syscall!(w.trussed.unsafe_inject_key(
-                mechanism,
-                req.raw_key_data.ok_or(Error::BadFormat)?.as_slice(),
-                Location::Internal,
-                KeySerialization::Pkcs8Der
-            ))
+            match mechanism {
+                Mechanism::P256 => {
+                    try_syscall!(w.trussed.unsafe_inject_key(
+                        mechanism,
+                        req.raw_key_data.ok_or(Error::BadFormat)?.as_slice(),
+                        Location::Internal,
+                        KeySerialization::Raw
+                    ))
+                }
+                _ => return Err(Error::BadFormat),
+            }
             .map_err(|_| Error::FailedLoadingData)?
             .key
         } else {
