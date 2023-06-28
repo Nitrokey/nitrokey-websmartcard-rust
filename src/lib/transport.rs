@@ -121,7 +121,10 @@ where
     }
 
     pub fn get_input_deserialized<'a, T: Deserialize<'a>>(&'a self) -> Result<T, cbor_smol::Error> {
-        cbor_deserialize::<T>(&self.WC_INPUT_BUFFER[3..])
+        cbor_deserialize::<T>(&self.WC_INPUT_BUFFER[3..]).map_err(|e| {
+            debug_now!("Input deserialization error: {:?}", e);
+            e
+        })
     }
 
     pub fn send_to_output<T: Serialize>(&mut self, o: T) {
