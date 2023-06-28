@@ -1124,7 +1124,7 @@ where
 
 pub fn cmd_write_resident_key<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: WebcryptTrussedClient + client::Sha256,
+    C: WebcryptTrussedClient,
 {
     let req: CommandWriteResidentKeyRequest =
         w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
