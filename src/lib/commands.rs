@@ -54,6 +54,10 @@ impl<
 {
 }
 
+
+use trussed_staging::hmacsha256p256::HmacSha256P256Client;
+
+
 #[cfg(feature = "hmacsha256p256")]
 pub trait WebcryptTrussedClient:
     client::Client
@@ -61,7 +65,7 @@ pub trait WebcryptTrussedClient:
     + client::Chacha8Poly1305
     + client::HmacSha256
     + client::Sha256
-    + client::HmacSha256P256
+    + HmacSha256P256Client
     + client::Aes256Cbc
 {
 }
@@ -69,12 +73,11 @@ pub trait WebcryptTrussedClient:
 #[cfg(feature = "hmacsha256p256")]
 impl<
         C: client::Client
-            // + client::Rsa2048Pkcs1v15
             + client::P256
             + client::Chacha8Poly1305
             + client::HmacSha256
             + client::Sha256
-            + client::HmacSha256P256
+            + HmacSha256P256Client
             + client::Aes256Cbc,
     > WebcryptTrussedClient for C
 {
@@ -793,13 +796,13 @@ where
         return Err(Error::FailedLoadingData);
     }
 
-    let derived_key = syscall!(
+    let derived_key: Option<KeyId> = syscall!(
         // requires support on the trussed side
         w.trussed
-            .hmacsha256p256_derive_key(kek, data_for_key, Location::Volatile)
+            .derive_from_hash(Mechanism::P256, kek, Location::Volatile, data_for_key)
     )
     .key;
-    let private_key = derived_key;
+    let private_key = derived_key.ok_or(Error::InternalError)?;
 
     // public key
     let public_key = syscall!(w

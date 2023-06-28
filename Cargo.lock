@@ -1716,6 +1716,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "trussed-staging"
+version = "0.1.0"
+dependencies = [
+ "chacha20poly1305",
+ "delog",
+ "hmac 0.12.1",
+ "littlefs2",
+ "rand_core",
+ "serde",
+ "serde-byte-array",
+ "sha2 0.10.7",
+ "trussed",
+]
+
+[[package]]
 name = "trussed-usbip"
 version = "0.0.1"
 source = "git+https://github.com/Nitrokey/pc-usbip-runner?tag=v0.0.1-nitrokey.1#e78883847fb01ac93179074ff29e13a0d470775b"
@@ -1833,6 +1848,7 @@ dependencies = [
  "trussed",
  "trussed-auth",
  "trussed-rsa-alloc",
+ "trussed-staging",
  "trussed-usbip",
  "usbd-ctaphid",
 ]
