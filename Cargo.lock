@@ -1651,7 +1651,7 @@ dependencies = [
 [[package]]
 name = "trussed"
 version = "0.1.0"
-source = "git+https://github.com/Nitrokey/trussed?branch=webcrypt-devel-0.1.0-nk12#d012438942e5b9a305e89b886cad7b695c988d3b"
+source = "git+https://github.com/Nitrokey/trussed?tag=v0.1.0-nitrokey.12#f3c95ab16fe6f9357a5d792e709e93d06c304b34"
 dependencies = [
  "aes",
  "bitflags",
