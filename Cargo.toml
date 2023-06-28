@@ -26,6 +26,7 @@ trussed = "0.1.0"
 pretty_env_logger = { version = "0.4.0", optional = true }
 git-version = "0.3.5"
 trussed-rsa-alloc = { version = "0.1.0", optional = true }
+trussed-staging = { version = "0.1.0", features = ["hmacsha256p256"]}
 
 
 [dev-dependencies]
@@ -106,3 +107,5 @@ trussed-auth = { git = "https://github.com/Nitrokey/trussed-auth", tag = "v0.2.2
 trussed-rsa-alloc = { git = "https://github.com/Nitrokey/trussed-rsa-backend.git", tag = "v0.1.0"}
 iso7816 = { git = "https://github.com/Nitrokey/iso7816.git", tag = "v0.1.1-nitrokey.1" }
 trussed-usbip = { git = "https://github.com/Nitrokey/pc-usbip-runner", tag = "v0.0.1-nitrokey.1" }
+#trussed-staging = { git = "https://github.com/Nitrokey/trussed-staging", tag = "v0.1.0" }
+trussed-staging = { path = "../trussed-staging" }

@@ -6,6 +6,9 @@
 use std::path::{Path, PathBuf};
 
 mod dispatch {
+    use trussed_staging::hmacsha256p256::HmacSha256P256Extension;
+    use trussed_staging::StagingBackend;
+    use trussed_staging::StagingContext;
 
     use trussed::{
         api::{reply, request, Reply, Request},
@@ -16,6 +19,7 @@ mod dispatch {
         service::ServiceResources,
         types::{Bytes, Context, Location},
     };
+    use trussed::serde_extensions::ExtensionImpl;
     use trussed_auth::{AuthBackend, AuthContext, AuthExtension, MAX_HW_KEY_LEN};
 
     #[cfg(feature = "rsa")]
@@ -24,24 +28,28 @@ mod dispatch {
     pub const BACKENDS: &[BackendId<Backend>] = &[
         #[cfg(feature = "rsa")]
         BackendId::Custom(Backend::Rsa),
+        BackendId::Custom(Backend::Staging),
         BackendId::Custom(Backend::Auth),
         BackendId::Core,
     ];
 
     pub enum Backend {
         Auth,
+        Staging,
         #[cfg(feature = "rsa")]
         Rsa,
     }
 
     pub enum Extension {
         Auth,
+        HmacShaP256,
     }
 
     impl From<Extension> for u8 {
         fn from(extension: Extension) -> Self {
             match extension {
                 Extension::Auth => 0,
+                Extension::HmacShaP256 => 1,
             }
         }
     }
@@ -52,6 +60,7 @@ mod dispatch {
         fn try_from(id: u8) -> Result<Self, Self::Error> {
             match id {
                 0 => Ok(Extension::Auth),
+                1 => Ok(Extension::HmacShaP256),
                 _ => Err(Error::InternalError),
             }
         }
@@ -59,23 +68,27 @@ mod dispatch {
 
     pub struct Dispatch {
         auth: AuthBackend,
+        staging: StagingBackend,
     }
 
     #[derive(Default)]
     pub struct DispatchContext {
         auth: AuthContext,
+        staging: StagingContext,
     }
 
     impl Dispatch {
         pub fn new() -> Self {
             Self {
                 auth: AuthBackend::new(Location::Internal),
+                staging: StagingBackend::new(),
             }
         }
 
         pub fn with_hw_key(hw_key: Bytes<MAX_HW_KEY_LEN>) -> Self {
             Self {
                 auth: AuthBackend::with_hw_key(Location::Internal, hw_key),
+                staging: StagingBackend::new(),
             }
         }
     }
@@ -99,6 +112,12 @@ mod dispatch {
                 }
                 #[cfg(feature = "rsa")]
                 Backend::Rsa => SoftwareRsa.request(&mut ctx.core, &mut (), request, resources),
+                Backend::Staging => self.staging.request(
+                    &mut ctx.core,
+                    &mut ctx.backends.staging,
+                    request,
+                    resources,
+                ),
             }
         }
 
@@ -118,9 +137,23 @@ mod dispatch {
                         request,
                         resources,
                     ),
+                    _ => todo!(),
                 },
                 #[cfg(feature = "rsa")]
                 Backend::Rsa => Err(Error::RequestNotAvailable),
+                // #[cfg(feature = "hmacsha256p256")]
+                Backend::Staging => match extension {
+                    Extension::HmacShaP256 => <StagingBackend as ExtensionImpl<
+                        HmacSha256P256Extension,
+                    >>::extension_request_serialized(
+                        &mut self.staging,
+                        &mut ctx.core,
+                        &mut ctx.backends.staging,
+                        request,
+                        resources,
+                    ),
+                    Extension::Auth => Err(Error::RequestNotAvailable),
+                },
             }
         }
     }
@@ -130,6 +163,14 @@ mod dispatch {
 
         const ID: Self::Id = Self::Id::Auth;
     }
+
+
+    impl ExtensionId<trussed_staging::hmacsha256p256::HmacSha256P256Extension> for Dispatch{
+        type Id = Extension;
+
+        const ID: Self::Id = Self::Id::HmacShaP256;
+    }
+
 }
 
 #[cfg(feature = "ccid")]
@@ -141,11 +182,13 @@ use trussed::backend::BackendId;
 use trussed::platform::{consent, reboot, ui};
 use trussed::types::Location;
 use trussed::{virt, ClientImplementation, Platform};
+use trussed::serde_extensions::ExtensionId;
 use trussed_usbip::ClientBuilder;
 
 use usbd_ctaphid::constants::MESSAGE_SIZE;
 use webcrypt::PeekingBypass;
 use webcrypt::{debug, info, try_debug, try_info, try_warn, warn};
+use crate::dispatch::Extension;
 
 pub type FidoConfig = fido_authenticator::Config;
 pub type VirtClient = ClientImplementation<
