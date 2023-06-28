@@ -55,12 +55,13 @@ transparent-encryption = []
 no-authentication = []
 
 # Enable to make NFC transport work. Needs updated apdu-dispatch for Peek implementation / multiple apps support.
+# Soon probably obsolete by the app wrapper approach
 apdu-peek = []
 
 # Support P256 key derivation from HMAC
 hmacsha256p256 = []
 
-# Allow to inject raw key data with specified type into the Trussed key store
+# Allow to inject raw key data with specified type into the Trussed key store. Needed for OpenPGP support to use Kind::P256.
 inject-any-key = []
 
 # Support RSA
