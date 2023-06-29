@@ -1,6 +1,7 @@
 use heapless_bytes::{Bytes, Bytes32, Bytes64};
 use serde::{Deserialize, Serialize};
 use trussed::types::{KeyId, Mechanism, Message};
+use crate::MAX_MESSAGE_LENGTH;
 
 use crate::types::Error;
 
@@ -25,7 +26,7 @@ pub type Bytes65 = Bytes<65>;
 pub type Bytes200 = Bytes<200>;
 pub type Bytes250 = Bytes<250>;
 pub type Bytes512 = Bytes<512>;
-pub type WebcryptMessage = Bytes<1500>;
+pub type WebcryptMessage = Bytes<{ MAX_MESSAGE_LENGTH }>;
 pub type DataBytes = WebcryptMessage;
 // pub type WebcryptMessage = Message;
 pub type SessionToken = Bytes32;
