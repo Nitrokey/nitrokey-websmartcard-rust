@@ -49,3 +49,7 @@ debug-rr-record:
 debug-rr:
 	# Replay the last recording. Does not need debug-rr-setup to be run just for the replay.
 	rr replay -d $(shell which rust-gdb)
+
+.PHONY: tests
+tests:
+	cd ../nitrokey-webcrypt-tests/ && make FIDO2
