@@ -23,7 +23,7 @@ mod wcstate;
 pub use peeking::Peeking;
 pub use peeking::PeekingBypass;
 
-pub const MAX_MESSAGE_LENGTH: usize = 1500; // FIXME increase to 1500
+pub const MAX_MESSAGE_LENGTH: usize = 800; // TODO required 1000 for the ping tests
 #[cfg(feature = "transparent-encryption")]
 pub const DEFAULT_ENCRYPTION_PIN: &str = "12345678";
 
