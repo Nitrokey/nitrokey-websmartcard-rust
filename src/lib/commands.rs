@@ -746,8 +746,8 @@ where
     })?
     .serialized_key;
     let serialized_reimported = try_syscall!(w.trussed.inject_any_key(
-        // &k.serialize(),
-        serialized_shared_secret,
+        // try to convert SerializedKey type to a possibly smaller one
+        serialized_shared_secret.try_convert_into().map_err(|_| Error::FailedLoadingData)?,
         Location::Internal,
         #[cfg(feature = "inject-any-key")]
         Kind::Symmetric(32)
