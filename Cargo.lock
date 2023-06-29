@@ -1719,7 +1719,6 @@ dependencies = [
 name = "trussed-staging"
 version = "0.1.0"
 dependencies = [
- "chacha20poly1305",
  "delog",
  "hmac 0.12.1",
  "littlefs2",
