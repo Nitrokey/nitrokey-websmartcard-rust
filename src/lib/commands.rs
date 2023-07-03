@@ -245,6 +245,7 @@ where
     Ok(())
 }
 
+#[inline(never)]
 fn get_key_from_keyhandle<C>(
     w: &mut Webcrypt<C>,
     keyhandle: KeyHandleSerialized,
@@ -279,6 +280,7 @@ where
     Ok(res)
 }
 
+#[inline(never)]
 fn cred_to_mechanism(cred: &CredentialData) -> Mechanism {
     let mech = match cred.algorithm {
         0 => Mechanism::P256,
@@ -288,6 +290,7 @@ fn cred_to_mechanism(cred: &CredentialData) -> Mechanism {
     mech
 }
 
+#[inline(never)]
 fn import_key_from_keyhandle<C>(
     w: &mut Webcrypt<C>,
     encrypted_serialized_keyhandle: &KeyHandleSerialized,
@@ -639,6 +642,7 @@ where
     Ok(())
 }
 
+#[inline(never)]
 fn decrypt_rsa<C>(
     w: &mut Webcrypt<C>,
     req: CommandDecryptRequest,
@@ -667,6 +671,7 @@ where
     Ok(Default::default())
 }
 
+#[inline(never)]
 fn decrypt_ecc_p256<C>(
     w: &mut Webcrypt<C>,
     req: CommandDecryptRequest,
@@ -1242,6 +1247,7 @@ where
     Ok(())
 }
 
+#[inline(never)]
 fn keytype_to_kind(key_type: &KeyType) -> Kind {
     match key_type {
         None => Kind::P256,
@@ -1253,6 +1259,7 @@ fn keytype_to_kind(key_type: &KeyType) -> Kind {
     }
 }
 
+#[inline(never)]
 fn get_public_key<C>(
     w: &mut Webcrypt<C>,
     kind: Kind,
