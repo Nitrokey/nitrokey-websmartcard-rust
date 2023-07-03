@@ -107,7 +107,7 @@ impl WebcryptPIN {
     }
 }
 
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct WebcryptState {
     initialized_tag: u8,
     version: u8,
@@ -117,6 +117,7 @@ pub struct WebcryptState {
     pub configuration: WebcryptConfiguration,
     pub pin: WebcryptPIN,
     pub openpgp_data: Option<OpenPGPData>,
+    location: Location,
 }
 
 #[derive(Default)]
@@ -204,8 +205,18 @@ impl WebcryptSession {
 const STATE_FILE_PATH: &[u8; 10] = b"wcrk/state";
 
 impl WebcryptState {
-    pub fn new() -> Self {
-        Default::default()
+    pub fn new(location: Location) -> WebcryptState {
+        WebcryptState {
+            initialized_tag: Default::default(),
+            version: 0,
+            resident_keys: Default::default(),
+            master_key: None,
+            master_key_raw: None,
+            configuration: Default::default(),
+            pin: Default::default(),
+            openpgp_data: None,
+            location,
+        }
     }
 
     pub fn reset<C>(&mut self, t: &mut C)
@@ -244,8 +255,11 @@ impl WebcryptState {
         }
         // 2. set as key
         let key = syscall!(t.inject_any_key(
-            master.try_convert_into().map_err(|_| Error::FailedLoadingData).unwrap(), // FIXME handle error
-            Location::Internal,
+            master
+                .try_convert_into()
+                .map_err(|_| Error::FailedLoadingData)
+                .unwrap(), // FIXME handle error
+            self.location,
             #[cfg(feature = "inject-any-key")]
             Kind::Shared(32)
         ))
@@ -287,8 +301,10 @@ impl WebcryptState {
             }
             // 2. set as key
             let key = syscall!(t.inject_any_key(
-                data.try_convert_into().map_err(|_| Error::FailedLoadingData).unwrap(), // FIXME handle error
-                Location::Internal,
+                data.try_convert_into()
+                    .map_err(|_| Error::FailedLoadingData)
+                    .unwrap(), // FIXME handle error
+                self.location,
                 #[cfg(feature = "inject-any-key")]
                 Kind::Shared(32)
             ))
@@ -304,10 +320,9 @@ impl WebcryptState {
     where
         T: client::Client,
     {
-        let state_ser =
-            try_syscall!(t.read_file(Location::Internal, PathBuf::from(STATE_FILE_PATH)))
-                .map_err(|_| Error::InternalError)?
-                .data;
+        let state_ser = try_syscall!(t.read_file(self.location, PathBuf::from(STATE_FILE_PATH)))
+            .map_err(|_| Error::InternalError)?
+            .data;
         info!("State file found. Loading.");
 
         // todo handle errors from the data corruption separately
@@ -343,7 +358,7 @@ impl WebcryptState {
     where
         T: client::Client,
     {
-        let r = try_syscall!(t.remove_file(Location::Internal, PathBuf::from(STATE_FILE_PATH)));
+        let r = try_syscall!(t.remove_file(self.location, PathBuf::from(STATE_FILE_PATH)));
         if r.is_ok() {
             info!("State removed");
         }
@@ -366,7 +381,7 @@ impl WebcryptState {
         // todo!();
 
         try_syscall!(t.write_file(
-            Location::Internal,
+            self.location,
             PathBuf::from(STATE_FILE_PATH),
             Bytes::from_slice(self.serialize().as_slice()).unwrap(),
             None,

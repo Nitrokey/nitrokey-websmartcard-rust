@@ -13,6 +13,7 @@ mod ctap_app;
 mod helpers;
 // mod nfc_app;
 mod openpgp;
+mod options;
 mod peeking;
 mod rk_files;
 mod state;
@@ -20,6 +21,7 @@ mod transport;
 mod types;
 mod wcstate;
 
+pub use options::Options;
 pub use peeking::Peeking;
 pub use peeking::PeekingBypass;
 

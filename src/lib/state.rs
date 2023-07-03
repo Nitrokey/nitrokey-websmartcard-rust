@@ -15,33 +15,49 @@ use trussed::{
 };
 pub type Result<T> = core::result::Result<T, Error>;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Default)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct State {
     pub persistent: PersistentState,
 }
 
 impl State {
-    pub fn new() -> Self {
-        Default::default()
+    pub fn new(location: Location) -> Self {
+        Self {
+            persistent: PersistentState::new(location),
+        }
     }
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct PersistentState {
     #[serde(skip)]
     initialised: bool,
     key_encryption_key: Option<KeyId>,
     key_wrapping_key: Option<KeyId>,
+    location: Location,
+}
+
+impl PersistentState {
+    fn new(location: Location) -> PersistentState {
+        PersistentState {
+            initialised: false,
+            key_encryption_key: None,
+            key_wrapping_key: None,
+            location,
+        }
+    }
 }
 
 impl PersistentState {
     const FILENAME: &'static [u8] = b"persistent-state.cbor";
 
-    pub fn load<T: client::Client + client::Chacha8Poly1305>(trussed: &mut T) -> Result<Self> {
+    pub fn load<T: client::Client + client::Chacha8Poly1305>(
+        trussed: &mut T,
+        location: Location,
+    ) -> Result<Self> {
         // TODO: add "exists_file" method instead?
-        let result =
-            try_syscall!(trussed.read_file(Location::Internal, PathBuf::from(Self::FILENAME),))
-                .map_err(|_| Error::Other);
+        let result = try_syscall!(trussed.read_file(location, PathBuf::from(Self::FILENAME),))
+            .map_err(|_| Error::Other);
 
         if result.is_err() {
             info!("err loading: {:?}", result.err().unwrap());
@@ -65,7 +81,7 @@ impl PersistentState {
         let data = crate::helpers::cbor_serialize_message(self).unwrap();
 
         syscall!(trussed.write_file(
-            Location::Internal,
+            self.location,
             PathBuf::from(Self::FILENAME),
             heapless_bytes::Bytes::from_slice(data.as_slice()).unwrap(),
             None,
@@ -90,7 +106,7 @@ impl PersistentState {
         trussed: &mut T,
     ) {
         if !self.initialised {
-            match Self::load(trussed) {
+            match Self::load(trussed, self.location) {
                 Ok(previous_self) => {
                     info!("loaded previous state!");
                     *self = previous_self
@@ -121,7 +137,7 @@ impl PersistentState {
         if let Some(key) = self.key_encryption_key {
             syscall!(trussed.delete(key));
         }
-        let key = syscall!(trussed.generate_chacha8poly1305_key(Location::Internal)).key;
+        let key = syscall!(trussed.generate_chacha8poly1305_key(self.location)).key;
         self.key_encryption_key = Some(key);
         self.save(trussed)?;
         Ok(key)
@@ -145,7 +161,7 @@ impl PersistentState {
         if let Some(key) = self.key_wrapping_key {
             syscall!(trussed.delete(key));
         }
-        let key = syscall!(trussed.generate_chacha8poly1305_key(Location::Internal)).key;
+        let key = syscall!(trussed.generate_chacha8poly1305_key(self.location)).key;
         self.key_wrapping_key = Some(key);
         self.save(trussed)?;
         Ok(key)
