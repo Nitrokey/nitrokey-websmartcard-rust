@@ -54,9 +54,7 @@ impl<
 {
 }
 
-
 use trussed_staging::hmacsha256p256::HmacSha256P256Client;
-
 
 #[cfg(feature = "hmacsha256p256")]
 pub trait WebcryptTrussedClient:

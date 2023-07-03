@@ -1,3 +1,4 @@
+use crate::commands::WebcryptTrussedClient;
 use crate::commands_types::{DataBytes, ResultW};
 use crate::types::Error;
 use crate::types::Error::InternalError;
@@ -6,7 +7,6 @@ use serde::{Deserialize, Serialize};
 use trussed::key::Kind;
 use trussed::types::{KeyId, Location, Mechanism};
 use trussed::{client, syscall, try_syscall};
-use crate::commands::WebcryptTrussedClient;
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct KeyFingerprint(Bytes<8>);
@@ -143,7 +143,8 @@ impl OpenPGPData {
                         Kind::P256
                     ))
                     .map_err(|_| Error::FailedLoadingData)?
-                    .key.ok_or(Error::FailedLoadingData)?
+                    .key
+                    .ok_or(Error::FailedLoadingData)?
                 },
                 pubkey: None,
                 fingerprint: Default::default(),
@@ -159,7 +160,8 @@ impl OpenPGPData {
                         Kind::P256
                     ))
                     .map_err(|_| Error::FailedLoadingData)?
-                        .key.ok_or(Error::FailedLoadingData)?
+                    .key
+                    .ok_or(Error::FailedLoadingData)?
                 },
                 pubkey: None,
                 fingerprint: Default::default(),
@@ -175,7 +177,8 @@ impl OpenPGPData {
                         Kind::P256
                     ))
                     .map_err(|_| Error::FailedLoadingData)?
-                        .key.ok_or(Error::FailedLoadingData)?
+                    .key
+                    .ok_or(Error::FailedLoadingData)?
                 },
                 pubkey: None,
                 fingerprint: Default::default(),
