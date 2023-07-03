@@ -29,6 +29,7 @@ impl<C> Webcrypt<C>
 where
     C: WebcryptTrussedClient,
 {
+    #[inline(never)]
     pub fn new_with_options(client: C, options: Options) -> Self {
         Webcrypt {
             WC_INPUT_BUFFER: Default::default(),
@@ -43,13 +44,14 @@ where
         }
     }
 
+    #[inline(never)]
     pub fn set_trussed_client(&mut self, _client: C) {}
-
+    #[inline(never)]
     fn get_webcrypt_cmd(&self, keyh: &Bytes<255>) -> Result<ExtWebcryptCmd, WebcryptError> {
         let webcrypt: WebcryptRequest = keyh.try_into().map_err(|_| Error::BadFormat)?;
         webcrypt.try_into()
     }
-
+    #[inline(never)]
     fn webcrypt_write_request(
         &mut self,
         _output: &[u8],
@@ -61,7 +63,7 @@ where
             .map_err(|_| Error::TooLongRequest)?;
         Ok(())
     }
-
+    #[inline(never)]
     fn parse_execute(&mut self) -> Result<(Error, CommandID), ()> {
         self.WC_OUTPUT_BUFFER.clear();
         let parsed: ResponseReadFirst = self.WC_INPUT_BUFFER.clone().into();
@@ -118,10 +120,12 @@ where
         Ok((Error::Success, operation))
     }
 
+    #[inline(never)]
     pub fn get_input(&self) -> &[u8] {
         self.WC_INPUT_BUFFER.as_slice()
     }
 
+    #[inline(never)]
     pub fn get_input_deserialized<'a, T: Deserialize<'a>>(&'a self) -> Result<T, cbor_smol::Error> {
         cbor_deserialize::<T>(&self.WC_INPUT_BUFFER[3..]).map_err(|e| {
             debug_now!("Input deserialization error: {:?}", e);
@@ -129,6 +133,7 @@ where
         })
     }
 
+    #[inline(never)]
     pub fn send_to_output<T: Serialize>(&mut self, o: T) {
         // send data to output
         // limited to 256*8 bytes for now for a single write
@@ -138,11 +143,12 @@ where
         self.WC_OUTPUT_BUFFER.extend_from_slice(encoded).unwrap();
     }
 
+    #[inline(never)]
     pub fn send_to_output_arr(&mut self, o: &WebcryptMessage) {
         info!("Clear write: {:?}", o);
         self.WC_OUTPUT_BUFFER.extend_from_slice(o).unwrap();
     }
-
+    #[inline(never)]
     fn webcrypt_read_request(&self, output: &mut WebcryptMessage, cmd: &ExtWebcryptCmd) -> Error {
         let offset = (u8::from(cmd.packet_no)) as usize * (cmd.chunk_size) as usize;
         let offset_right = offset + cmd.this_chunk_length as usize;
@@ -177,6 +183,7 @@ where
     /// The main transport function, gateway to the extension from the Webauthn perspective
     /// Decodes incoming request low-level packet data, and either saves it to the input buffer,
     /// triggers execution or allows reading output buffer.
+    #[inline(never)]
     pub fn bridge_u2f_to_webcrypt_raw(
         &mut self,
         mut output: CtapSignatureSize,
@@ -208,6 +215,7 @@ where
 
     /// High level implementation
     /// Called from bridge_u2f_to_webcrypt_raw after initial deserialization
+    #[inline(never)]
     pub fn bridge_u2f_to_webcrypt(
         &mut self,
         webcrypt_req: ExtWebcryptCmd,
@@ -287,6 +295,7 @@ where
             }
         }
     }
+    #[inline(never)]
     pub fn send_input_to_output(&mut self) {
         self.WC_OUTPUT_BUFFER
             .extend_from_slice(&self.WC_INPUT_BUFFER[3..])
