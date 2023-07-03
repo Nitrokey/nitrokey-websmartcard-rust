@@ -261,7 +261,7 @@ where
         // this is RK
         let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
         let cred_data = try_syscall!(w.trussed.read_file(
-            Location::Internal,
+            w.options.location,
             rk_path(
                 rp_id_hash,
                 &Bytes32::from_slice(keyhandle.as_slice()).unwrap()
@@ -355,7 +355,7 @@ where
         .get_input_deserialized()
         .map_err(|_| Error::FailedLoadingData)?;
 
-    w.state.openpgp_data = Some(OpenPGPData::init(&mut w.trussed));
+    w.state.openpgp_data = Some(OpenPGPData::init(&mut w.trussed, w.options.location));
     w.state.save(&mut w.trussed);
     Ok(())
 }
@@ -371,7 +371,7 @@ where
     // FIXME remove -> initialize in a separate command
     // move to state initialization
     if w.state.openpgp_data.is_none() {
-        w.state.openpgp_data = Some(OpenPGPData::init(&mut w.trussed));
+        w.state.openpgp_data = Some(OpenPGPData::init(&mut w.trussed, w.options.location));
         w.state.save(&mut w.trussed);
     }
 
@@ -438,6 +438,7 @@ where
         req.sign_privkey,
         req.encr_privkey,
         req.date.unwrap_or_default(),
+        w.options.location,
     )?);
     w.state.save(&mut w.trussed);
 
@@ -464,7 +465,7 @@ where
     // FIXME remove -> initialize in a separate command
     // move to state initialization
     if w.state.openpgp_data.is_none() {
-        w.state.openpgp_data = Some(OpenPGPData::init(&mut w.trussed));
+        w.state.openpgp_data = Some(OpenPGPData::init(&mut w.trussed, w.options.location));
         w.state.save(&mut w.trussed);
     }
 
@@ -506,7 +507,7 @@ where
     // FIXME remove -> initialize in a separate command
     // move to state initialization
     if w.state.openpgp_data.is_none() {
-        w.state.openpgp_data = Some(OpenPGPData::init(&mut w.trussed));
+        w.state.openpgp_data = Some(OpenPGPData::init(&mut w.trussed, w.options.location));
         w.state.save(&mut w.trussed);
     }
 
@@ -747,13 +748,16 @@ where
     .serialized_key;
     let serialized_reimported = try_syscall!(w.trussed.inject_any_key(
         // try to convert SerializedKey type to a possibly smaller one
-        serialized_shared_secret.try_convert_into().map_err(|_| Error::FailedLoadingData)?,
-        Location::Internal,
+        serialized_shared_secret
+            .try_convert_into()
+            .map_err(|_| Error::FailedLoadingData)?,
+        w.options.location,
         #[cfg(feature = "inject-any-key")]
         Kind::Symmetric(32)
     ))
     .map_err(|_| Error::FailedLoadingData)?
-    .key.ok_or(Error::FailedLoadingData)?;
+    .key
+    .ok_or(Error::FailedLoadingData)?;
 
     // decrypt with shared secret
     let decrypted = try_syscall!(w
@@ -848,7 +852,7 @@ where
     // let private_key = {
     //     let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
     //     let cred_data = try_syscall!(w.trussed.read_file(
-    //         Location::Internal,
+    //         w.options.location,
     //         rk_path(
     //             rp_id_hash,
     //             &Bytes32::from_slice(req.keyhandle.as_slice()).unwrap()
@@ -981,10 +985,10 @@ where
     // TODO call associated services
 
     // remove all generated RK
-    syscall!(w.trussed.delete_all(Location::Internal));
+    syscall!(w.trussed.delete_all(w.options.location));
     syscall!(w
         .trussed
-        .remove_dir_all(Location::Internal, PathBuf::from("wcrk"),));
+        .remove_dir_all(w.options.location, PathBuf::from("wcrk"),));
 
     #[cfg(feature = "transparent-encryption")]
     {
@@ -1081,7 +1085,7 @@ where
     // then store key, making it resident
     // let credential_id_hash = self.hash(credential_id.0.as_ref());
     // try_syscall!(self.trussed.write_file(
-    //             Location::Internal,
+    //             w.options.location,
     //             rk_path(&rp_id_hash, &credential_id_hash),
     //             serialized_credential,
     //             // user attribute for later easy lookup
@@ -1100,14 +1104,14 @@ where
     let mut maybe_path =
         syscall!(w
             .trussed
-            .read_dir_first(Location::Internal, rp_rk_dir(rp_id_hash), None,))
+            .read_dir_first(w.options.location, rp_rk_dir(rp_id_hash), None,))
         .entry
         .map(|entry| PathBuf::try_from(entry.path()).unwrap());
 
     // following reads
     while let Some(path) = maybe_path {
         let _credential_data =
-            syscall!(w.trussed.read_file(Location::Internal, path.clone(),)).data;
+            syscall!(w.trussed.read_file(w.options.location, path.clone(),)).data;
 
         maybe_path = syscall!(w.trussed.read_dir_next())
             .entry
@@ -1152,7 +1156,7 @@ where
                     try_syscall!(w.trussed.unsafe_inject_key(
                         mechanism,
                         req.raw_key_data.ok_or(Error::BadFormat)?.as_slice(),
-                        Location::Internal,
+                        w.options.location,
                         KeySerialization::Raw
                     ))
                 }
@@ -1169,7 +1173,7 @@ where
             try_syscall!(w.trussed.unsafe_inject_key(
                 mechanism,
                 &data.serialize().map_err(|_| Error::InternalError)?,
-                Location::Internal,
+                w.options.location,
                 KeySerialization::RsaParts
             ))
             .map_err(|_| Error::FailedLoadingData)?
@@ -1193,7 +1197,7 @@ where
         .unwrap();
 
     try_syscall!(w.trussed.write_file(
-        Location::Internal,
+        w.options.location,
         rk_path(rp_id_hash, &credential_id_hash),
         serialized_credential,
         None,
@@ -1289,7 +1293,7 @@ where
 
     // Generate a new P256 key pair.
     // Can fail with FilesystemWriteFailure, if the full capacity is reached
-    let private_key = syscall!(w.trussed.generate_p256_private_key(Location::Internal)).key;
+    let private_key = syscall!(w.trussed.generate_p256_private_key(w.options.location)).key;
     let public_key = syscall!(w
         .trussed
         .derive_p256_public_key(private_key, Location::Volatile))
@@ -1305,7 +1309,7 @@ where
         .unwrap();
 
     try_syscall!(w.trussed.write_file(
-        Location::Internal,
+        w.options.location,
         rk_path(rp_id_hash, &credential_id_hash),
         serialized_credential,
         None,

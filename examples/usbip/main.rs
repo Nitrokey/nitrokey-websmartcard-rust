@@ -416,7 +416,10 @@ impl<'a> trussed_usbip::Apps<'static, VirtClient, dispatch::Dispatch> for Apps {
             data.encode(),
         );
 
-        let webcrypt = webcrypt::Webcrypt::new(builder.build("webcrypt", dispatch::BACKENDS));
+        let webcrypt = webcrypt::Webcrypt::new_with_options(
+            builder.build("webcrypt", dispatch::BACKENDS),
+            Options::new(Location::External, *b"1234", 10000),
+        );
 
         Self {
             admin,

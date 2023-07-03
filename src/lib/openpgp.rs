@@ -4,7 +4,7 @@ use crate::types::Error::InternalError;
 use heapless_bytes::Bytes;
 use serde::{Deserialize, Serialize};
 use trussed::key::Kind;
-use trussed::types::{KeyId, Mechanism};
+use trussed::types::{KeyId, Location, Mechanism};
 use trussed::{client, syscall, try_syscall};
 use crate::commands::WebcryptTrussedClient;
 
@@ -42,6 +42,7 @@ pub struct OpenPGPData {
     pub encryption: OpenPGPKey,
     pub signing: OpenPGPKey,
     pub date: Bytes<32>,
+    location: Location,
 }
 
 impl OpenPGPKey {
@@ -87,9 +88,9 @@ impl OpenPGPData {
         Ok(())
     }
 
-    pub fn init(trussed: &mut (impl client::Client + client::P256)) -> Self {
+    pub fn init(trussed: &mut (impl client::Client + client::P256), location: Location) -> Self {
         // let private_key =
-        //     syscall!(trussed.generate_p256_private_key(trussed::types::Location::Internal)).key;
+        //     syscall!(trussed.generate_p256_private_key(location)).key;
         // let public_key = syscall!(
         //     trussed.derive_p256_public_key(private_key, trussed::types::Location::Volatile)
         // )
@@ -99,30 +100,25 @@ impl OpenPGPData {
 
         OpenPGPData {
             authentication: OpenPGPKey {
-                key:
-                    syscall!(trussed.generate_p256_private_key(trussed::types::Location::Internal))
-                        .key,
+                key: syscall!(trussed.generate_p256_private_key(location)).key,
                 pubkey: None,
                 fingerprint: Default::default(),
                 key_mechanism: Mechanism::P256,
             },
             encryption: OpenPGPKey {
-                key:
-                    syscall!(trussed.generate_p256_private_key(trussed::types::Location::Internal))
-                        .key,
+                key: syscall!(trussed.generate_p256_private_key(location)).key,
                 pubkey: None,
                 fingerprint: Default::default(),
                 key_mechanism: Mechanism::P256,
             },
             signing: OpenPGPKey {
-                key:
-                    syscall!(trussed.generate_p256_private_key(trussed::types::Location::Internal))
-                        .key,
+                key: syscall!(trussed.generate_p256_private_key(location)).key,
                 pubkey: None,
                 fingerprint: Default::default(),
                 key_mechanism: Mechanism::P256,
             },
             date: Default::default(),
+            location,
         }
     }
 
@@ -132,6 +128,7 @@ impl OpenPGPData {
         sign: DataBytes,
         enc: DataBytes,
         date: DataBytes,
+        location: Location,
     ) -> ResultW<Self> {
         use trussed::types::Location;
 
@@ -139,8 +136,9 @@ impl OpenPGPData {
             authentication: OpenPGPKey {
                 key: {
                     try_syscall!(trussed.inject_any_key(
-                        auth.try_convert_into().map_err(|_| Error::FailedLoadingData)?,
-                        Location::Internal,
+                        auth.try_convert_into()
+                            .map_err(|_| Error::FailedLoadingData)?,
+                        location,
                         #[cfg(feature = "inject-any-key")]
                         Kind::P256
                     ))
@@ -154,8 +152,9 @@ impl OpenPGPData {
             encryption: OpenPGPKey {
                 key: {
                     try_syscall!(trussed.inject_any_key(
-                        enc.try_convert_into().map_err(|_| Error::FailedLoadingData)?,
-                        Location::Internal,
+                        enc.try_convert_into()
+                            .map_err(|_| Error::FailedLoadingData)?,
+                        location,
                         #[cfg(feature = "inject-any-key")]
                         Kind::P256
                     ))
@@ -169,8 +168,9 @@ impl OpenPGPData {
             signing: OpenPGPKey {
                 key: {
                     try_syscall!(trussed.inject_any_key(
-                        sign.try_convert_into().map_err(|_| Error::FailedLoadingData)?,
-                        Location::Internal,
+                        sign.try_convert_into()
+                            .map_err(|_| Error::FailedLoadingData)?,
+                        location,
                         #[cfg(feature = "inject-any-key")]
                         Kind::P256
                     ))
@@ -182,6 +182,7 @@ impl OpenPGPData {
                 key_mechanism: Mechanism::P256,
             },
             date: Bytes::<32>::from_slice(&date).map_err(|_| InternalError)?,
+            location,
         })
     }
 

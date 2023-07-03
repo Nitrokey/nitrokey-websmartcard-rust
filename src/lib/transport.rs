@@ -9,7 +9,7 @@ use crate::types::{ExtWebcryptCmd, WebcryptRequest};
 use crate::wcstate::{WebcryptSession, WebcryptState};
 
 use crate::commands_types::WebcryptMessage;
-use crate::{Bytes, Message};
+use crate::{Bytes, Message, Options};
 
 #[allow(non_snake_case)]
 pub struct Webcrypt<C: WebcryptTrussedClient> {
@@ -21,6 +21,7 @@ pub struct Webcrypt<C: WebcryptTrussedClient> {
     pub(crate) store: State,
     pub(crate) session: WebcryptSession,
     pub(crate) req_details: Option<RequestDetails>,
+    pub(crate) options: Options,
 }
 pub type WebcryptError = Error;
 
@@ -28,16 +29,17 @@ impl<C> Webcrypt<C>
 where
     C: WebcryptTrussedClient,
 {
-    pub fn new(_client: C) -> Self {
+    pub fn new_with_options(client: C, options: Options) -> Self {
         Webcrypt {
             WC_INPUT_BUFFER: Default::default(),
             WC_OUTPUT_BUFFER: Default::default(),
             current_command_id: Default::default(),
-            trussed: _client,
-            state: WebcryptState::new(),
-            store: State::new(),
+            trussed: client,
+            state: WebcryptState::new(options.location),
+            store: State::new(options.location),
             session: Default::default(),
             req_details: None,
+            options,
         }
     }
 
