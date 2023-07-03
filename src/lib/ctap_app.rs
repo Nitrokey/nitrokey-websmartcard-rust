@@ -234,6 +234,7 @@ where
     Ok(())
 }
 
+#[inline(never)]
 fn handle_ctap2<C>(
     authenticator: &mut Webcrypt<C>,
     data: &[u8],
@@ -368,6 +369,7 @@ impl<C> crate::Peeking for Webcrypt<C>
 where
     C: WebcryptTrussedClient,
 {
+    #[inline(never)]
     fn peek(&self, request: &ctaphid_dispatch::types::Message) -> bool {
         // let offset = 4 * 16 + 8;
         // let offset2 = 3 * 16 + 8;
