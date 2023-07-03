@@ -1,7 +1,7 @@
+use crate::MAX_MESSAGE_LENGTH;
 use heapless_bytes::{Bytes, Bytes32, Bytes64};
 use serde::{Deserialize, Serialize};
 use trussed::types::{KeyId, Mechanism, Message};
-use crate::MAX_MESSAGE_LENGTH;
 
 use crate::types::Error;
 

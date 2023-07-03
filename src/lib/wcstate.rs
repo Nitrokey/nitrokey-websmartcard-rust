@@ -30,11 +30,11 @@ impl Default for WebcryptConfiguration {
     }
 }
 
+use crate::commands::WebcryptTrussedClient;
 use crate::commands_types::ExpectedSessionToken;
 use crate::openpgp::OpenPGPData;
 use cbor_smol::{cbor_deserialize, cbor_serialize};
 use serde::{Deserialize, Serialize};
-use crate::commands::WebcryptTrussedClient;
 
 #[derive(Default, Serialize, Deserialize)]
 pub struct WebcryptPIN {
@@ -263,7 +263,9 @@ impl WebcryptState {
             #[cfg(feature = "inject-any-key")]
             Kind::Shared(32)
         ))
-        .key.ok_or(Error::FailedLoadingData).unwrap(); // FIXME handle error
+        .key
+        .ok_or(Error::FailedLoadingData)
+        .unwrap(); // FIXME handle error
         self.master_key = Some(key);
         // 3. return it up to the caller
         self.save(t);
@@ -308,8 +310,10 @@ impl WebcryptState {
                 #[cfg(feature = "inject-any-key")]
                 Kind::Shared(32)
             ))
-                .key.ok_or(Error::FailedLoadingData).unwrap(); // FIXME handle error
-            // 3. return it up to the caller
+            .key
+            .ok_or(Error::FailedLoadingData)
+            .unwrap(); // FIXME handle error
+                       // 3. return it up to the caller
             Some(key)
         };
         self.save(t);

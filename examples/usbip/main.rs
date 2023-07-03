@@ -10,6 +10,7 @@ mod dispatch {
     use trussed_staging::StagingBackend;
     use trussed_staging::StagingContext;
 
+    use trussed::serde_extensions::ExtensionImpl;
     use trussed::{
         api::{reply, request, Reply, Request},
         backend::{Backend as _, BackendId},
@@ -19,7 +20,6 @@ mod dispatch {
         service::ServiceResources,
         types::{Bytes, Context, Location},
     };
-    use trussed::serde_extensions::ExtensionImpl;
     use trussed_auth::{AuthBackend, AuthContext, AuthExtension, MAX_HW_KEY_LEN};
 
     #[cfg(feature = "rsa")]
@@ -164,13 +164,11 @@ mod dispatch {
         const ID: Self::Id = Self::Id::Auth;
     }
 
-
-    impl ExtensionId<trussed_staging::hmacsha256p256::HmacSha256P256Extension> for Dispatch{
+    impl ExtensionId<trussed_staging::hmacsha256p256::HmacSha256P256Extension> for Dispatch {
         type Id = Extension;
 
         const ID: Self::Id = Self::Id::HmacShaP256;
     }
-
 }
 
 #[cfg(feature = "ccid")]
@@ -180,15 +178,15 @@ use clap::Parser;
 use clap_num::maybe_hex;
 use trussed::backend::BackendId;
 use trussed::platform::{consent, reboot, ui};
+use trussed::serde_extensions::ExtensionId;
 use trussed::types::Location;
 use trussed::{virt, ClientImplementation, Platform};
-use trussed::serde_extensions::ExtensionId;
 use trussed_usbip::ClientBuilder;
 
-use usbd_ctaphid::constants::MESSAGE_SIZE;
-use webcrypt::PeekingBypass;
-use webcrypt::{debug, info, try_debug, try_info, try_warn, warn};
 use crate::dispatch::Extension;
+use usbd_ctaphid::constants::MESSAGE_SIZE;
+use webcrypt::{debug, info, try_debug, try_info, try_warn, warn};
+use webcrypt::{Options, PeekingBypass};
 
 pub type FidoConfig = fido_authenticator::Config;
 pub type VirtClient = ClientImplementation<
