@@ -81,6 +81,7 @@ impl<
 {
 }
 
+#[inline(never)]
 pub fn cmd_status<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: WebcryptTrussedClient,
@@ -97,6 +98,7 @@ where
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_test_ping<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: WebcryptTrussedClient,
@@ -105,6 +107,7 @@ where
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_generate_key<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: WebcryptTrussedClient,
@@ -147,6 +150,7 @@ where
     Ok(())
 }
 
+#[inline(never)]
 pub fn wrap_key_to_keyhandle<C>(
     w: &mut Webcrypt<C>,
     private_key: KeyId,
@@ -202,6 +206,7 @@ where
     Ok(keyhandle_ser_enc)
 }
 
+#[inline(never)]
 pub fn cmd_sign<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: WebcryptTrussedClient,
@@ -345,6 +350,7 @@ where
     Ok((key, m))
 }
 
+#[inline(never)]
 pub fn cmd_openpgp_generate<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: WebcryptTrussedClient,
@@ -358,6 +364,7 @@ where
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_openpgp_info<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: WebcryptTrussedClient,
@@ -413,6 +420,7 @@ where
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_openpgp_import<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: WebcryptTrussedClient,
@@ -443,6 +451,7 @@ where
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_openpgp_sign<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: WebcryptTrussedClient,
@@ -485,6 +494,7 @@ where
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_openpgp_decrypt<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: WebcryptTrussedClient,
@@ -591,6 +601,7 @@ where
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_decrypt<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: WebcryptTrussedClient,
@@ -777,6 +788,7 @@ where
 }
 
 #[cfg(feature = "hmacsha256p256")]
+#[inline(never)]
 pub fn cmd_generate_key_from_data<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: WebcryptTrussedClient,
@@ -835,6 +847,7 @@ where
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_read_resident_key_public<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: WebcryptTrussedClient,
@@ -905,6 +918,7 @@ where
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_login<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: WebcryptTrussedClient,
@@ -951,6 +965,7 @@ where
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_logout<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: WebcryptTrussedClient,
@@ -971,6 +986,7 @@ where
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_factory_reset<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: WebcryptTrussedClient,
@@ -1004,6 +1020,7 @@ where
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_configure<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: WebcryptTrussedClient,
@@ -1027,6 +1044,7 @@ where
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_manage_pin<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: WebcryptTrussedClient,
@@ -1068,6 +1086,7 @@ where
     }
 }
 
+#[inline(never)]
 pub fn cmd_discover_resident_key<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: WebcryptTrussedClient,
@@ -1127,6 +1146,7 @@ where
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_write_resident_key<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: WebcryptTrussedClient,
@@ -1277,6 +1297,7 @@ where
     Ok((public_key, serialized_raw_public_key))
 }
 
+#[inline(never)]
 pub fn cmd_generate_resident_key<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: WebcryptTrussedClient + client::Sha256,
@@ -1337,6 +1358,7 @@ where
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_restore_from_seed<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: WebcryptTrussedClient,
@@ -1372,6 +1394,7 @@ where
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_initialize_seed<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: WebcryptTrussedClient,
