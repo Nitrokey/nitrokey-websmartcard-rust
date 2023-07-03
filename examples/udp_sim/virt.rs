@@ -6,9 +6,12 @@
 
 //! Virtual trussed client (mostly for testing)
 
+const LOCATION_FOR_SIMULATION: Location = Location::Internal;
+
 /// Implementation of ExtensionDispatch for a virtual implementation of opcard
 pub mod dispatch {
 
+    use crate::virt::LOCATION_FOR_SIMULATION;
     use trussed::{
         api::{reply, request, Reply, Request},
         backend::{Backend as _, BackendId},
@@ -75,14 +78,14 @@ pub mod dispatch {
         /// Create a new dispatch using the internal filesystem
         pub fn new() -> Self {
             Self {
-                auth: AuthBackend::new(Location::Internal),
+                auth: AuthBackend::new(LOCATION_FOR_SIMULATION),
             }
         }
 
         /// Create a new dispatch using the internal filesystem and a key derived from hardware parameters
         pub fn with_hw_key(hw_key: Bytes<MAX_HW_KEY_LEN>) -> Self {
             Self {
-                auth: AuthBackend::with_hw_key(Location::Internal, hw_key),
+                auth: AuthBackend::with_hw_key(LOCATION_FOR_SIMULATION, hw_key),
             }
         }
     }
@@ -142,6 +145,7 @@ pub mod dispatch {
 }
 
 use std::path::PathBuf;
+use trussed::types::Location;
 use trussed::{
     types::Bytes,
     virt::{self, Client, Filesystem, Ram, StoreProvider},
