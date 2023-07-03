@@ -4,6 +4,7 @@
 
 /// Taken from: https://github.com/Nitrokey/nitrokey-3-firmware/tree/main/runners/usbip
 use std::path::{Path, PathBuf};
+const LOCATION_FOR_SIMULATION: Location = Location::Internal;
 
 mod dispatch {
     use trussed_staging::hmacsha256p256::HmacSha256P256Extension;
@@ -22,6 +23,7 @@ mod dispatch {
     };
     use trussed_auth::{AuthBackend, AuthContext, AuthExtension, MAX_HW_KEY_LEN};
 
+    use crate::LOCATION_FOR_SIMULATION;
     #[cfg(feature = "rsa")]
     use trussed_rsa_alloc::SoftwareRsa;
 
@@ -80,14 +82,14 @@ mod dispatch {
     impl Dispatch {
         pub fn new() -> Self {
             Self {
-                auth: AuthBackend::new(Location::Internal),
+                auth: AuthBackend::new(LOCATION_FOR_SIMULATION),
                 staging: StagingBackend::new(),
             }
         }
 
         pub fn with_hw_key(hw_key: Bytes<MAX_HW_KEY_LEN>) -> Self {
             Self {
-                auth: AuthBackend::with_hw_key(Location::Internal, hw_key),
+                auth: AuthBackend::with_hw_key(LOCATION_FOR_SIMULATION, hw_key),
                 staging: StagingBackend::new(),
             }
         }
@@ -479,7 +481,7 @@ fn store_file(platform: &impl Platform, host_file: &Path, device_file: &str) {
     let data = std::fs::read(host_file).expect("failed to read file");
     trussed::store::store(
         platform.store(),
-        Location::Internal,
+        LOCATION_FOR_SIMULATION,
         &trussed::types::PathBuf::from(device_file),
         &data,
     )
