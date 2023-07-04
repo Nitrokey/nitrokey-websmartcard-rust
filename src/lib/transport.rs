@@ -45,8 +45,6 @@ where
     }
 
     #[inline(never)]
-    pub fn set_trussed_client(&mut self, _client: C) {}
-    #[inline(never)]
     fn get_webcrypt_cmd(&self, keyh: &Bytes<255>) -> Result<ExtWebcryptCmd, WebcryptError> {
         let webcrypt: WebcryptRequest = keyh.try_into().map_err(|_| Error::BadFormat)?;
         webcrypt.try_into()
