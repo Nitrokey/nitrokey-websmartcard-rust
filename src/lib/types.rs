@@ -1,10 +1,12 @@
 #![allow(non_camel_case_types)]
 
-use crate::types::ERROR_ID::ERR_BAD_FORMAT;
+use crate::commands_types::WebcryptMessage;
+use crate::types::Error::BadFormat;
 use crate::types::TRANSPORT_CMD_ID::COMM_CMD_WRITE;
 use crate::{Bytes, Message};
 use ctap_types::ctap2::PinAuth;
 use heapless_bytes::Bytes32;
+
 pub type CtapSignatureSize = Bytes<72>;
 
 // pub const WR_PAYLOAD_SIZE: usize = 255 - 4 - 1;
@@ -58,99 +60,88 @@ impl From<TRANSPORT_CMD_ID> for u8 {
 
 #[repr(u8)]
 #[allow(non_camel_case_types)]
-#[derive(Debug, Clone)]
-pub enum ERROR_ID {
-    ERR_SUCCESS = 0x00,
-    ERR_REQ_AUTH = 0xF0,
-    ERR_INVALID_PIN = 0xF1,
-    ERR_NOT_ALLOWED = 0xF2,
-    ERR_BAD_FORMAT = 0xF3,
-    ERR_USER_NOT_PRESENT = 0xF4,
-    ERR_FAILED_LOADING_DATA = 0xF5,
-    ERR_INVALID_CHECKSUM = 0xF6,
-    ERR_ALREADY_IN_DATABASE = 0xF7,
-    ERR_NOT_FOUND = 0xF8,
-    ERR_ASSERT_FAILED = 0xF9,
-    ERR_INTERNAL_ERROR = 0xFA,
-    ERR_MEMORY_FULL = 0xFB,
-    ERR_NOT_IMPLEMENTED = 0xFC,
-    ERR_BAD_ORIGIN = 0xFD,
-    ERR_NOT_SET = 0xFE,
-    ERR_INVALID_COMMAND = 0xFF,
-}
-
-impl Default for ERROR_ID {
-    fn default() -> Self {
-        ERROR_ID::ERR_NOT_SET
-    }
+#[derive(Debug, Clone, Default)]
+pub enum Error {
+    Success = 0x00,
+    TooLongRequest = 0xE0,
+    RequireAuthentication = 0xF0,
+    InvalidPin = 0xF1,
+    NotAllowed = 0xF2,
+    BadFormat = 0xF3,
+    UserNotPresent = 0xF4,
+    FailedLoadingData = 0xF5,
+    InvalidChecksum = 0xF6,
+    AlreadyInDatabase = 0xF7,
+    NotFound = 0xF8,
+    AssertFailed = 0xF9,
+    InternalError = 0xFA,
+    MemoryFull = 0xFB,
+    NotImplemented = 0xFC,
+    BadOrigin = 0xFD,
+    #[default]
+    NotSetInvalid = 0xFE,
+    InvalidCommand = 0xFF,
 }
 
 #[repr(u8)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Default)]
 pub enum CommandID {
     // TODO design discuss should it be non-zero, to avoid responding to empty messages
     /// Get Webcrypt's status
-    STATUS = 0x00,
+    Status = 0x00,
     /// Test command - just return the received data
-    TEST_PING = 0x01,
+    TestPing = 0x01,
     /// Test command - clear user data without confirmation
-    TEST_CLEAR = 0x02,
+    TestClear = 0x02,
     /// Test command - issue reboot command to the host, if configured
-    TEST_REBOOT = 0x03,
+    TestReboot = 0x03,
     /// Unlock access through FIDO U2F. Available for FIDO U2F compatibility.  FIDO2 should use native PIN handling.
-    LOGIN = 0x04,
+    Login = 0x04,
     /// Lock access through FIDO U2F. Available for FIDO U2F compatibility.
-    LOGOUT = 0x05,
+    Logout = 0x05,
     /// Action should be equal in effect to calling FIDO2 reset
-    FACTORY_RESET = 0x06,
+    FactoryReset = 0x06,
     /// Return PIN attempts' counter value. @DEPRECATED by STATUS command.
-    PIN_ATTEMPTS = 0x07,
+    PinAttempts = 0x07,
     /// Set user options, like when to ask for the touch confirmation or PIN
-    SET_CONFIGURATION = 0x08,
-    GET_CONFIGURATION = 0x09,
-    SET_PIN = 0x0A,
-    CHANGE_PIN = 0x0B,
+    SetConfiguration = 0x08,
+    GetConfiguration = 0x09,
+    SetPin = 0x0A,
+    ChangePin = 0x0B,
 
     /// Initialize Webcrypt's secrets
-    INITIALIZE_SEED = 0x10,
+    InitializeSeed = 0x10,
     /// Restore Webcrypt secrets from the provided data
-    RESTORE_FROM_SEED = 0x11,
+    RestoreFromSeed = 0x11,
     /// Generate a key and return it to the callee as key handle
-    GENERATE_KEY = 0x12,
+    GenerateKey = 0x12,
     /// Sign data with key handle
-    SIGN = 0x13,
+    Sign = 0x13,
     /// Decrypt data with key handle
-    DECRYPT = 0x14,
+    Decrypt = 0x14,
     /// Generate a key from the provided data
-    GENERATE_KEY_FROM_DATA = 0x15,
+    GenerateKeyFromData = 0x15,
 
     /// Write a Resident Key from the provided data
-    GENERATE_RESIDENT_KEY = 0x16,
+    GenerateResidentKey = 0x16,
     /// Read public key of the Resident Key
-    READ_RESIDENT_KEY_PUBLIC = 0x17,
+    ReadResidentKeyPublic = 0x17,
     /// Discover Resident Keys related to this RP
-    DISCOVER_RESIDENT_KEYS = 0x18,
+    DiscoverResidentKeys = 0x18,
     /// Write RAW key as received from the RP
-    WRITE_RESIDENT_KEY = 0x19,
+    WriteResidentKey = 0x19,
 
     /// OPENPGP specific commands
-    OPENPGP_DECRYPT = 0x20,
-    OPENPGP_SIGN = 0x21,
-    OPENPGP_INFO = 0x22,
-    OPENPGP_IMPORT = 0x23,
-    OPENPGP_GENERATE = 0x24,
+    OpenPgpDecrypt = 0x20,
+    OpenPgpSign = 0x21,
+    OpenPgpInfo = 0x22,
+    OpenPgpImport = 0x23,
+    OpenPgpGenerate = 0x24,
 
     /// Implementation detail: default value
     /// Add map to From<u8> for CommandID, or you will get this value: 0xFE
-    NOT_SET = 0xFE,
-    /// Implementation detail: commands' total count
-    __MAX_SIZE,
-}
-
-impl Default for CommandID {
-    fn default() -> Self {
-        CommandID::NOT_SET
-    }
+    #[default]
+    NotSetInvalid = 0xFE,
 }
 
 impl From<CommandID> for u8 {
@@ -164,37 +155,37 @@ impl From<u8> for CommandID {
     fn from(c: u8) -> Self {
         use CommandID::*;
         match c {
-            0x00 => STATUS,
-            0x01 => TEST_PING,
-            0x02 => TEST_CLEAR,
-            0x03 => TEST_REBOOT,
-            0x04 => LOGIN,
-            0x05 => LOGOUT,
-            0x06 => FACTORY_RESET,
-            0x07 => PIN_ATTEMPTS,
-            0x08 => SET_CONFIGURATION,
-            0x09 => GET_CONFIGURATION,
-            0x0A => SET_PIN,
-            0x0B => CHANGE_PIN,
-            0x10 => INITIALIZE_SEED,
-            0x11 => RESTORE_FROM_SEED,
-            0x12 => GENERATE_KEY,
-            0x13 => SIGN,
-            0x14 => DECRYPT,
-            0x15 => GENERATE_KEY_FROM_DATA,
-            0x16 => GENERATE_RESIDENT_KEY,
-            0x17 => READ_RESIDENT_KEY_PUBLIC,
-            0x18 => DISCOVER_RESIDENT_KEYS,
-            0x19 => WRITE_RESIDENT_KEY,
+            0x00 => Status,
+            0x01 => TestPing,
+            0x02 => TestClear,
+            0x03 => TestReboot,
+            0x04 => Login,
+            0x05 => Logout,
+            0x06 => FactoryReset,
+            0x07 => PinAttempts,
+            0x08 => SetConfiguration,
+            0x09 => GetConfiguration,
+            0x0A => SetPin,
+            0x0B => ChangePin,
+            0x10 => InitializeSeed,
+            0x11 => RestoreFromSeed,
+            0x12 => GenerateKey,
+            0x13 => Sign,
+            0x14 => Decrypt,
+            0x15 => GenerateKeyFromData,
+            0x16 => GenerateResidentKey,
+            0x17 => ReadResidentKeyPublic,
+            0x18 => DiscoverResidentKeys,
+            0x19 => WriteResidentKey,
 
-            0x20 => OPENPGP_DECRYPT,
-            0x21 => OPENPGP_SIGN,
-            0x22 => OPENPGP_INFO,
-            0x23 => OPENPGP_IMPORT,
-            0x24 => OPENPGP_GENERATE,
+            0x20 => OpenPgpDecrypt,
+            0x21 => OpenPgpSign,
+            0x22 => OpenPgpInfo,
+            0x23 => OpenPgpImport,
+            0x24 => OpenPgpGenerate,
 
-            0xFE => NOT_SET,
-            _ => NOT_SET,
+            0xFE => NotSetInvalid,
+            _ => NotSetInvalid,
         }
     }
 }
@@ -251,12 +242,12 @@ impl From<&Bytes<255>> for WebcryptRequest {
 }
 
 impl TryFrom<WebcryptRequest> for ExtWebcryptCmd {
-    type Error = ERROR_ID;
+    type Error = Error;
 
     fn try_from(webcrypt_request: WebcryptRequest) -> Result<Self, Self::Error> {
         // move to serde/nom
         // let mut rdr = Cursor::new(&webcrypt_request.payload);
-        let data = webcrypt_request.payload.clone();
+        let data = webcrypt_request.payload;
         // U8 U8 U8 U8 U8 MESS
         let mut res = ExtWebcryptCmd {
             command_id_transport: data[0].into(),
@@ -267,40 +258,42 @@ impl TryFrom<WebcryptRequest> for ExtWebcryptCmd {
             data_first_byte: Default::default(),
         };
         // res.data_first_byte.extend(webcrypt_request.payload[5..]); // TODO fix magic number
-        for i in 5..webcrypt_request.payload.len() {
-            res.data_first_byte.push(webcrypt_request.payload[i]);
+        for i in 5..data.len() {
+            res.data_first_byte.push(data[i]).unwrap();
         }
         Ok(res)
     }
 }
 
 impl TryFrom<ExtWebcryptCmd> for Message {
-    type Error = ERROR_ID;
+    type Error = Error;
 
     fn try_from(a: ExtWebcryptCmd) -> Result<Self, Self::Error> {
         let mut res = Message::new();
-        res.push(a.command_id_transport as u8);
-        res.push(a.packet_no.into());
-        res.push(a.packet_count.into());
-        res.push(a.chunk_size);
-        res.push(a.this_chunk_length);
-        res.extend_from_slice(&a.data_first_byte);
+        res.push(a.command_id_transport as u8).unwrap();
+        res.push(a.packet_no.into()).unwrap();
+        res.push(a.packet_count.into()).unwrap();
+        res.push(a.chunk_size).unwrap();
+        res.push(a.this_chunk_length).unwrap();
+        res.extend_from_slice(&a.data_first_byte).unwrap();
         Ok(res)
     }
 }
 
 // impl From<WebcryptRequest<'_>> for &[u8] {
 impl TryFrom<WebcryptRequest> for Message {
-    type Error = ERROR_ID;
+    type Error = Error;
 
     fn try_from(a: WebcryptRequest) -> Result<Self, Self::Error> {
         let mut res = Message::new();
-        res.push(a.operation_webcrypt_constant);
-        res.push((a.tag_webcrypt_constant & 0xFF000000) as u8);
-        res.push((a.tag_webcrypt_constant & 0xFF0000) as u8);
-        res.push((a.tag_webcrypt_constant & 0xFF00) as u8);
-        res.push((a.tag_webcrypt_constant & 0xFF) as u8);
-        res.extend_from_slice(&a.payload);
+        res.push(a.operation_webcrypt_constant).unwrap();
+        res.push((a.tag_webcrypt_constant & 0xFF000000) as u8)
+            .unwrap();
+        res.push((a.tag_webcrypt_constant & 0xFF0000) as u8)
+            .unwrap();
+        res.push((a.tag_webcrypt_constant & 0xFF00) as u8).unwrap();
+        res.push((a.tag_webcrypt_constant & 0xFF) as u8).unwrap();
+        res.extend_from_slice(&a.payload).unwrap();
         // &res[..]
         // let mut res2 = [0u8; 255];
         // res2.copy_from_slice(&res);
@@ -312,15 +305,15 @@ impl TryFrom<WebcryptRequest> for Message {
 impl ExtWebcryptCmd {
     pub fn new_with_data(v: Message) -> Self {
         ExtWebcryptCmd {
-            data_first_byte: Bytes::<245>::from_slice(&**v).unwrap(),
+            data_first_byte: Bytes::<245>::from_slice(&v).unwrap(),
             ..Self::new()
         }
     }
 
-    pub fn new_with_data_packet(v: Message, p_no: u8, p_total: u8) -> Result<Self, ERROR_ID> {
+    pub fn new_with_data_packet(v: Message, p_no: u8, p_total: u8) -> Result<Self, Error> {
         Ok(ExtWebcryptCmd {
             this_chunk_length: v.len() as u8,
-            data_first_byte: Bytes::<245>::from_slice(&**v).unwrap(),
+            data_first_byte: Bytes::<245>::from_slice(&v).unwrap(),
             packet_no: p_no.try_into()?,
             packet_count: p_total.try_into()?,
             ..Self::new()
@@ -343,8 +336,14 @@ impl ExtWebcryptCmd {
     }
 }
 
+impl Default for ExtWebcryptCmd {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl WebcryptRequest {
-    pub fn new(payload: ExtWebcryptCmd) -> Result<Self, ERROR_ID> {
+    pub fn new(payload: ExtWebcryptCmd) -> Result<Self, Error> {
         Ok(WebcryptRequest {
             operation_webcrypt_constant: WEBCRYPT_CONSTANT,
             tag_webcrypt_constant: 0xABCDEFAB,
@@ -355,15 +354,15 @@ impl WebcryptRequest {
 
 #[derive(Debug, Default)]
 pub struct WebcryptResult {
-    pub status_code: ERROR_ID,
+    pub status_code: Error,
     // pub reply_length: u16,
-    pub cbor_payload: Message,
+    pub cbor_payload: WebcryptMessage,
 }
 
 impl From<WebcryptResult> for Message {
     fn from(r: WebcryptResult) -> Self {
         let mut v = Message::new();
-        v.push(r.status_code as u8);
+        v.push(r.status_code as u8).unwrap();
         v.extend(r.cbor_payload);
         v
     }
@@ -398,11 +397,11 @@ impl PacketNum {
 }
 
 impl TryFrom<u8> for PacketNum {
-    type Error = ERROR_ID;
+    type Error = Error;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         if value > PACKET_NUM_MAX {
-            return Err(ERR_BAD_FORMAT);
+            return Err(BadFormat);
         }
         Ok(PacketNum(value))
     }
@@ -440,7 +439,7 @@ impl From<Message> for CborPart {
 // this is response for the protocol WRITE command
 #[derive(Debug)]
 pub struct ResponseWrite {
-    pub(crate) result: ERROR_ID,
+    pub(crate) result: Error,
 }
 
 // this is response for the protocol READ command
@@ -467,13 +466,24 @@ impl From<Message> for ResponseReadFirst {
         rr
     }
 }
+// impl From<WebcryptMessage> for ResponseReadFirst {
+//     // FIXME copy of from<message>
+//     fn from(v: WebcryptMessage) -> Self {
+//         let mut rr = ResponseReadFirst::new();
+//         rr.data_len = u16::from_le_bytes(v[0..2].try_into().unwrap());
+//         rr.cmd_id = v[2].into();
+//         // rr.data = CborPart::from_slice(v[3..]); // TODO
+//         rr.data = CborPart{ 0: Message::from_slice(&v[3..]).unwrap() };
+//         rr
+//     }
+// }
 
 impl From<ResponseReadFirst> for Message {
     fn from(r: ResponseReadFirst) -> Self {
         let mut v: Message = Bytes::new();
-        v.push(((r.data_len >> 8) & 0xFF) as u8); // using little endian here
-        v.push((r.data_len & 0xFF) as u8);
-        v.push(r.cmd_id as u8);
+        v.push(((r.data_len >> 8) & 0xFF) as u8).unwrap(); // using little endian here
+        v.push((r.data_len & 0xFF) as u8).unwrap();
+        v.push(r.cmd_id as u8).unwrap();
         v.extend(r.data.0);
         v
     }
@@ -496,4 +506,26 @@ pub enum WebcryptResponseType {
     First(ResponseReadFirst),
     Next(ResponseReadNext),
     Write(ResponseWrite),
+}
+
+// extern crate hex;
+
+impl WebcryptResponseType {
+    pub fn log_hex(&self) {
+        match &self {
+            WebcryptResponseType::First(_d) => {
+                // log::info!(
+                //     "WebcryptResponseType data: {:?}",
+                //     hex::encode(_d.data.0.clone())
+                // )
+            }
+            WebcryptResponseType::Next(_d) => {
+                // log::info!(
+                //     "WebcryptResponseType data: {:?}",
+                //     hex::encode(_d.data.0.clone())
+                // )
+            }
+            WebcryptResponseType::Write(_d) => {}
+        }
+    }
 }

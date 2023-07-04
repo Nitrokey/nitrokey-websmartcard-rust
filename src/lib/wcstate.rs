@@ -8,8 +8,10 @@ use trussed::{
 
 // use std::borrow::Borrow;
 use crate::constants::RESIDENT_KEY_COUNT;
-use crate::types::ERROR_ID;
+use crate::types::Error;
 use crate::Message;
+use trussed::key::Kind;
+use trussed::types::PathBuf;
 
 type ResidentKeyID = u8;
 
@@ -23,16 +25,17 @@ pub struct WebcryptConfiguration {
 }
 
 impl Default for WebcryptConfiguration {
+    #[inline(never)]
     fn default() -> Self {
         Self { confirmation: 1 }
     }
 }
 
+use crate::commands::WebcryptTrussedClient;
+use crate::commands_types::ExpectedSessionToken;
 use crate::openpgp::OpenPGPData;
-use crate::types::ERROR_ID::{ERR_INTERNAL_ERROR, ERR_INVALID_PIN, ERR_NOT_ALLOWED};
 use cbor_smol::{cbor_deserialize, cbor_serialize};
 use serde::{Deserialize, Serialize};
-use trussed::key::Kind;
 
 #[derive(Default, Serialize, Deserialize)]
 pub struct WebcryptPIN {
@@ -41,62 +44,67 @@ pub struct WebcryptPIN {
 }
 
 impl WebcryptPIN {
+    #[inline(never)]
     pub fn get_counter(&self) -> u8 {
         self.counter
     }
 
-    pub fn decrease_counter(&mut self) -> Result<(), ERROR_ID> {
+    #[inline(never)]
+    pub fn decrease_counter(&mut self) -> Result<(), Error> {
         if self.counter == 0 {
-            log::info!("Counter PIN used up");
-            return Err(ERR_NOT_ALLOWED);
+            info!("Counter PIN used up");
+            return Err(Error::NotAllowed);
         }
         self.counter -= 1;
         Ok(())
     }
 
-    pub fn check_pin(&mut self, pin: Bytes64) -> Result<bool, ERROR_ID> {
+    #[inline(never)]
+    pub fn check_pin(&mut self, pin: Bytes64) -> Result<bool, Error> {
         if self.pin.is_none() {
-            log::info!("PIN not set");
-            return Err(ERR_NOT_ALLOWED);
+            info!("PIN not set");
+            return Err(Error::NotAllowed);
         }
         if self.counter == 0 {
-            log::info!("Counter PIN used up");
-            return Err(ERR_NOT_ALLOWED);
+            info!("Counter PIN used up");
+            return Err(Error::NotAllowed);
         }
         self.decrease_counter()?;
 
-        log::info!("Counter PIN value: {:?}", self.counter);
+        info!("Counter PIN value: {:?}", self.counter);
 
         // TODO use side-channels safe comparison library, e.g. subtle
         if pin != self.pin.as_ref().unwrap() {
-            return Err(ERR_INVALID_PIN);
+            return Err(Error::InvalidPin);
         }
         self.counter = 8;
 
         Ok(true)
     }
-
-    fn validate_pin(&self, pin: &Bytes64) -> Result<(), ERROR_ID> {
+    #[inline(never)]
+    fn validate_pin(&self, pin: &Bytes64) -> Result<(), Error> {
         let l = pin.len();
         if !(4..=64).contains(&l) {
-            Err(ERR_NOT_ALLOWED)
+            Err(Error::NotAllowed)
         } else {
             Ok(())
         }
     }
 
-    pub fn set_pin(&mut self, pin: Bytes64) -> Result<bool, ERROR_ID> {
+    #[inline(never)]
+    pub fn set_pin(&mut self, pin: Bytes64) -> Result<bool, Error> {
         if self.pin.is_some() {
-            return Err(ERR_NOT_ALLOWED);
+            return Err(Error::NotAllowed);
         }
         self.validate_pin(&pin)?;
         self.pin = Some(pin);
         self.counter = 8;
         Ok(true)
     }
-    pub fn change_pin(&mut self, pin: Bytes64, new_pin: Bytes64) -> Result<bool, ERROR_ID> {
+    #[inline(never)]
+    pub fn change_pin(&mut self, pin: Bytes64, new_pin: Bytes64) -> Result<bool, Error> {
         if self.pin.is_none() {
-            return Err(ERR_NOT_ALLOWED);
+            return Err(Error::NotAllowed);
         }
         self.validate_pin(&new_pin)?;
         self.check_pin(pin)?;
@@ -105,7 +113,7 @@ impl WebcryptPIN {
     }
 }
 
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct WebcryptState {
     initialized_tag: u8,
     version: u8,
@@ -115,6 +123,7 @@ pub struct WebcryptState {
     pub configuration: WebcryptConfiguration,
     pub pin: WebcryptPIN,
     pub openpgp_data: Option<OpenPGPData>,
+    location: Location,
 }
 
 #[derive(Default)]
@@ -130,6 +139,7 @@ impl WebcryptSession {
         self.logout();
     }
 
+    #[inline(never)]
     pub fn is_open(&self) -> bool {
         self.temporary_password_token.is_some()
     }
@@ -138,34 +148,36 @@ impl WebcryptSession {
         self.temporary_password_token = None;
         self.rp_id_hash = None;
     }
-
+    #[inline(never)]
     fn set_token(&mut self, token: Bytes32, rp_id_hash: Bytes<32>) {
         self.temporary_password_token = Some(token);
         self.rp_id_hash = Some(rp_id_hash);
     }
-
+    #[inline(never)]
     fn get_new_token<C: trussed::Client>(&mut self, trussed: &mut C) -> Bytes32 {
         let b = syscall!(trussed.random_bytes(32)).bytes;
         Bytes32::from_slice(b.as_slice()).unwrap()
     }
 
+    #[inline(never)]
     pub fn login<C: trussed::Client>(
         &mut self,
         pin: Bytes64,
         trussed: &mut C,
         rp_id_hash: &Bytes<32>,
         state: &mut WebcryptState,
-    ) -> Result<Bytes32, ERROR_ID> {
+    ) -> Result<Bytes32, Error> {
         let tp: Bytes32 = if state.pin.check_pin(pin)? {
             self.get_new_token(trussed)
         } else {
-            log::info!("PIN invalid");
-            return Err(ERROR_ID::ERR_INVALID_PIN);
+            info!("PIN invalid");
+            return Err(Error::InvalidPin);
         };
         self.set_token(tp.clone(), rp_id_hash.clone());
         Ok(tp)
     }
 
+    #[inline(never)]
     pub fn check_token(&self, token: Bytes32) -> bool {
         match &self.temporary_password_token {
             None => false,
@@ -173,7 +185,18 @@ impl WebcryptSession {
         }
     }
 
-    pub fn check_token_res(&self, token: Bytes32) -> Result<(), ()> {
+    #[inline(never)]
+    pub fn check_token_res(&self, token: ExpectedSessionToken) -> Result<(), ()> {
+        #[cfg(feature = "no-authentication")]
+        return Ok(());
+
+        let token = match token {
+            None => {
+                return Err(());
+            }
+            Some(token) => token,
+        };
+
         // TODO should allow empty tokens, if user was verified through CTAP2 already
         match &self.temporary_password_token {
             None => Err(()),
@@ -181,6 +204,7 @@ impl WebcryptSession {
                 if token == current {
                     Ok(())
                 } else {
+                    warn!("Token invalid: {:?}, expected: {:?}", token, current);
                     Err(())
                 }
             }
@@ -191,28 +215,41 @@ impl WebcryptSession {
 const STATE_FILE_PATH: &[u8; 10] = b"wcrk/state";
 
 impl WebcryptState {
-    pub fn new() -> Self {
-        Default::default()
+    #[inline(never)]
+    pub fn new(location: Location) -> WebcryptState {
+        WebcryptState {
+            initialized_tag: Default::default(),
+            version: 0,
+            resident_keys: Default::default(),
+            master_key: None,
+            master_key_raw: None,
+            configuration: Default::default(),
+            pin: Default::default(),
+            openpgp_data: None,
+            location,
+        }
     }
 
+    #[inline(never)]
     pub fn reset<C>(&mut self, t: &mut C)
     where
-        C: client::Client,
+        C: WebcryptTrussedClient,
     {
-        log::info!("Resetting state");
+        info!("Resetting state");
         self.pin = Default::default();
         if let Some(x) = &self.openpgp_data {
             if let Err(e) = x.clear(t) {
-                log::error!("Failed resetting state: {:?}", e);
+                error!("Failed resetting state: {:?}", e);
             }
         }
         self.openpgp_data = None;
         self.initialize(t);
     }
 
+    #[inline(never)]
     pub fn initialize<C>(&mut self, t: &mut C)
     where
-        C: client::Client,
+        C: WebcryptTrussedClient,
     {
         self.initialized_tag = 0xA5_u8;
 
@@ -220,9 +257,10 @@ impl WebcryptState {
         self.save(t);
     }
 
+    #[inline(never)]
     pub fn restore<C>(&mut self, t: &mut C, master: &Bytes32)
     where
-        C: client::Client,
+        C: WebcryptTrussedClient,
     {
         self.initialized_tag = 0xA5_u8;
 
@@ -230,16 +268,27 @@ impl WebcryptState {
             syscall!(t.delete(key));
         }
         // 2. set as key
-        let key =
-            syscall!(t.unsafe_inject_shared_key(master, Location::Internal, Kind::Shared(32))).key;
+        let key = syscall!(t.inject_any_key(
+            master
+                .try_convert_into()
+                .map_err(|_| Error::FailedLoadingData)
+                .unwrap(), // FIXME handle error
+            self.location,
+            #[cfg(feature = "inject-any-key")]
+            Kind::Shared(32)
+        ))
+        .key
+        .ok_or(Error::FailedLoadingData)
+        .unwrap(); // FIXME handle error
         self.master_key = Some(key);
         // 3. return it up to the caller
         self.save(t);
     }
 
+    #[inline(never)]
     pub fn get_key_master<T>(&mut self, trussed: &mut T) -> Option<KeyId>
     where
-        T: client::Client,
+        T: WebcryptTrussedClient,
     {
         match self.master_key {
             Some(key) => Some(key),
@@ -247,19 +296,21 @@ impl WebcryptState {
         }
     }
 
+    #[inline(never)]
     pub fn get_master_key_raw(&mut self) -> Option<MasterKeyRawBytes> {
         self.master_key_raw.take()
     }
 
+    #[inline(never)]
     pub fn rotate_key_master<T>(&mut self, t: &mut T) -> Option<KeyId>
     where
-        T: client::Client,
+        T: WebcryptTrussedClient,
     {
         if let Some(key) = self.master_key {
             syscall!(t.delete(key));
         }
 
-        log::info!("Rotating master key");
+        info!("Rotating master key");
         // 1. get random data
         let data = syscall!(t.random_bytes(32)).bytes;
         self.master_key_raw = Some(data.to_bytes().unwrap());
@@ -268,95 +319,104 @@ impl WebcryptState {
                 syscall!(t.delete(key));
             }
             // 2. set as key
-            let key =
-                syscall!(t.unsafe_inject_shared_key(&data, Location::Internal, Kind::Shared(32)))
-                    .key;
-            // 3. return it up to the caller
+            let key = syscall!(t.inject_any_key(
+                data.try_convert_into()
+                    .map_err(|_| Error::FailedLoadingData)
+                    .unwrap(), // FIXME handle error
+                self.location,
+                #[cfg(feature = "inject-any-key")]
+                Kind::Shared(32)
+            ))
+            .key
+            .ok_or(Error::FailedLoadingData)
+            .unwrap(); // FIXME handle error
+                       // 3. return it up to the caller
             Some(key)
         };
         self.save(t);
         self.master_key
     }
 
-    pub fn load<T>(&mut self, t: &mut T) -> Result<(), ERROR_ID>
+    #[inline(never)]
+    pub fn load<T>(&mut self, t: &mut T) -> Result<(), Error>
     where
         T: client::Client,
     {
-        use littlefs2::path::PathBuf;
-        let state_ser =
-            try_syscall!(t.read_file(Location::Internal, PathBuf::from(STATE_FILE_PATH)))
-                .map_err(|_| ERR_INTERNAL_ERROR)?
-                .data;
-        log::info!("State file found. Loading.");
+        let state_ser = try_syscall!(t.read_file(self.location, PathBuf::from(STATE_FILE_PATH)))
+            .map_err(|_| Error::InternalError)?
+            .data;
+        info!("State file found. Loading.");
 
         // todo handle errors from the data corruption separately
         let w = self
             .deserialize(state_ser.as_slice())
-            .map_err(|_| ERR_INTERNAL_ERROR)?;
+            .map_err(|_| Error::InternalError)?;
 
         if !w.initialized() {
-            log::info!("Found state not initialized. Aborting load.");
-            return Err(ERR_INTERNAL_ERROR);
+            info!("Found state not initialized. Aborting load.");
+            return Err(Error::InternalError);
         }
 
         *self = w;
         // TODO test that
-        log::info!("State loaded");
+        info!("State loaded");
         Ok(())
     }
-
-    fn deserialize(&self, data: &[u8]) -> Result<Self, ERROR_ID> {
+    #[inline(never)]
+    fn deserialize(&self, data: &[u8]) -> Result<Self, Error> {
         if data.is_empty() {
-            return Err(ERROR_ID::ERR_INTERNAL_ERROR);
+            return Err(Error::InternalError);
         }
-        cbor_deserialize(data).map_err(|_| ERROR_ID::ERR_INTERNAL_ERROR)
+        cbor_deserialize(data).map_err(|_| Error::InternalError)
     }
-
+    #[inline(never)]
     fn serialize(&self) -> Message {
         // TODO decide on memory limits
         let mut slice = [0u8; 2 * 1024];
         Message::from_slice(cbor_serialize(self, &mut slice).unwrap()).unwrap()
     }
 
+    #[inline(never)]
     pub fn file_reset<T>(&self, t: &mut T)
     where
         T: client::Client,
     {
-        use littlefs2::path::PathBuf;
-        let r = try_syscall!(t.remove_file(Location::Internal, PathBuf::from(STATE_FILE_PATH)));
+        let r = try_syscall!(t.remove_file(self.location, PathBuf::from(STATE_FILE_PATH)));
         if r.is_ok() {
-            log::info!("State removed");
+            info!("State removed");
         }
     }
 
+    #[inline(never)]
     pub fn initialized(&self) -> bool {
         self.initialized_tag == 0xA5
     }
 
+    #[inline(never)]
     pub fn save<T>(&self, t: &mut T)
     where
         T: client::Client,
     {
-        log::info!("State save called");
+        info!("State save called");
         if !self.initialized() {
-            log::info!("State not initialized, aborting");
+            info!("State not initialized, aborting");
             // abort save on uninitialized structure
             return;
         }
         // todo!();
-        use littlefs2::path::PathBuf;
 
         try_syscall!(t.write_file(
-            Location::Internal,
+            self.location,
             PathBuf::from(STATE_FILE_PATH),
-            self.serialize(),
+            Bytes::from_slice(self.serialize().as_slice()).unwrap(),
             None,
         ))
-        .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)
+        .map_err(|_| Error::MemoryFull)
         .unwrap();
-        log::info!("State saved");
+        info!("State saved");
     }
 
+    #[inline(never)]
     pub fn logout(&mut self) {
         self.resident_keys = Default::default();
         self.master_key = None;

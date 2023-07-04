@@ -5,52 +5,86 @@ use heapless::Vec;
 use heapless_bytes::{Bytes, Bytes32};
 use trussed::api::reply::Encrypt;
 use trussed::key::Kind;
-use trussed::types::KeyId;
+use trussed::types::{KeyId, SerializedKey};
+
 use trussed::types::PathBuf;
 use trussed::{
     client, syscall, try_syscall,
     types::{KeySerialization, Location, Mechanism, SignatureSerialization},
 };
-use ERROR_ID::ERR_INTERNAL_ERROR;
+
+#[cfg(feature = "rsa")]
+use trussed_rsa_alloc::RsaImportFormat;
 
 use crate::commands_types::*;
 use crate::constants::GIT_VERSION;
 use crate::constants::{WEBCRYPT_AVAILABLE_SLOTS_MAX, WEBCRYPT_VERSION};
 use crate::rk_files::*;
 use crate::transport::Webcrypt;
-use crate::types::CommandID::{CHANGE_PIN, SET_PIN};
-use crate::types::ERROR_ID;
+use crate::types::CommandID::{ChangePin, SetPin};
+use crate::types::Error;
 
 use crate::helpers::hash;
 use crate::openpgp::OpenPGPData;
-use crate::types::ERROR_ID::{
-    ERR_BAD_FORMAT, ERR_BAD_ORIGIN, ERR_FAILED_LOADING_DATA, ERR_INVALID_PIN, ERR_NOT_FOUND,
-};
-use crate::{Message, RequestSource, DEFAULT_ENCRYPTION_PIN};
+use crate::types::Error::{BadFormat, InternalError};
+use crate::{Message, RequestSource};
 
-type CommandResult = Result<(), ERROR_ID>;
+type CommandResult = Result<(), Error>;
 
+#[cfg(not(feature = "hmacsha256p256"))]
 pub trait WebcryptTrussedClient:
     client::Client
     + client::P256
     + client::Chacha8Poly1305
     + client::HmacSha256
     + client::Sha256
-    + client::HmacSha256P256
     + client::Aes256Cbc
 {
 }
 
+#[cfg(not(feature = "hmacsha256p256"))]
+impl<
+        C: client::Client
+            + client::P256
+            + client::Chacha8Poly1305
+            + client::HmacSha256
+            + client::Sha256
+            + client::Aes256Cbc,
+    > WebcryptTrussedClient for C
+{
+}
+
+use trussed_staging::hmacsha256p256::HmacSha256P256Client;
+
+#[cfg(feature = "hmacsha256p256")]
+pub trait WebcryptTrussedClient:
+    client::Client
+    + client::P256
+    + client::Chacha8Poly1305
+    + client::HmacSha256
+    + client::Sha256
+    + HmacSha256P256Client
+    + client::Aes256Cbc
+{
+}
+
+#[cfg(feature = "hmacsha256p256")]
+impl<
+        C: client::Client
+            + client::P256
+            + client::Chacha8Poly1305
+            + client::HmacSha256
+            + client::Sha256
+            + HmacSha256P256Client
+            + client::Aes256Cbc,
+    > WebcryptTrussedClient for C
+{
+}
+
+#[inline(never)]
 pub fn cmd_status<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Chacha8Poly1305
-        + client::HmacSha256
-        + client::Sha256
-        + client::HmacSha256P256
-        + client::Aes256Cbc,
+    C: WebcryptTrussedClient,
 {
     let git_version_bytes = Bytes::from_slice(GIT_VERSION[..].as_bytes()).unwrap();
     let resp = CommandStatusResponse {
@@ -64,38 +98,24 @@ where
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_test_ping<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Sha256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     w.send_input_to_output();
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_generate_key<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::Sha256
-        + client::HmacSha256P256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
-    let req: CommandGenerateRequest = w
-        .get_input_deserialized()
-        .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
+    let req: CommandGenerateRequest = w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
     w.session
-        .check_token_res(req.tp.unwrap())
-        .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
+        .check_token_res(req.tp)
+        .map_err(|_| Error::RequireAuthentication)?;
 
     // Generate a new P256 key pair.
     let private_key = syscall!(w.trussed.generate_p256_private_key(Location::Volatile)).key;
@@ -120,7 +140,7 @@ where
         // add identifier for uncompressed form - 0x04
         pubkey
             .insert(0, 0x04)
-            .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?;
+            .map_err(|_| Error::FailedLoadingData)?;
         CommandGenerateResponse {
             pubkey,
             keyhandle: KeyHandleSerialized::from_slice(&keyhandle_ser_enc[..]).unwrap(),
@@ -130,23 +150,18 @@ where
     Ok(())
 }
 
+#[inline(never)]
 pub fn wrap_key_to_keyhandle<C>(
     w: &mut Webcrypt<C>,
     private_key: KeyId,
-) -> Result<KeyHandleSerialized, ERROR_ID>
+) -> Result<KeyHandleSerialized, Error>
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
-    let appid = w.session.rp_id_hash.clone().ok_or(ERR_BAD_ORIGIN)?;
+    let appid = w.session.rp_id_hash.clone().ok_or(Error::BadOrigin)?;
 
     // The wrapping operation is reused from the fido-authenticator crate.
-    // 1. The private key is wrapped using a persistent wrapping key using ChaCha20-Poly1305 AEAD algorithm.
+    // 1. The private key is wrapped using a persistent wrapping key using ChaCha8-Poly1305 AEAD algorithm.
     // 2. The wrapped key is embedded into a KeyHandle data structure, containing additional metadata (RP ID, Usage Flags).
     // 3. The serialized KeyHandle structure is finally CBOR serialized and encrypted, resulting in a binary blob to be used with other commands.
 
@@ -154,12 +169,12 @@ where
         .store
         .persistent
         .key_wrapping_key(&mut w.trussed)
-        .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?;
-    debug!("wrapping u2f private key");
+        .map_err(|_| Error::FailedLoadingData)?;
+    info!("wrapping u2f private key");
     let wrapped_key =
         syscall!(w
             .trussed
-            .wrap_key_chacha8poly1305(wrapping_key, private_key, &appid,))
+            .wrap_key_chacha8poly1305(wrapping_key, private_key, &appid))
         .wrapped_key;
 
     let nonce_2 = syscall!(w.trussed.random_bytes(12));
@@ -171,16 +186,17 @@ where
         appid: appid.clone(),
         wrapped_private_key: wrapped_key
             .to_bytes()
-            .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?,
+            .map_err(|_| Error::FailedLoadingData)?,
         nonce: Bytes::<12>::from_slice(nonce).unwrap(),
         usage_flags: None,
+        mechanism: None,
     };
 
     let kek = w
         .store
         .persistent
         .key_encryption_key(&mut w.trussed)
-        .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?;
+        .map_err(|_| Error::FailedLoadingData)?;
     let keyhandle_ser = kh.ser();
     let encr =
         syscall!(w
@@ -190,49 +206,24 @@ where
     Ok(keyhandle_ser_enc)
 }
 
+#[inline(never)]
 pub fn cmd_sign<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Sha256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
-    let req: CommandSignRequest = w
-        .get_input_deserialized()
-        .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
+    let req: CommandSignRequest = w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
     w.session
-        .check_token_res(req.tp.unwrap())
-        .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
+        .check_token_res(req.tp)
+        .map_err(|_| Error::RequireAuthentication)?;
 
     if !(req.keyhandle.len() > 0 && req.hash.len() > 0) {
-        return Err(ERR_FAILED_LOADING_DATA);
+        return Err(Error::FailedLoadingData);
     }
 
-    let (key, keyhandle_points_to_RK) = if req.keyhandle.len() > 32 {
-        // invalid keyhandle or lack of memory
-        (import_key_from_keyhandle(w, &req.keyhandle)?, false)
-    } else {
-        // this is RK
-        let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
-        let cred_data = try_syscall!(w.trussed.read_file(
-            Location::Internal,
-            rk_path(
-                rp_id_hash,
-                &Bytes32::from_slice(req.keyhandle.as_slice()).unwrap()
-            )
-        ))
-        .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)?
-        .data;
-        let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
-        (cred.key_id, true)
-    };
+    let (key, mechanism, keyhandle_points_to_rk) = get_key_from_keyhandle(w, req.keyhandle)?;
 
     let signature = syscall!(w.trussed.sign(
-        Mechanism::P256,
+        mechanism,
         key,
         req.hash.as_slice(),
         SignatureSerialization::Raw
@@ -240,7 +231,7 @@ where
     .signature;
     let signature = signature.to_bytes().expect("Too small target buffer");
 
-    if !keyhandle_points_to_RK {
+    if !keyhandle_points_to_rk {
         syscall!(w.trussed.delete(key));
     }
 
@@ -254,12 +245,58 @@ where
     Ok(())
 }
 
+#[inline(never)]
+fn get_key_from_keyhandle<C>(
+    w: &mut Webcrypt<C>,
+    keyhandle: KeyHandleSerialized,
+) -> ResultW<(KeyId, Mechanism, bool)>
+where
+    C: WebcryptTrussedClient,
+{
+    if keyhandle.len() == 0 {
+        return Err(BadFormat);
+    }
+
+    let res = if keyhandle.len() > 32 {
+        // invalid keyhandle or lack of memory
+        let (keyid, mechanism) = import_key_from_keyhandle(w, &keyhandle)?;
+        (keyid, mechanism, false)
+    } else {
+        // this is RK
+        let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
+        let cred_data = try_syscall!(w.trussed.read_file(
+            w.options.location,
+            rk_path(
+                rp_id_hash,
+                &Bytes32::from_slice(keyhandle.as_slice()).unwrap()
+            )
+        ))
+        .map_err(|_| Error::MemoryFull)?
+        .data;
+        let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
+        let mech = cred_to_mechanism(&cred);
+        (cred.key_id, mech, true)
+    };
+    Ok(res)
+}
+
+#[inline(never)]
+fn cred_to_mechanism(cred: &CredentialData) -> Mechanism {
+    let mech = match cred.algorithm {
+        0 => Mechanism::P256,
+        1 => Mechanism::Rsa2048Pkcs1v15,
+        _ => Mechanism::P256,
+    };
+    mech
+}
+
+#[inline(never)]
 fn import_key_from_keyhandle<C>(
     w: &mut Webcrypt<C>,
     encrypted_serialized_keyhandle: &KeyHandleSerialized,
-) -> Result<KeyId, ERROR_ID>
+) -> Result<(KeyId, Mechanism), Error>
 where
-    C: trussed::Client + client::Client + client::P256 + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     // encr_ser -> encr struct -> decrypted serialized -> struct
 
@@ -268,17 +305,16 @@ where
     // 2. From the resulting KeyHandle structure the wrapped private key is decrypted and deserialized
     // 3. Finally, the wrapped private key is imported to the volatile in-memory keystore, and used for the further operations.
 
-    let appid = w.session.rp_id_hash.clone().ok_or(ERR_BAD_ORIGIN)?;
+    let appid = w.session.rp_id_hash.clone().ok_or(Error::BadOrigin)?;
 
-    let encr_message: Encrypt =
-        trussed::cbor_deserialize(encrypted_serialized_keyhandle.as_slice())
-            .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
+    let encr_message: Encrypt = cbor_deserialize(encrypted_serialized_keyhandle.as_slice())
+        .map_err(|_| Error::BadFormat)?;
 
     let kek = w
         .store
         .persistent
         .key_encryption_key(&mut w.trussed)
-        .map_err(|_| ERROR_ID::ERR_INTERNAL_ERROR)?;
+        .map_err(|_| Error::InternalError)?;
     let decrypted_serialized = try_syscall!(w.trussed.decrypt_chacha8poly1305(
         kek,
         &encr_message.ciphertext,
@@ -287,72 +323,63 @@ where
         &encr_message.tag,
     ));
     let decrypted_serialized = decrypted_serialized
-        .map_err(|_| ERROR_ID::ERR_INTERNAL_ERROR)?
+        .map_err(|_| Error::InternalError)?
         .plaintext
-        .ok_or(ERROR_ID::ERR_BAD_ORIGIN)?;
+        .ok_or(Error::BadOrigin)?;
 
     let key_handle: KeyHandle = KeyHandle::deser(decrypted_serialized);
     let keywrapped = key_handle.wrapped_private_key;
 
     if key_handle.appid != w.session.rp_id_hash.as_ref().unwrap() {
-        return Err(ERROR_ID::ERR_BAD_ORIGIN);
+        return Err(Error::BadOrigin);
     }
 
     let wrapping_key = w
         .store
         .persistent
         .key_wrapping_key(&mut w.trussed)
-        .map_err(|_| ERROR_ID::ERR_INTERNAL_ERROR)?;
+        .map_err(|_| Error::InternalError)?;
     let key = syscall!(w.trussed.unwrap_key_chacha8poly1305(
         wrapping_key,
         &keywrapped,
-        b"",
+        &appid,
         Location::Volatile,
     ))
     .key
-    .unwrap();
-    Ok(key)
+    .ok_or(Error::InternalError)?;
+
+    let m = key_handle.mechanism.unwrap_or(Mechanism::P256);
+
+    Ok((key, m))
 }
 
+#[inline(never)]
 pub fn cmd_openpgp_generate<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Sha256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     let _: CommandOpenPGPInitRequest = w
         .get_input_deserialized()
-        .map_err(|_| ERR_FAILED_LOADING_DATA)?;
+        .map_err(|_| Error::FailedLoadingData)?;
 
-    w.state.openpgp_data = Some(OpenPGPData::init(&mut w.trussed));
+    w.state.openpgp_data = Some(OpenPGPData::init(&mut w.trussed, w.options.location));
     w.state.save(&mut w.trussed);
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_openpgp_info<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Sha256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     let _: CommandOpenPGPInfoRequest = w
         .get_input_deserialized()
-        .map_err(|_| ERR_FAILED_LOADING_DATA)?;
+        .map_err(|_| Error::FailedLoadingData)?;
 
     // FIXME remove -> initialize in a separate command
     // move to state initialization
     if w.state.openpgp_data.is_none() {
-        w.state.openpgp_data = Some(OpenPGPData::init(&mut w.trussed));
+        w.state.openpgp_data = Some(OpenPGPData::init(&mut w.trussed, w.options.location));
         w.state.save(&mut w.trussed);
     }
 
@@ -360,32 +387,32 @@ where
         .state
         .openpgp_data
         .as_mut()
-        .ok_or(ERR_FAILED_LOADING_DATA)?;
+        .ok_or(Error::FailedLoadingData)?;
     let encr_pubkey = DataBytes::from_slice(
         openpgp_data
             .encryption
             .get_public_key_serialized(&mut w.trussed)
             .as_slice(),
     )
-    .map_err(|_| ERR_FAILED_LOADING_DATA)?;
+    .map_err(|_| Error::FailedLoadingData)?;
     let auth_pubkey = DataBytes::from_slice(
         openpgp_data
             .authentication
             .get_public_key_serialized(&mut w.trussed)
             .as_slice(),
     )
-    .map_err(|_| ERR_FAILED_LOADING_DATA)?;
+    .map_err(|_| Error::FailedLoadingData)?;
     let sign_pubkey = DataBytes::from_slice(
         openpgp_data
             .signing
             .get_public_key_serialized(&mut w.trussed)
             .as_slice(),
     )
-    .map_err(|_| ERR_FAILED_LOADING_DATA)?;
+    .map_err(|_| Error::FailedLoadingData)?;
 
     // let sign_keyhandle = wrap_key_to_keyhandle(w, openpgp_data.signing.key)?;
 
-    let date = DataBytes::from_slice(&openpgp_data.date).map_err(|_| ERR_INTERNAL_ERROR)?;
+    let date = DataBytes::from_slice(&openpgp_data.date).map_err(|_| Error::InternalError)?;
     w.send_to_output(CommandOpenPGPInfoResponse {
         encr_pubkey,
         auth_pubkey,
@@ -396,29 +423,23 @@ where
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_openpgp_import<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Sha256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     let req = match w.get_input_deserialized() {
         Ok(x) => Ok(x),
         Err(e) => {
-            log::error!("Deserialization error: {:?}", e);
+            error!("Deserialization error: {:?}", e);
             Err(e)
         }
     };
 
-    let req: CommandOpenPGPImportRequest = req.map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
+    let req: CommandOpenPGPImportRequest = req.map_err(|_| Error::BadFormat)?;
     w.session
-        .check_token_res(req.tp.unwrap())
-        .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
+        .check_token_res(req.tp)
+        .map_err(|_| Error::RequireAuthentication)?;
 
     w.state.openpgp_data = Some(OpenPGPData::import(
         &mut w.trussed,
@@ -426,40 +447,35 @@ where
         req.sign_privkey,
         req.encr_privkey,
         req.date.unwrap_or_default(),
+        w.options.location,
     )?);
     w.state.save(&mut w.trussed);
 
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_openpgp_sign<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Sha256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     let req = match w.get_input_deserialized() {
         Ok(x) => Ok(x),
         Err(e) => {
-            log::error!("Deserialization error: {:?}", e);
+            error!("Deserialization error: {:?}", e);
             Err(e)
         }
     };
 
-    let req: CommandOpenPGPSignRequest = req.map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
+    let req: CommandOpenPGPSignRequest = req.map_err(|_| Error::BadFormat)?;
     w.session
-        .check_token_res(req.tp.unwrap())
-        .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
+        .check_token_res(req.tp)
+        .map_err(|_| Error::RequireAuthentication)?;
 
     // FIXME remove -> initialize in a separate command
     // move to state initialization
     if w.state.openpgp_data.is_none() {
-        w.state.openpgp_data = Some(OpenPGPData::init(&mut w.trussed));
+        w.state.openpgp_data = Some(OpenPGPData::init(&mut w.trussed, w.options.location));
         w.state.save(&mut w.trussed);
     }
 
@@ -470,8 +486,8 @@ where
         SignatureSerialization::Raw
     ))
     .map_err(|e| {
-        log::error!("Signing error: {:?}", e);
-        ERROR_ID::ERR_FAILED_LOADING_DATA
+        error!("Signing error: {:?}", e);
+        Error::FailedLoadingData
     })?
     .signature;
     let signature = signature.to_bytes().expect("Too small target buffer");
@@ -481,87 +497,69 @@ where
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_openpgp_decrypt<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Sha256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     let req = match w.get_input_deserialized() {
         Ok(x) => Ok(x),
         Err(e) => {
-            log::error!("Deserialization error: {:?}", e);
+            error!("Deserialization error: {:?}", e);
             Err(e)
         }
     };
 
-    let req: CommandOpenPGPDecryptRequest = req.map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
+    let req: CommandOpenPGPDecryptRequest = req.map_err(|_| Error::BadFormat)?;
     w.session
-        .check_token_res(req.tp.unwrap())
-        .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
+        .check_token_res(req.tp)
+        .map_err(|_| Error::RequireAuthentication)?;
 
     // FIXME remove -> initialize in a separate command
     // move to state initialization
     if w.state.openpgp_data.is_none() {
-        w.state.openpgp_data = Some(OpenPGPData::init(&mut w.trussed));
+        w.state.openpgp_data = Some(OpenPGPData::init(&mut w.trussed, w.options.location));
         w.state.save(&mut w.trussed);
     }
 
     // TODO find via provided fingerprint if not, get from openpgp info struct, or use the first one
     // Currently check for the exact match of the held openpgp keys and their fingerprints
     // if provided, use keyhandle or just default encryption key
-    let kh_key = if req.fingerprint.is_none() && req.keyhandle.is_none() {
-        w.state
+    let (kh_key, mech, is_rk) = if req.fingerprint.is_none() && req.keyhandle.is_none() {
+        let open_pgpkey = &w
+            .state
             .openpgp_data
             .as_ref()
-            .ok_or(ERR_FAILED_LOADING_DATA)?
-            .encryption
-            .key
+            .ok_or(Error::FailedLoadingData)?
+            .encryption;
+        (open_pgpkey.key, open_pgpkey.key_mechanism, true)
     } else if req.fingerprint.is_some() {
-        w.state
-            .openpgp_data
-            .as_ref()
-            .ok_or(ERR_NOT_FOUND)?
-            .get_id_by_fingerprint(
-                req.fingerprint
-                    .unwrap()
-                    .as_slice()
-                    .try_into()
-                    .map_err(|_| ERR_FAILED_LOADING_DATA)?,
-            )
-            .ok_or(ERR_NOT_FOUND)?
+        (
+            w.state
+                .openpgp_data
+                .as_ref()
+                .ok_or(Error::NotFound)?
+                .get_id_by_fingerprint(
+                    req.fingerprint
+                        .unwrap()
+                        .as_slice()
+                        .try_into()
+                        .map_err(|_| Error::FailedLoadingData)?,
+                )
+                .ok_or(Error::NotFound)?,
+            Mechanism::P256,
+            true,
+        )
     } else {
         let keyhandle = req.keyhandle.unwrap();
-        // regular keyhandle unpacking below
-        // TODO remove duplication / extract unpacking
-        if keyhandle.len() > 32 {
-            import_key_from_keyhandle(w, &keyhandle)?
-        } else {
-            let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
-            let cred_data = try_syscall!(w.trussed.read_file(
-                Location::Internal,
-                rk_path(
-                    rp_id_hash,
-                    &Bytes32::from_slice(keyhandle.as_slice()).unwrap()
-                )
-            ))
-            .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)?
-            .data;
-            let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
-            cred.key_id
-        }
+        get_key_from_keyhandle(w, keyhandle)?
     };
 
     let agreed_shared_secret_id = {
         let ecc_key: Vec<u8, 64> = match req.eccekey.len() {
             65 => Vec::<u8, 64>::from_slice(&req.eccekey[1..65]).unwrap(),
             64 => Vec::<u8, 64>::from_slice(&req.eccekey[0..64]).unwrap(),
-            _ => return Err(ERR_FAILED_LOADING_DATA),
+            _ => return Err(Error::FailedLoadingData),
         };
 
         // import incoming public key
@@ -571,11 +569,11 @@ where
             trussed::types::StorageAttributes::new()
                 .set_persistence(trussed::types::Location::Volatile)
         ))
-        .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
+        .map_err(|_| Error::FailedLoadingData)?
         .key;
 
         // agree on shared secret
-        let shared_secret = try_syscall!(w.trussed.agree(
+        try_syscall!(w.trussed.agree(
             Mechanism::P256,
             kh_key,
             ephem_pub_bin_key,
@@ -583,9 +581,8 @@ where
                 .set_persistence(Location::Volatile)
                 .set_serializable(true)
         ))
-        .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
-        .shared_secret;
-        shared_secret
+        .map_err(|_| Error::FailedLoadingData)?
+        .shared_secret
     };
 
     let serialized_shared_secret = try_syscall!(w.trussed.serialize_key(
@@ -594,71 +591,109 @@ where
         KeySerialization::Raw
     ))
     .map_err(|e| {
-        log::error!("Deserialization error: {:?}", e);
-        ERR_INTERNAL_ERROR
+        error!("Deserialization error: {:?}", e);
+        Error::InternalError
     })?;
     syscall!(w.trussed.delete(agreed_shared_secret_id));
 
     w.send_to_output(CommandOpenPGPDecryptResponse {
-        data: serialized_shared_secret.serialized_key,
+        data: DataBytes::from_slice(&serialized_shared_secret.serialized_key)
+            .map_err(|_| Error::InternalError)?,
     });
 
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_decrypt<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Sha256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     let req = match w.get_input_deserialized() {
         Ok(x) => Ok(x),
         Err(e) => {
-            log::error!("Deserialization error: {:?}", e);
+            error!("Deserialization error: {:?}", e);
             Err(e)
         }
     };
 
-    let req: CommandDecryptRequest = req.map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
+    let req: CommandDecryptRequest = req.map_err(|_| Error::BadFormat)?;
     w.session
-        .check_token_res(req.tp.unwrap())
-        .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
+        .check_token_res(req.tp.clone())
+        .map_err(|_| Error::RequireAuthentication)?;
 
-    if !(req.keyhandle.len() > 0
-        && req.eccekey.len() > 0
-        && req.data.len() > 0
-        && req.hmac.len() > 0)
-    {
-        return Err(ERR_BAD_FORMAT);
+    let (kh_key, mech, is_rk) = get_key_from_keyhandle(w, req.keyhandle.clone())?;
+
+    let decrypted = match mech {
+        Mechanism::P256 => decrypt_ecc_p256(w, req, kh_key),
+        Mechanism::Rsa2048Pkcs1v15 => decrypt_rsa(w, req, kh_key),
+        _ => Err(InternalError),
+    }?;
+
+    if !is_rk {
+        // FIXME introduce types to distinct derived and resident keys
+        syscall!(w.trussed.delete(kh_key));
     }
 
-    let kh_key = if req.keyhandle.len() > 32 {
-        import_key_from_keyhandle(w, &req.keyhandle)?
-    } else {
-        let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
-        let cred_data = try_syscall!(w.trussed.read_file(
-            Location::Internal,
-            rk_path(
-                rp_id_hash,
-                &Bytes32::from_slice(req.keyhandle.as_slice()).unwrap()
-            )
-        ))
-        .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)?
-        .data;
-        let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
-        cred.key_id
-    };
+    w.send_to_output(CommandDecryptResponse {
+        data: Bytes::from_slice(decrypted.as_slice()).unwrap(),
+    });
 
-    let ecc_key: Vec<u8, 64> = match req.eccekey.len() {
-        65 => Vec::<u8, 64>::from_slice(&req.eccekey[1..65]).unwrap(),
-        64 => Vec::<u8, 64>::from_slice(&req.eccekey[0..64]).unwrap(),
-        _ => return Err(ERR_FAILED_LOADING_DATA),
+    Ok(())
+}
+
+#[inline(never)]
+fn decrypt_rsa<C>(
+    w: &mut Webcrypt<C>,
+    req: CommandDecryptRequest,
+    kh_key: KeyId,
+) -> ResultW<Message>
+where
+    C: WebcryptTrussedClient,
+{
+    if !(req.keyhandle.len() > 0
+        && req.data.len() > 0
+        && req.hmac.is_none()
+        && req.eccekey.is_none())
+    {
+        return Err(Error::BadFormat);
+    }
+    // TODO HMAC?
+    // let decrypted = try_syscall!(w.trussed.decrypt_Rsa2048Pkcs1v15(kh_key, &req.data))
+    //     .map_err(|e| {
+    //         error!("Decryption error: {:?}", e);
+    //         Error::FailedLoadingData
+    //     })?
+    //     .plaintext
+    //     .ok_or(InternalError)?;
+    //
+    // Ok(decrypted)
+    Ok(Default::default())
+}
+
+#[inline(never)]
+fn decrypt_ecc_p256<C>(
+    w: &mut Webcrypt<C>,
+    req: CommandDecryptRequest,
+    kh_key: KeyId,
+) -> ResultW<Message>
+where
+    C: WebcryptTrussedClient,
+{
+    let req_eccekey = req.eccekey.ok_or(BadFormat)?;
+    let req_hmac = req.hmac.ok_or(BadFormat)?;
+    if !(req.keyhandle.len() > 0
+        && req_eccekey.len() > 0
+        && req.data.len() > 0
+        && req_hmac.len() > 0)
+    {
+        return Err(BadFormat);
+    }
+
+    let ecc_key: Vec<u8, 64> = match req_eccekey.len() {
+        65 => Vec::<u8, 64>::from_slice(&req_eccekey[1..65]).unwrap(),
+        64 => Vec::<u8, 64>::from_slice(&req_eccekey[0..64]).unwrap(),
+        _ => return Err(Error::FailedLoadingData),
     };
 
     // import incoming public key
@@ -668,7 +703,7 @@ where
         trussed::types::StorageAttributes::new()
             .set_persistence(trussed::types::Location::Volatile)
     ))
-    .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
+    .map_err(|_| Error::FailedLoadingData)?
     .key;
 
     // agree on shared secret
@@ -680,7 +715,7 @@ where
             .set_persistence(Location::Volatile)
             .set_serializable(true)
     ))
-    .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
+    .map_err(|_| Error::FailedLoadingData)?
     .shared_secret;
 
     // check HMAC
@@ -688,7 +723,7 @@ where
     let encoded_ciphertext_len: [u8; 2] = (req.data.len() as u16).to_le_bytes();
     let mut data_to_hmac = Message::new(); // FIXME check length
     data_to_hmac.extend(req.data.clone());
-    data_to_hmac.extend(req.eccekey);
+    data_to_hmac.extend(req_eccekey);
     data_to_hmac.extend(encoded_ciphertext_len);
     data_to_hmac.extend(req.keyhandle);
 
@@ -698,13 +733,13 @@ where
         &data_to_hmac,
         SignatureSerialization::Raw
     ))
-    .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
+    .map_err(|_| Error::FailedLoadingData)?
     .signature;
 
-    let hmac_correct = calculated_hmac == req.hmac;
+    let hmac_correct = calculated_hmac == req_hmac;
     if !hmac_correct {
         // abort decryption on invalid hmac value
-        return Err(ERROR_ID::ERR_INVALID_CHECKSUM);
+        return Err(Error::InvalidChecksum);
     }
 
     // TODO Webcrypt design: use separate symmetric key?
@@ -721,76 +756,72 @@ where
         KeySerialization::Raw
     ))
     .map_err(|e| {
-        log::error!("Deserialization error: {:?}", e);
-        ERR_INTERNAL_ERROR
+        error!("Deserialization error: {:?}", e);
+        Error::InternalError
     })?
     .serialized_key;
-    let serialized_reimported = try_syscall!(w.trussed.unsafe_inject_shared_key(
-        // &k.serialize(),
-        serialized_shared_secret.as_slice(),
-        Location::Internal,
+    let serialized_reimported = try_syscall!(w.trussed.inject_any_key(
+        // try to convert SerializedKey type to a possibly smaller one
+        serialized_shared_secret
+            .try_convert_into()
+            .map_err(|_| Error::FailedLoadingData)?,
+        w.options.location,
+        #[cfg(feature = "inject-any-key")]
         Kind::Symmetric(32)
     ))
-    .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
-    .key;
+    .map_err(|_| Error::FailedLoadingData)?
+    .key
+    .ok_or(Error::FailedLoadingData)?;
 
     // decrypt with shared secret
     let decrypted = try_syscall!(w
         .trussed
         .decrypt_aes256cbc(serialized_reimported, &req.data))
     .map_err(|e| {
-        log::error!("Decryption error: {:?}", e);
-        ERROR_ID::ERR_FAILED_LOADING_DATA
+        error!("Decryption error: {:?}", e);
+        Error::FailedLoadingData
     })?
     .plaintext
-    .ok_or(ERR_INTERNAL_ERROR)?;
+    .ok_or(Error::InternalError)?;
 
-    syscall!(w.trussed.delete(kh_key));
     syscall!(w.trussed.delete(shared_secret));
     syscall!(w.trussed.delete(serialized_reimported));
     syscall!(w.trussed.delete(ephem_pub_bin_key));
-
-    w.send_to_output(CommandDecryptResponse { data: decrypted });
-
-    Ok(())
+    Ok(decrypted
+        .try_convert_into()
+        .map_err(|_| Error::InternalError)?)
 }
 
+#[cfg(feature = "hmacsha256p256")]
+#[inline(never)]
 pub fn cmd_generate_key_from_data<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::Sha256
-        + client::HmacSha256P256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
-    let req: CommandGenerateFromDataRequest = w
-        .get_input_deserialized()
-        .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
+    let req: CommandGenerateFromDataRequest =
+        w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
     w.session
-        .check_token_res(req.tp.unwrap())
-        .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
+        .check_token_res(req.tp)
+        .map_err(|_| Error::RequireAuthentication)?;
 
     let kek = w.state.get_key_master(&mut w.trussed).unwrap();
     // TODO DESIGN decide whether rpid should be a part of the generated hash
     // let rpid = w.session.rp_id_hash.as_ref().unwrap();
     // req.hash
     //     .extend_from_slice(rpid.as_slice())
-    //     .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?;
+    //     .map_err(|_| Error::FailedLoadingData)?;
     let data_for_key = &req.hash[..];
     if req.hash.len() < 32 {
-        return Err(ERR_FAILED_LOADING_DATA);
+        return Err(Error::FailedLoadingData);
     }
 
-    let derived_key = syscall!(
+    let derived_key: Option<KeyId> = syscall!(
         // requires support on the trussed side
         w.trussed
-            .hmacsha256p256_derive_key(kek, data_for_key, Location::Volatile)
+            .derive_from_hash(Mechanism::P256, kek, Location::Volatile, data_for_key)
     )
     .key;
-    let private_key = derived_key;
+    let private_key = derived_key.ok_or(Error::InternalError)?;
 
     // public key
     let public_key = syscall!(w
@@ -811,7 +842,7 @@ where
         // add identifier for uncompressed form - 0x04
         pubkey
             .insert(0, 0x04)
-            .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?;
+            .map_err(|_| Error::FailedLoadingData)?;
         CommandGenerateResponse {
             pubkey,
             keyhandle: KeyHandleSerialized::from_slice(&keyhandle_ser_enc[..]).unwrap(),
@@ -821,93 +852,84 @@ where
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_read_resident_key_public<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::Sha256
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
-    let req: CommandReadResidentKeyRequest = w
-        .get_input_deserialized()
-        .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
-    log::debug!("WC cmd_read_resident_key_public {:?}", req);
+    let req: CommandReadResidentKeyRequest =
+        w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
+    info!("WC cmd_read_resident_key_public {:?}", req);
     w.session
-        .check_token_res(req.tp.unwrap())
-        .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
+        .check_token_res(req.tp)
+        .map_err(|_| Error::RequireAuthentication)?;
 
     // Get private keyid
-    let private_key = {
-        let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
-        let cred_data = try_syscall!(w.trussed.read_file(
-            Location::Internal,
-            rk_path(
-                rp_id_hash,
-                &Bytes32::from_slice(req.keyhandle.as_slice()).unwrap()
-            )
-        ))
-        .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)? // TODO Change to ERR_FAILED_LOADING_DATA
-        .data;
-        let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
-        cred.key_id
+    // let private_key = {
+    //     let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
+    //     let cred_data = try_syscall!(w.trussed.read_file(
+    //         w.options.location,
+    //         rk_path(
+    //             rp_id_hash,
+    //             &Bytes32::from_slice(req.keyhandle.as_slice()).unwrap()
+    //         )
+    //     ))
+    //     .map_err(|_| Error::MemoryFull)? // TODO Change to Error::FailedLoadingData
+    //     .data;
+    //     let cred: CredentialData = cbor_deserialize(cred_data.as_slice()).unwrap();
+    //     cred.key_id
+    // };
+    //
+    // let public_key = try_syscall!(w
+    //     .trussed
+    //     .derive_p256_public_key(private_key, Location::Volatile))
+    // .map_err(|_| Error::NotFound)?
+    // .key;
+    //
+    // // generate keyhandle for the reply
+    // let cred = CredentialData::new(private_key);
+    // let serialized_credential = cred.serialize()?;
+    // let credential_id_hash = syscall!(w.trussed.hash_sha256(serialized_credential.as_slice()))
+    //     .hash
+    //     .to_bytes()
+    //     .unwrap();
+
+    let (private_key, mech, is_rk) = get_key_from_keyhandle(w, req.keyhandle.clone())?;
+
+    let kind = match mech {
+        Mechanism::P256 => Kind::P256,
+        Mechanism::Rsa2048Pkcs1v15 => Kind::Rsa2048,
+        _ => todo!(),
     };
-
-    let public_key = try_syscall!(w
-        .trussed
-        .derive_p256_public_key(private_key, Location::Volatile))
-    .map_err(|_| ERROR_ID::ERR_NOT_FOUND)?
-    .key;
-
-    // generate keyhandle for the reply
-    let cred = CredentialData::new(private_key);
-    let serialized_credential = cred.serialize()?;
-    let credential_id_hash = syscall!(w.trussed.hash_sha256(serialized_credential.as_slice()))
-        .hash
-        .to_bytes()
-        .unwrap();
-
-    // public key preparation
-    let serialized_raw_public_key = syscall!(w
-        .trussed
-        .serialize_p256_key(public_key, KeySerialization::Raw))
-    .serialized_key;
+    let (public_key, serialized_raw_public_key) = get_public_key(w, kind, private_key)?;
 
     syscall!(w.trussed.delete(public_key));
-
+    if !is_rk {
+        // FIXME introduce types to distinct derived and resident keys
+        syscall!(w.trussed.delete(private_key));
+    }
     w.send_to_output({
-        let mut pubkey = Bytes65::from_slice(serialized_raw_public_key.as_slice()).unwrap();
-        // add identifier for uncompressed form - 0x04
-        pubkey
-            .insert(0, 0x04)
-            .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?;
+        let mut pubkey = Message::from_slice(serialized_raw_public_key.as_slice()).unwrap();
+        if kind == Kind::P256 {
+            // add identifier for uncompressed form - 0x04
+            pubkey.insert(0, 0x04).map_err(|_| InternalError)?;
+        }
         CommandGenerateResidentKeyResponse {
-            pubkey,
-            keyhandle: credential_id_hash,
+            pubkey: pubkey.try_convert_into().map_err(|_| InternalError)?,
+            keyhandle: req.keyhandle,
         }
     });
 
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_login<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::Sha256
-        + client::HmacSha256P256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     // Check PIN and return temporary password for the further communication
-    let req: CommandLoginRequest = w
-        .get_input_deserialized()
-        .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
+    let req: CommandLoginRequest = w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
 
     // hash rpid if the request is coming from FIDO2
     // TODO move hashing to transport
@@ -927,19 +949,19 @@ where
     try_syscall!(w
         .trussed
         .set_client_context_pin(Bytes::from_slice(req.pin.as_slice()).unwrap()))
-    .map_err(|_| ERR_INTERNAL_ERROR)?;
+    .map_err(|_| Error::InternalError)?;
 
     // ignore loading errors for now
-    log::debug!("WC loading state");
+    info!("WC loading state");
     w.state
         .load(&mut w.trussed)
-        // the cause might be in the corrupted storage as well (ERR_FAILED_LOADING_DATA),
+        // the cause might be in the corrupted storage as well (Error::FailedLoadingData),
         // but we can't differentiate at this point
-        .map_err(|_| ERR_INVALID_PIN)?;
+        .map_err(|_| Error::InvalidPin)?;
 
     let login_result = w
         .session
-        .login(req.pin.clone(), &mut w.trussed, &rpid, &mut w.state);
+        .login(req.pin, &mut w.trussed, &rpid, &mut w.state);
     w.state.save(&mut w.trussed);
     let tp = login_result?;
 
@@ -948,20 +970,12 @@ where
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_logout<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::Sha256
-        + client::HmacSha256P256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
-    let _: CommandLogoutRequest = w
-        .get_input_deserialized()
-        .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
+    let _: CommandLogoutRequest = w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
 
     w.state.save(&mut w.trussed);
     // Clear session
@@ -972,14 +986,15 @@ where
     try_syscall!(w
         .trussed
         .set_client_context_pin(Bytes::from_slice(b"invalid pin").unwrap()))
-    .map_err(|_| ERR_INTERNAL_ERROR)?;
+    .map_err(|_| Error::InternalError)?;
 
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_factory_reset<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client,
+    C: WebcryptTrussedClient,
 {
     // Call factory reset for Webcrypt, and for the associated services (like FIDO2) as well.
 
@@ -989,15 +1004,15 @@ where
     // TODO call associated services
 
     // remove all generated RK
-    syscall!(w.trussed.delete_all(Location::Internal));
+    syscall!(w.trussed.delete_all(w.options.location));
     syscall!(w
         .trussed
-        .remove_dir_all(Location::Internal, PathBuf::from("wcrk"),));
+        .remove_dir_all(w.options.location, PathBuf::from("wcrk"),));
 
     #[cfg(feature = "transparent-encryption")]
     {
-        let default_pin = Bytes::from_slice(DEFAULT_ENCRYPTION_PIN.as_ref()).unwrap();
-        try_syscall!(w.trussed.reset_pin(default_pin)).map_err(|_| ERR_INTERNAL_ERROR)?;
+        let default_pin = Bytes::from_slice(crate::DEFAULT_ENCRYPTION_PIN.as_ref()).unwrap();
+        try_syscall!(w.trussed.reset_pin(default_pin)).map_err(|_| Error::InternalError)?;
     }
 
     // delete persistent state
@@ -1010,26 +1025,19 @@ where
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_configure<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::Sha256
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     // Allow to set some configuration options, like when to require user touch confirmation
     // To decide: same handler for both setting and getting?
 
-    let mut req: CommandConfigureRequest = w
-        .get_input_deserialized()
-        .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
+    let mut req: CommandConfigureRequest =
+        w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
     w.session
-        .check_token_res(req.tp.unwrap())
-        .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
+        .check_token_res(req.tp)
+        .map_err(|_| Error::RequireAuthentication)?;
 
     if req.confirmation.is_some() {
         w.state.configuration.confirmation = req.confirmation.unwrap();
@@ -1041,80 +1049,65 @@ where
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_manage_pin<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::Sha256
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     // To decide: same handler for both setting and changing?
 
     match w.current_command_id {
-        SET_PIN => {
-            let req: CommandSetPINRequest = w
-                .get_input_deserialized()
-                .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
-            w.state.pin.set_pin(req.pin.clone())?;
+        SetPin => {
+            let req: CommandSetPINRequest =
+                w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
+            w.state.pin.set_pin(req.pin)?;
 
             #[cfg(feature = "transparent-encryption")]
             {
                 try_syscall!(w.trussed.set_client_context_pin(
                     Bytes::from_slice(DEFAULT_ENCRYPTION_PIN.as_ref()).unwrap()
                 ))
-                .map_err(|_| ERR_INTERNAL_ERROR)?;
+                .map_err(|_| Error::InternalError)?;
                 try_syscall!(w.trussed.change_pin(req.pin.to_bytes().unwrap()))
-                    .map_err(|_| ERR_INTERNAL_ERROR)?;
+                    .map_err(|_| Error::InternalError)?;
             }
 
             w.state.initialize(&mut w.trussed);
             Ok(())
         }
-        CHANGE_PIN => {
-            let req: CommandChangePINRequest = w
-                .get_input_deserialized()
-                .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
-            w.state.pin.change_pin(req.pin, req.newpin.clone())?;
+        ChangePin => {
+            let req: CommandChangePINRequest =
+                w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
+            w.state.pin.change_pin(req.pin, req.newpin)?;
             #[cfg(feature = "transparent-encryption")]
             try_syscall!(w
                 .trussed
                 .change_pin(Bytes::from_slice(req.newpin.as_slice()).unwrap()))
-            .map_err(|_| ERROR_ID::ERR_INTERNAL_ERROR)?;
+            .map_err(|_| Error::InternalError)?;
 
             Ok(())
         }
-        _ => Err(ERROR_ID::ERR_INVALID_COMMAND),
+        _ => Err(Error::InvalidCommand),
     }
 }
 
+#[inline(never)]
 pub fn cmd_discover_resident_key<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::Sha256
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
     // Discover all RKs connected to this RP. Should be protected with PIN (L3 credprotect as of CTAP2.1).
 
-    let req: CommandDiscoverResidentKeyRequest = w
-        .get_input_deserialized()
-        .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
+    let req: CommandDiscoverResidentKeyRequest =
+        w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
     w.session
-        .check_token_res(req.tp.unwrap())
-        .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
+        .check_token_res(req.tp)
+        .map_err(|_| Error::RequireAuthentication)?;
 
     // then store key, making it resident
     // let credential_id_hash = self.hash(credential_id.0.as_ref());
     // try_syscall!(self.trussed.write_file(
-    //             Location::Internal,
+    //             w.options.location,
     //             rk_path(&rp_id_hash, &credential_id_hash),
     //             serialized_credential,
     //             // user attribute for later easy lookup
@@ -1133,14 +1126,14 @@ where
     let mut maybe_path =
         syscall!(w
             .trussed
-            .read_dir_first(Location::Internal, rp_rk_dir(rp_id_hash), None,))
+            .read_dir_first(w.options.location, rp_rk_dir(rp_id_hash), None,))
         .entry
         .map(|entry| PathBuf::try_from(entry.path()).unwrap());
 
     // following reads
     while let Some(path) = maybe_path {
         let _credential_data =
-            syscall!(w.trussed.read_file(Location::Internal, path.clone(),)).data;
+            syscall!(w.trussed.read_file(w.options.location, path.clone(),)).data;
 
         maybe_path = syscall!(w.trussed.read_dir_next())
             .entry
@@ -1158,122 +1151,175 @@ where
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_write_resident_key<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Chacha8Poly1305
-        + client::Sha256,
+    C: WebcryptTrussedClient,
 {
-    let req: CommandWriteResidentKeyRequest = w
-        .get_input_deserialized()
-        .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
+    let req: CommandWriteResidentKeyRequest =
+        w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
     w.session
-        .check_token_res(req.tp.unwrap())
-        .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
-
-    let private_key = try_syscall!(w.trussed.unsafe_inject_shared_key(
-        // &k.serialize(),
-        req.raw_key_data.as_slice(),
-        Location::Internal,
-        Kind::P256
-    ))
-    .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
-    .key;
-    let public_key = try_syscall!(w
-        .trussed
-        .derive_p256_public_key(private_key, Location::Volatile))
-    .map_err(|_| ERROR_ID::ERR_FAILED_LOADING_DATA)?
-    .key;
-
-    let cred = CredentialData::new(private_key);
-    let serialized_credential = cred.serialize()?;
+        .check_token_res(req.tp)
+        .map_err(|_| Error::RequireAuthentication)?;
 
     let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
+    // write private key
+
+    let kind = keytype_to_kind(&req.key_type);
+    let mechanism = match kind {
+        Kind::Rsa2048 => Mechanism::Rsa2048Pkcs1v15,
+        Kind::P256 => Mechanism::P256,
+        _ => return Err(Error::BadFormat),
+    };
+
+    let private_key = {
+        if req.rsa_e.is_none() {
+            match mechanism {
+                Mechanism::P256 => {
+                    try_syscall!(w.trussed.unsafe_inject_key(
+                        mechanism,
+                        req.raw_key_data.ok_or(Error::BadFormat)?.as_slice(),
+                        w.options.location,
+                        KeySerialization::Raw
+                    ))
+                }
+                _ => return Err(Error::BadFormat),
+            }
+            .map_err(|_| Error::FailedLoadingData)?
+            .key
+        } else {
+            let data = RsaImportFormat {
+                e: &req.rsa_e.ok_or(Error::BadFormat)?,
+                p: &req.rsa_p.ok_or(Error::BadFormat)?,
+                q: &req.rsa_q.ok_or(Error::BadFormat)?,
+            };
+            try_syscall!(w.trussed.unsafe_inject_key(
+                mechanism,
+                &data.serialize().map_err(|_| Error::InternalError)?,
+                w.options.location,
+                KeySerialization::RsaParts
+            ))
+            .map_err(|_| Error::FailedLoadingData)?
+            .key
+        }
+    };
+
+    // write file
+
+    let cred = CredentialData {
+        key_id: private_key,
+        algorithm: req.key_type.unwrap_or(0) as i32,
+        creation_time: 0,
+        allowed_use: 0,
+    };
+    let serialized_credential = cred.serialize()?;
+
     let credential_id_hash = syscall!(w.trussed.hash_sha256(serialized_credential.as_slice()))
         .hash
         .to_bytes()
         .unwrap();
 
     try_syscall!(w.trussed.write_file(
-        Location::Internal,
+        w.options.location,
         rk_path(rp_id_hash, &credential_id_hash),
         serialized_credential,
         None,
     ))
-    .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)?;
+    .map_err(|_| Error::MemoryFull)?;
 
-    // public key
-    let serialized_raw_public_key = syscall!(w
-        .trussed
-        .serialize_p256_key(public_key, KeySerialization::Raw))
-    .serialized_key;
+    // get public key
+    let (public_key, serialized_raw_public_key) = get_public_key(w, kind, private_key)?;
 
     syscall!(w.trussed.delete(public_key));
 
     w.send_to_output({
-        let mut pubkey = Bytes65::from_slice(serialized_raw_public_key.as_slice()).unwrap();
-        // add identifier for uncompressed form - 0x04
-        pubkey.insert(0, 0x04).map_err(|_| ERR_INTERNAL_ERROR)?;
+        let mut pubkey = Message::from_slice(serialized_raw_public_key.as_slice()).unwrap();
+        if kind == Kind::P256 {
+            // add identifier for uncompressed form - 0x04
+            pubkey.insert(0, 0x04).map_err(|_| Error::InternalError)?;
+        }
         CommandWriteResidentKeyResponse {
-            pubkey,
-            keyhandle: credential_id_hash,
+            pubkey: pubkey.try_convert_into().map_err(|_| InternalError)?,
+            keyhandle: Bytes::from_slice(credential_id_hash.as_slice()).unwrap(),
         }
     });
 
     Ok(())
 }
 
+#[inline(never)]
+fn keytype_to_kind(key_type: &KeyType) -> Kind {
+    match key_type {
+        None => Kind::P256,
+        Some(kind) => match kind {
+            0 => Kind::P256,
+            1 => Kind::Rsa2048,
+            _ => Kind::P256,
+        },
+    }
+}
+
+#[inline(never)]
+fn get_public_key<C>(
+    w: &mut Webcrypt<C>,
+    kind: Kind,
+    private_key: KeyId,
+) -> ResultW<(KeyId, SerializedKey)>
+where
+    C: WebcryptTrussedClient,
+{
+    use trussed::types::StorageAttributes;
+    let (public_key, serialized_raw_public_key) = match kind {
+        Kind::P256 => {
+            let public_key = try_syscall!(w
+                .trussed
+                .derive_p256_public_key(private_key, Location::Volatile))
+            .map_err(|_| Error::FailedLoadingData)?
+            .key;
+
+            let serialized_raw_public_key = syscall!(w
+                .trussed
+                .serialize_p256_key(public_key, KeySerialization::Raw))
+            .serialized_key;
+            (public_key, serialized_raw_public_key)
+        }
+        Kind::Rsa2048 => {
+            let pk = syscall!(w.trussed.derive_key(
+                Mechanism::Rsa2048Pkcs1v15,
+                private_key,
+                None,
+                StorageAttributes::new().set_persistence(Location::Volatile)
+            ))
+            .key;
+            let serialized_key = syscall!(w.trussed.serialize_key(
+                Mechanism::Rsa2048Pkcs1v15,
+                pk,
+                KeySerialization::Pkcs8Der
+            ))
+            .serialized_key;
+            (pk, serialized_key)
+        }
+        _ => todo!(),
+    };
+    Ok((public_key, serialized_raw_public_key))
+}
+
+#[inline(never)]
 pub fn cmd_generate_resident_key<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::HmacSha256P256
-        + client::Chacha8Poly1305
-        + client::Sha256,
+    C: WebcryptTrussedClient + client::Sha256,
 {
     // write the RK similarly, as done with FIDO2, potentially with some extensions
 
-    let req: CommandGenerateResidentKeyRequest = w
-        .get_input_deserialized()
-        .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
+    let req: CommandGenerateResidentKeyRequest =
+        w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
     w.session
-        .check_token_res(req.tp.unwrap())
-        .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
-
-    // writing RKs
-    //
-    // if rk_requested {
-    //     // serialization with all metadata
-    //     let serialized_credential = credential.serialize()?;
-    //
-    //     // first delete any other RK cred with same RP + UserId if there is one.
-    //     self.delete_resident_key_by_user_id(&rp_id_hash, &credential.user.id)
-    //         .ok();
-    //
-    //     // then store key, making it resident
-    //     let credential_id_hash = self.hash(credential_id.0.as_ref());
-    //     try_syscall!(self.trussed.write_file(
-    //             Location::Internal,
-    //             rk_path(&rp_id_hash, &credential_id_hash),
-    //             serialized_credential,
-    //             // user attribute for later easy lookup
-    //             // Some(rp_id_hash.clone()),
-    //             None,
-    //         ))
-    //         .map_err(|_| Error::KeyStoreFull)?;
-    // }
+        .check_token_res(req.tp)
+        .map_err(|_| Error::RequireAuthentication)?;
 
     // Generate a new P256 key pair.
     // Can fail with FilesystemWriteFailure, if the full capacity is reached
-    let private_key = syscall!(w.trussed.generate_p256_private_key(Location::Internal)).key;
+    let private_key = syscall!(w.trussed.generate_p256_private_key(w.options.location)).key;
     let public_key = syscall!(w
         .trussed
         .derive_p256_public_key(private_key, Location::Volatile))
@@ -1289,12 +1335,12 @@ where
         .unwrap();
 
     try_syscall!(w.trussed.write_file(
-        Location::Internal,
+        w.options.location,
         rk_path(rp_id_hash, &credential_id_hash),
         serialized_credential,
         None,
     ))
-    .map_err(|_| ERROR_ID::ERR_MEMORY_FULL)?;
+    .map_err(|_| Error::MemoryFull)?;
 
     // public key
     let serialized_raw_public_key = syscall!(w
@@ -1307,35 +1353,27 @@ where
     syscall!(w.trussed.delete(public_key));
 
     w.send_to_output({
-        let mut pubkey = Bytes65::from_slice(serialized_raw_public_key.as_slice()).unwrap();
+        let mut pubkey = Message::from_slice(serialized_raw_public_key.as_slice()).unwrap();
         // add identifier for uncompressed form - 0x04
-        pubkey.insert(0, 0x04).map_err(|_| ERR_INTERNAL_ERROR)?;
+        pubkey.insert(0, 0x04).map_err(|_| Error::InternalError)?;
         CommandGenerateResidentKeyResponse {
-            pubkey,
-            keyhandle: credential_id_hash,
+            pubkey: pubkey.try_convert_into().map_err(|_| InternalError)?,
+            keyhandle: Bytes::from_slice(credential_id_hash.as_slice()).unwrap(),
         }
     });
 
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_restore_from_seed<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::Sha256
-        + client::HmacSha256P256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
-    let req: CommandRestoreRequest = w
-        .get_input_deserialized()
-        .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
+    let req: CommandRestoreRequest = w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
     w.session
-        .check_token_res(req.tp.unwrap())
-        .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
+        .check_token_res(req.tp)
+        .map_err(|_| Error::RequireAuthentication)?;
 
     let master = &req.master;
 
@@ -1363,27 +1401,19 @@ where
     Ok(())
 }
 
+#[inline(never)]
 pub fn cmd_initialize_seed<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
-    C: trussed::Client
-        + client::Client
-        + client::P256
-        + client::Aes256Cbc
-        + client::HmacSha256
-        + client::Sha256
-        + client::HmacSha256P256
-        + client::Chacha8Poly1305,
+    C: WebcryptTrussedClient,
 {
-    let req: CommandInitializeRequest = w
-        .get_input_deserialized()
-        .map_err(|_| ERROR_ID::ERR_BAD_FORMAT)?;
+    let req: CommandInitializeRequest = w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
     w.session
-        .check_token_res(req.tp.unwrap())
-        .map_err(|_| ERROR_ID::ERR_REQ_AUTH)?;
+        .check_token_res(req.tp)
+        .map_err(|_| Error::RequireAuthentication)?;
 
     if req.entropy.is_some() && req.entropy.unwrap().len() > 0 {
         // todo!();
-        return Err(ERROR_ID::ERR_NOT_IMPLEMENTED);
+        return Err(Error::NotImplemented);
     }
 
     // Initialize / factory-reset the state

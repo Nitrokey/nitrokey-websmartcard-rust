@@ -4,3 +4,5 @@ state_file
 /tmp
 /tests
 /target
+trussed-state.bin
+zen_workaround.py
