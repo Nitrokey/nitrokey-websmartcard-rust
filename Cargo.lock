@@ -1718,6 +1718,7 @@ dependencies = [
 [[package]]
 name = "trussed-staging"
 version = "0.1.0"
+source = "git+https://github.com/Nitrokey/trussed-staging?branch=hmacsha256p256#1b54bf8703d515688a58f2f605c3efa0f2f60ced"
 dependencies = [
  "delog",
  "hmac 0.12.1",
