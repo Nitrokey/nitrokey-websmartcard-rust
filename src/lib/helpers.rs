@@ -2,6 +2,7 @@ use crate::Message;
 use heapless_bytes::{Bytes, Bytes32};
 use trussed::{client, syscall};
 
+#[inline(never)]
 pub fn hash<C>(trussed: &mut C, data: Message) -> Bytes<32>
 where
     C: trussed::Client

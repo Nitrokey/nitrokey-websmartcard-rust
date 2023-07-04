@@ -6,6 +6,7 @@
 use heapless_bytes::Bytes;
 use trussed::types::PathBuf;
 
+#[inline(never)]
 fn format_hex(data: &[u8], mut buffer: &mut [u8]) {
     const HEX_CHARS: &[u8] = b"0123456789abcdef";
     for byte in data.iter() {
@@ -15,6 +16,7 @@ fn format_hex(data: &[u8], mut buffer: &mut [u8]) {
     }
 }
 
+#[inline(never)]
 pub fn rp_rk_dir(rp_id_hash: &Bytes<32>) -> PathBuf {
     // uses only first 8 bytes of hash, which should be "good enough"
     let mut hex = [b'0'; 16];
@@ -26,6 +28,7 @@ pub fn rp_rk_dir(rp_id_hash: &Bytes<32>) -> PathBuf {
     dir
 }
 
+#[inline(never)]
 pub fn rk_path(rp_id_hash: &Bytes<32>, credential_id_hash: &Bytes<32>) -> PathBuf {
     let mut path = rp_rk_dir(rp_id_hash);
 

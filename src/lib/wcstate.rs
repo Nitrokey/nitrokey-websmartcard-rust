@@ -25,6 +25,7 @@ pub struct WebcryptConfiguration {
 }
 
 impl Default for WebcryptConfiguration {
+    #[inline(never)]
     fn default() -> Self {
         Self { confirmation: 1 }
     }
@@ -43,10 +44,12 @@ pub struct WebcryptPIN {
 }
 
 impl WebcryptPIN {
+    #[inline(never)]
     pub fn get_counter(&self) -> u8 {
         self.counter
     }
 
+    #[inline(never)]
     pub fn decrease_counter(&mut self) -> Result<(), Error> {
         if self.counter == 0 {
             info!("Counter PIN used up");
@@ -56,6 +59,7 @@ impl WebcryptPIN {
         Ok(())
     }
 
+    #[inline(never)]
     pub fn check_pin(&mut self, pin: Bytes64) -> Result<bool, Error> {
         if self.pin.is_none() {
             info!("PIN not set");
@@ -77,7 +81,7 @@ impl WebcryptPIN {
 
         Ok(true)
     }
-
+    #[inline(never)]
     fn validate_pin(&self, pin: &Bytes64) -> Result<(), Error> {
         let l = pin.len();
         if !(4..=64).contains(&l) {
@@ -87,6 +91,7 @@ impl WebcryptPIN {
         }
     }
 
+    #[inline(never)]
     pub fn set_pin(&mut self, pin: Bytes64) -> Result<bool, Error> {
         if self.pin.is_some() {
             return Err(Error::NotAllowed);
@@ -96,6 +101,7 @@ impl WebcryptPIN {
         self.counter = 8;
         Ok(true)
     }
+    #[inline(never)]
     pub fn change_pin(&mut self, pin: Bytes64, new_pin: Bytes64) -> Result<bool, Error> {
         if self.pin.is_none() {
             return Err(Error::NotAllowed);
@@ -133,6 +139,7 @@ impl WebcryptSession {
         self.logout();
     }
 
+    #[inline(never)]
     pub fn is_open(&self) -> bool {
         self.temporary_password_token.is_some()
     }
@@ -141,17 +148,18 @@ impl WebcryptSession {
         self.temporary_password_token = None;
         self.rp_id_hash = None;
     }
-
+    #[inline(never)]
     fn set_token(&mut self, token: Bytes32, rp_id_hash: Bytes<32>) {
         self.temporary_password_token = Some(token);
         self.rp_id_hash = Some(rp_id_hash);
     }
-
+    #[inline(never)]
     fn get_new_token<C: trussed::Client>(&mut self, trussed: &mut C) -> Bytes32 {
         let b = syscall!(trussed.random_bytes(32)).bytes;
         Bytes32::from_slice(b.as_slice()).unwrap()
     }
 
+    #[inline(never)]
     pub fn login<C: trussed::Client>(
         &mut self,
         pin: Bytes64,
@@ -169,6 +177,7 @@ impl WebcryptSession {
         Ok(tp)
     }
 
+    #[inline(never)]
     pub fn check_token(&self, token: Bytes32) -> bool {
         match &self.temporary_password_token {
             None => false,
@@ -176,6 +185,7 @@ impl WebcryptSession {
         }
     }
 
+    #[inline(never)]
     pub fn check_token_res(&self, token: ExpectedSessionToken) -> Result<(), ()> {
         #[cfg(feature = "no-authentication")]
         return Ok(());
@@ -205,6 +215,7 @@ impl WebcryptSession {
 const STATE_FILE_PATH: &[u8; 10] = b"wcrk/state";
 
 impl WebcryptState {
+    #[inline(never)]
     pub fn new(location: Location) -> WebcryptState {
         WebcryptState {
             initialized_tag: Default::default(),
@@ -219,6 +230,7 @@ impl WebcryptState {
         }
     }
 
+    #[inline(never)]
     pub fn reset<C>(&mut self, t: &mut C)
     where
         C: WebcryptTrussedClient,
@@ -234,6 +246,7 @@ impl WebcryptState {
         self.initialize(t);
     }
 
+    #[inline(never)]
     pub fn initialize<C>(&mut self, t: &mut C)
     where
         C: WebcryptTrussedClient,
@@ -244,6 +257,7 @@ impl WebcryptState {
         self.save(t);
     }
 
+    #[inline(never)]
     pub fn restore<C>(&mut self, t: &mut C, master: &Bytes32)
     where
         C: WebcryptTrussedClient,
@@ -271,6 +285,7 @@ impl WebcryptState {
         self.save(t);
     }
 
+    #[inline(never)]
     pub fn get_key_master<T>(&mut self, trussed: &mut T) -> Option<KeyId>
     where
         T: WebcryptTrussedClient,
@@ -281,10 +296,12 @@ impl WebcryptState {
         }
     }
 
+    #[inline(never)]
     pub fn get_master_key_raw(&mut self) -> Option<MasterKeyRawBytes> {
         self.master_key_raw.take()
     }
 
+    #[inline(never)]
     pub fn rotate_key_master<T>(&mut self, t: &mut T) -> Option<KeyId>
     where
         T: WebcryptTrussedClient,
@@ -320,6 +337,7 @@ impl WebcryptState {
         self.master_key
     }
 
+    #[inline(never)]
     pub fn load<T>(&mut self, t: &mut T) -> Result<(), Error>
     where
         T: client::Client,
@@ -344,20 +362,21 @@ impl WebcryptState {
         info!("State loaded");
         Ok(())
     }
-
+    #[inline(never)]
     fn deserialize(&self, data: &[u8]) -> Result<Self, Error> {
         if data.is_empty() {
             return Err(Error::InternalError);
         }
         cbor_deserialize(data).map_err(|_| Error::InternalError)
     }
-
+    #[inline(never)]
     fn serialize(&self) -> Message {
         // TODO decide on memory limits
         let mut slice = [0u8; 2 * 1024];
         Message::from_slice(cbor_serialize(self, &mut slice).unwrap()).unwrap()
     }
 
+    #[inline(never)]
     pub fn file_reset<T>(&self, t: &mut T)
     where
         T: client::Client,
@@ -368,10 +387,12 @@ impl WebcryptState {
         }
     }
 
+    #[inline(never)]
     pub fn initialized(&self) -> bool {
         self.initialized_tag == 0xA5
     }
 
+    #[inline(never)]
     pub fn save<T>(&self, t: &mut T)
     where
         T: client::Client,
@@ -395,6 +416,7 @@ impl WebcryptState {
         info!("State saved");
     }
 
+    #[inline(never)]
     pub fn logout(&mut self) {
         self.resident_keys = Default::default();
         self.master_key = None;

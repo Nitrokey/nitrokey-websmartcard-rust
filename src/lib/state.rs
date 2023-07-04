@@ -21,6 +21,7 @@ pub struct State {
 }
 
 impl State {
+    #[inline(never)]
     pub fn new(location: Location) -> Self {
         Self {
             persistent: PersistentState::new(location),
@@ -38,6 +39,7 @@ pub struct PersistentState {
 }
 
 impl PersistentState {
+    #[inline(never)]
     fn new(location: Location) -> PersistentState {
         PersistentState {
             initialised: false,
@@ -51,6 +53,7 @@ impl PersistentState {
 impl PersistentState {
     const FILENAME: &'static [u8] = b"persistent-state.cbor";
 
+    #[inline(never)]
     pub fn load<T: client::Client + client::Chacha8Poly1305>(
         trussed: &mut T,
         location: Location,
@@ -77,6 +80,7 @@ impl PersistentState {
         result.map_err(|_| Error::Other)
     }
 
+    #[inline(never)]
     pub fn save<T: TrussedClient>(&self, trussed: &mut T) -> Result<()> {
         let data = crate::helpers::cbor_serialize_message(self).unwrap();
 
@@ -89,6 +93,7 @@ impl PersistentState {
         Ok(())
     }
 
+    #[inline(never)]
     pub fn reset<T: TrussedClient>(&mut self, trussed: &mut T) -> Result<()> {
         if let Some(key) = self.key_encryption_key {
             syscall!(trussed.delete(key));
@@ -101,6 +106,7 @@ impl PersistentState {
         self.save(trussed)
     }
 
+    #[inline(never)]
     pub fn load_if_not_initialised<T: client::Client + client::Chacha8Poly1305>(
         &mut self,
         trussed: &mut T,
@@ -119,6 +125,7 @@ impl PersistentState {
         }
     }
 
+    #[inline(never)]
     pub fn key_encryption_key<T: client::Client + client::Chacha8Poly1305>(
         &mut self,
         trussed: &mut T,
@@ -129,6 +136,7 @@ impl PersistentState {
         }
     }
 
+    #[inline(never)]
     pub fn rotate_key_encryption_key<T: client::Client + client::Chacha8Poly1305>(
         &mut self,
         trussed: &mut T,
@@ -143,6 +151,7 @@ impl PersistentState {
         Ok(key)
     }
 
+    #[inline(never)]
     pub fn key_wrapping_key<T: client::Client + client::Chacha8Poly1305>(
         &mut self,
         trussed: &mut T,
@@ -153,6 +162,7 @@ impl PersistentState {
         }
     }
 
+    #[inline(never)]
     pub fn rotate_key_wrapping_key<T: client::Client + client::Chacha8Poly1305>(
         &mut self,
         trussed: &mut T,
