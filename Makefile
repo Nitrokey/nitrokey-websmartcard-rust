@@ -2,12 +2,15 @@ all: example
 
 FEATURES=log-all,enable-logs
 
-.PHONY: example setup-fedora ci setup-ubuntu usbip check
+.PHONY: example setup-fedora ci setup-ubuntu usbip check bloat
 example:
 	env RUST_BACKTRACE=full RUST_LOG=debug cargo run --example udp_sim --features $(FEATURES)
 
 usbip:
 	env RUST_BACKTRACE=full RUST_LOG=debug cargo run --example usbip --features $(FEATURES)
+
+bloat:
+	cargo bloat --crates -n 100 --example usbip --features $(FEATURES)
 
 setup-fedora:
 	sudo dnf install llvm-devel clang-devel
