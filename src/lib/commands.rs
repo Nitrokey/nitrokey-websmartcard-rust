@@ -631,7 +631,7 @@ where
     let (kh_key, mech, is_rk) = {
         get_key_from_keyhandle(
             w,
-            Bytes::from_slice(req.keyhandle.clone()).map_err(|_| Error::BadFormat)?,
+            Bytes::from_slice(req.keyhandle).map_err(|_| Error::BadFormat)?,
         )?
     };
 
