@@ -260,10 +260,8 @@ impl<C: WebcryptTrussedClient> Webcrypt<C> {
             ),
             SetPin => cmd_manage_pin(
                 &mut self.wc,
-                Some(
-                    WebcryptInternal::<C>::get_input_deserialized_from_slice(&self.WC_INPUT_BUFFER)
+                Self::get_request(&self.WC_INPUT_BUFFER)
                         .map_err(|_| Error::InternalError)?, // TODO use BadFormat
-                ),
                 None,
                 reply,
             ),
