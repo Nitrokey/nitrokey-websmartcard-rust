@@ -700,15 +700,15 @@ where
         return Err(BadFormat);
     }
 
-    let ecc_key: Vec<u8, 64> = match req_eccekey.len() {
-        65 => Vec::<u8, 64>::from_slice(&req_eccekey[1..65]).unwrap(),
-        64 => Vec::<u8, 64>::from_slice(&req_eccekey[0..64]).unwrap(),
+    let ecc_key = match req_eccekey.len() {
+        65 => &req_eccekey[1..65],
+        64 => &req_eccekey[0..64],
         _ => return Err(Error::FailedLoadingData),
     };
 
     // import incoming public key
     let ephem_pub_bin_key = try_syscall!(w.trussed.deserialize_p256_key(
-        &ecc_key,
+        ecc_key,
         trussed::types::KeySerialization::Raw,
         trussed::types::StorageAttributes::new()
             .set_persistence(trussed::types::Location::Volatile)
