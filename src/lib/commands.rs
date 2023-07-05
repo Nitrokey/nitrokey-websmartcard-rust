@@ -485,8 +485,8 @@ where
         req.data.as_slice(),
         SignatureSerialization::Raw
     ))
-    .map_err(|e| {
-        error!("Signing error: {:?}", e);
+    .map_err(|_e| {
+        error!("Signing error: {:?}", _e);
         Error::FailedLoadingData
     })?
     .signature;
@@ -525,7 +525,7 @@ where
     // TODO find via provided fingerprint if not, get from openpgp info struct, or use the first one
     // Currently check for the exact match of the held openpgp keys and their fingerprints
     // if provided, use keyhandle or just default encryption key
-    let (kh_key, mech, is_rk) = if req.fingerprint.is_none() && req.keyhandle.is_none() {
+    let (kh_key, _mech, _is_rk) = if req.fingerprint.is_none() && req.keyhandle.is_none() {
         let open_pgpkey = &w
             .state
             .openpgp_data
@@ -590,8 +590,8 @@ where
         agreed_shared_secret_id,
         KeySerialization::Raw
     ))
-    .map_err(|e| {
-        error!("Deserialization error: {:?}", e);
+    .map_err(|_e| {
+        error!("Deserialization error: {:?}", _e);
         Error::InternalError
     })?;
     syscall!(w.trussed.delete(agreed_shared_secret_id));
@@ -651,9 +651,9 @@ where
 
 #[inline(never)]
 fn decrypt_rsa<C>(
-    w: &mut Webcrypt<C>,
+    _w: &mut Webcrypt<C>,
     req: CommandDecryptRequest,
-    kh_key: KeyId,
+    _kh_key: KeyId,
 ) -> ResultW<Message>
 where
     C: WebcryptTrussedClient,
@@ -762,8 +762,8 @@ where
         shared_secret,
         KeySerialization::Raw
     ))
-    .map_err(|e| {
-        error!("Deserialization error: {:?}", e);
+    .map_err(|_e| {
+        error!("Deserialization error: {:?}", _e);
         Error::InternalError
     })?
     .serialized_key;
@@ -784,8 +784,8 @@ where
     let decrypted = try_syscall!(w
         .trussed
         .decrypt_aes256cbc(serialized_reimported, &req.data))
-    .map_err(|e| {
-        error!("Decryption error: {:?}", e);
+    .map_err(|_e| {
+        error!("Decryption error: {:?}", _e);
         Error::FailedLoadingData
     })?
     .plaintext

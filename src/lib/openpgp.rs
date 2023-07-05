@@ -123,15 +123,13 @@ impl OpenPGPData {
     }
 
     pub fn import(
-        trussed: &mut (impl WebcryptTrussedClient),
+        trussed: &mut impl WebcryptTrussedClient,
         auth: DataBytes,
         sign: DataBytes,
         enc: DataBytes,
         date: DataBytes,
         location: Location,
     ) -> ResultW<Self> {
-        use trussed::types::Location;
-
         Ok(OpenPGPData {
             authentication: OpenPGPKey {
                 key: {

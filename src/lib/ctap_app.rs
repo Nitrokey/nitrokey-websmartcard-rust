@@ -10,7 +10,6 @@ use ctap_types::webauthn::PublicKeyCredentialUserEntity;
 use ctap_types::{ctap1, ctap2};
 use ctaphid_dispatch::app;
 use ctaphid_dispatch::app as ctaphid;
-use ctaphid_dispatch::app::{AppResult, Command};
 use heapless_bytes::Bytes;
 
 use crate::helpers::hash;
@@ -248,7 +247,7 @@ fn handle_ctap2<C>(
         response.push(error).ok();
     }
 }
-use trussed::{client, interrupt::InterruptFlag};
+use trussed::interrupt::InterruptFlag;
 
 impl<C> app::App<'static> for Webcrypt<C>
 where
