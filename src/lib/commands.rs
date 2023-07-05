@@ -291,7 +291,6 @@ where
 
 #[inline(never)]
 fn cred_to_mechanism(cred: &CredentialData) -> Mechanism {
-    
     match cred.algorithm {
         0 => Mechanism::P256,
         1 => Mechanism::Rsa2048Pkcs1v15,
@@ -785,15 +784,13 @@ where
     .ok_or(Error::FailedLoadingData)?;
 
     // decrypt with shared secret
-    let decrypted = try_syscall!(w
-        .trussed
-        .decrypt_aes256cbc(serialized_reimported, req.data))
-    .map_err(|_e| {
-        error!("Decryption error: {:?}", _e);
-        Error::FailedLoadingData
-    })?
-    .plaintext
-    .ok_or(Error::InternalError)?;
+    let decrypted = try_syscall!(w.trussed.decrypt_aes256cbc(serialized_reimported, req.data))
+        .map_err(|_e| {
+            error!("Decryption error: {:?}", _e);
+            Error::FailedLoadingData
+        })?
+        .plaintext
+        .ok_or(Error::InternalError)?;
 
     syscall!(w.trussed.delete(shared_secret));
     syscall!(w.trussed.delete(serialized_reimported));

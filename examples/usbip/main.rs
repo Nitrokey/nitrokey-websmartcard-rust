@@ -185,7 +185,6 @@ use trussed::types::Location;
 use trussed::{virt, ClientImplementation, Platform};
 use trussed_usbip::ClientBuilder;
 
-
 use usbd_ctaphid::constants::MESSAGE_SIZE;
 use webcrypt::{debug, info, try_debug, try_info, try_warn, warn};
 use webcrypt::{Options, PeekingBypass};

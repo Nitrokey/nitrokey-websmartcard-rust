@@ -297,21 +297,12 @@ impl<C: WebcryptTrussedClient> Webcrypt<C> {
                     .map_err(|_| Error::BadFormat)?,
                 reply,
             ),
-            Decrypt => {
-                let req = {
-                    match WebcryptInternal::<C>::get_input_deserialized_from_slice(
-                        &self.WC_INPUT_BUFFER,
-                    ) {
-                        Ok(x) => Ok(x),
-                        Err(e) => {
-                            error!("Deserialization error: {:?}", e);
-                            Err(e)
-                        }
-                    }
-                };
-                let req: CommandDecryptRequest = req.map_err(|_| Error::BadFormat)?;
-                cmd_decrypt(&mut self.wc, req, reply)
-            }
+            Decrypt => cmd_decrypt(
+                &mut self.wc,
+                WebcryptInternal::<C>::get_input_deserialized_from_slice(&self.WC_INPUT_BUFFER)
+                    .map_err(|_| Error::BadFormat)?,
+                reply,
+            ),
 
             OpenPgpImport => cmd_openpgp_import(
                 &mut self.wc,
