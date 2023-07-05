@@ -20,7 +20,7 @@ use crate::commands_types::*;
 use crate::constants::GIT_VERSION;
 use crate::constants::{WEBCRYPT_AVAILABLE_SLOTS_MAX, WEBCRYPT_VERSION};
 use crate::rk_files::*;
-use crate::transport::Webcrypt;
+use crate::transport::{send_to_output, Webcrypt, WebcryptInternal};
 use crate::types::CommandID::{ChangePin, SetPin};
 use crate::types::Error;
 
@@ -82,7 +82,7 @@ impl<
 }
 
 #[inline(never)]
-pub fn cmd_status<C>(w: &mut Webcrypt<C>) -> CommandResult
+pub fn cmd_status<C>(w: &mut WebcryptInternal<C>, reply: &mut Message) -> CommandResult
 where
     C: WebcryptTrussedClient,
 {
@@ -94,25 +94,26 @@ where
         pin_attempts: w.state.pin.get_counter(),
         version_string: Some(git_version_bytes),
     };
-    w.send_to_output(resp);
+    send_to_output(resp, reply);
     Ok(())
 }
 
 #[inline(never)]
-pub fn cmd_test_ping<C>(w: &mut Webcrypt<C>) -> CommandResult
-where
-    C: WebcryptTrussedClient,
-{
-    w.send_input_to_output();
+pub fn cmd_test_ping(req: &Message, reply: &mut Message) -> CommandResult {
+    reply.extend_from_slice(&req[3..]).unwrap();
     Ok(())
 }
 
 #[inline(never)]
-pub fn cmd_generate_key<C>(w: &mut Webcrypt<C>) -> CommandResult
+pub fn cmd_generate_key<C>(
+    w: &mut WebcryptInternal<C>,
+    req: CommandGenerateRequest,
+    reply: &mut Message,
+) -> CommandResult
 where
     C: WebcryptTrussedClient,
 {
-    let req: CommandGenerateRequest = w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
+    // let req: CommandGenerateRequest = w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
     w.session
         .check_token_res(req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -135,24 +136,27 @@ where
     syscall!(w.trussed.delete(public_key));
     syscall!(w.trussed.delete(private_key));
 
-    w.send_to_output({
-        let mut pubkey = Bytes65::from_slice(serialized_raw_public_key.as_slice()).unwrap();
-        // add identifier for uncompressed form - 0x04
-        pubkey
-            .insert(0, 0x04)
-            .map_err(|_| Error::FailedLoadingData)?;
-        CommandGenerateResponse {
-            pubkey,
-            keyhandle: KeyHandleSerialized::from_slice(&keyhandle_ser_enc[..]).unwrap(),
-        }
-    });
+    send_to_output(
+        {
+            let mut pubkey = Bytes65::from_slice(serialized_raw_public_key.as_slice()).unwrap();
+            // add identifier for uncompressed form - 0x04
+            pubkey
+                .insert(0, 0x04)
+                .map_err(|_| Error::FailedLoadingData)?;
+            CommandGenerateResponse {
+                pubkey,
+                keyhandle: KeyHandleSerialized::from_slice(&keyhandle_ser_enc[..]).unwrap(),
+            }
+        },
+        reply,
+    );
 
     Ok(())
 }
 
 #[inline(never)]
 pub fn wrap_key_to_keyhandle<C>(
-    w: &mut Webcrypt<C>,
+    w: &mut WebcryptInternal<C>,
     private_key: KeyId,
 ) -> Result<KeyHandleSerialized, Error>
 where
@@ -207,11 +211,15 @@ where
 }
 
 #[inline(never)]
-pub fn cmd_sign<C>(w: &mut Webcrypt<C>) -> CommandResult
+pub fn cmd_sign<C>(
+    w: &mut WebcryptInternal<C>,
+    req: CommandSignRequest,
+    reply: &mut Message,
+) -> CommandResult
 where
     C: WebcryptTrussedClient,
 {
-    let req: CommandSignRequest = w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
+    // let req: CommandSignRequest = w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
     w.session
         .check_token_res(req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -235,19 +243,22 @@ where
         syscall!(w.trussed.delete(key));
     }
 
-    w.send_to_output({
-        CommandSignResponse {
-            inhash: req.hash,
-            signature,
-        }
-    });
+    send_to_output(
+        {
+            CommandSignResponse {
+                inhash: req.hash,
+                signature,
+            }
+        },
+        reply,
+    );
 
     Ok(())
 }
 
 #[inline(never)]
 fn get_key_from_keyhandle<C>(
-    w: &mut Webcrypt<C>,
+    w: &mut WebcryptInternal<C>,
     keyhandle: KeyHandleSerialized,
 ) -> ResultW<(KeyId, Mechanism, bool)>
 where
@@ -292,7 +303,7 @@ fn cred_to_mechanism(cred: &CredentialData) -> Mechanism {
 
 #[inline(never)]
 fn import_key_from_keyhandle<C>(
-    w: &mut Webcrypt<C>,
+    w: &mut WebcryptInternal<C>,
     encrypted_serialized_keyhandle: &KeyHandleSerialized,
 ) -> Result<(KeyId, Mechanism), Error>
 where
@@ -354,13 +365,17 @@ where
 }
 
 #[inline(never)]
-pub fn cmd_openpgp_generate<C>(w: &mut Webcrypt<C>) -> CommandResult
+pub fn cmd_openpgp_generate<C>(
+    w: &mut WebcryptInternal<C>,
+    req: CommandOpenPGPInitRequest,
+    reply: &mut Message,
+) -> CommandResult
 where
     C: WebcryptTrussedClient,
 {
-    let _: CommandOpenPGPInitRequest = w
-        .get_input_deserialized()
-        .map_err(|_| Error::FailedLoadingData)?;
+    // let _: CommandOpenPGPInitRequest = w
+    //     .get_input_deserialized()
+    //     .map_err(|_| Error::FailedLoadingData)?;
 
     w.state.openpgp_data = Some(OpenPGPData::init(&mut w.trussed, w.options.location));
     w.state.save(&mut w.trussed);
@@ -368,13 +383,17 @@ where
 }
 
 #[inline(never)]
-pub fn cmd_openpgp_info<C>(w: &mut Webcrypt<C>) -> CommandResult
+pub fn cmd_openpgp_info<C>(
+    w: &mut WebcryptInternal<C>,
+    req: CommandOpenPGPInfoRequest,
+    reply: &mut Message,
+) -> CommandResult
 where
     C: WebcryptTrussedClient,
 {
-    let _: CommandOpenPGPInfoRequest = w
-        .get_input_deserialized()
-        .map_err(|_| Error::FailedLoadingData)?;
+    // let _: CommandOpenPGPInfoRequest = w
+    //     .get_input_deserialized()
+    //     .map_err(|_| Error::FailedLoadingData)?;
 
     // FIXME remove -> initialize in a separate command
     // move to state initialization
@@ -413,30 +432,37 @@ where
     // let sign_keyhandle = wrap_key_to_keyhandle(w, openpgp_data.signing.key)?;
 
     let date = DataBytes::from_slice(&openpgp_data.date).map_err(|_| Error::InternalError)?;
-    w.send_to_output(CommandOpenPGPInfoResponse {
-        encr_pubkey,
-        auth_pubkey,
-        sign_pubkey,
-        date,
-    });
+    send_to_output(
+        CommandOpenPGPInfoResponse {
+            encr_pubkey,
+            auth_pubkey,
+            sign_pubkey,
+            date,
+        },
+        reply,
+    );
 
     Ok(())
 }
 
 #[inline(never)]
-pub fn cmd_openpgp_import<C>(w: &mut Webcrypt<C>) -> CommandResult
+pub fn cmd_openpgp_import<C>(
+    w: &mut WebcryptInternal<C>,
+    req: CommandOpenPGPImportRequest,
+    reply: &mut Message,
+) -> CommandResult
 where
     C: WebcryptTrussedClient,
 {
-    let req = match w.get_input_deserialized() {
-        Ok(x) => Ok(x),
-        Err(e) => {
-            error!("Deserialization error: {:?}", e);
-            Err(e)
-        }
-    };
-
-    let req: CommandOpenPGPImportRequest = req.map_err(|_| Error::BadFormat)?;
+    // let req = match w.get_input_deserialized() {
+    //     Ok(x) => Ok(x),
+    //     Err(e) => {
+    //         error!("Deserialization error: {:?}", e);
+    //         Err(e)
+    //     }
+    // };
+    //
+    // let req: CommandOpenPGPImportRequest = req.map_err(|_| Error::BadFormat)?;
     w.session
         .check_token_res(req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -455,19 +481,23 @@ where
 }
 
 #[inline(never)]
-pub fn cmd_openpgp_sign<C>(w: &mut Webcrypt<C>) -> CommandResult
+pub fn cmd_openpgp_sign<C>(
+    w: &mut WebcryptInternal<C>,
+    req: CommandOpenPGPSignRequest,
+    reply: &mut Message,
+) -> CommandResult
 where
     C: WebcryptTrussedClient,
 {
-    let req = match w.get_input_deserialized() {
-        Ok(x) => Ok(x),
-        Err(e) => {
-            error!("Deserialization error: {:?}", e);
-            Err(e)
-        }
-    };
-
-    let req: CommandOpenPGPSignRequest = req.map_err(|_| Error::BadFormat)?;
+    // let req = match w.get_input_deserialized() {
+    //     Ok(x) => Ok(x),
+    //     Err(e) => {
+    //         error!("Deserialization error: {:?}", e);
+    //         Err(e)
+    //     }
+    // };
+    //
+    // let req: CommandOpenPGPSignRequest = req.map_err(|_| Error::BadFormat)?;
     w.session
         .check_token_res(req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -492,25 +522,29 @@ where
     .signature;
     let signature = signature.to_bytes().expect("Too small target buffer");
 
-    w.send_to_output(CommandOpenPGPSignResponse { signature });
+    send_to_output(CommandOpenPGPSignResponse { signature }, reply);
 
     Ok(())
 }
 
 #[inline(never)]
-pub fn cmd_openpgp_decrypt<C>(w: &mut Webcrypt<C>) -> CommandResult
+pub fn cmd_openpgp_decrypt<C>(
+    w: &mut WebcryptInternal<C>,
+    req: CommandOpenPGPDecryptRequest,
+    reply: &mut Message,
+) -> CommandResult
 where
     C: WebcryptTrussedClient,
 {
-    let req = match w.get_input_deserialized() {
-        Ok(x) => Ok(x),
-        Err(e) => {
-            error!("Deserialization error: {:?}", e);
-            Err(e)
-        }
-    };
-
-    let req: CommandOpenPGPDecryptRequest = req.map_err(|_| Error::BadFormat)?;
+    // let req = match w.get_input_deserialized() {
+    //     Ok(x) => Ok(x),
+    //     Err(e) => {
+    //         error!("Deserialization error: {:?}", e);
+    //         Err(e)
+    //     }
+    // };
+    //
+    // let req: CommandOpenPGPDecryptRequest = req.map_err(|_| Error::BadFormat)?;
     w.session
         .check_token_res(req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -596,16 +630,23 @@ where
     })?;
     syscall!(w.trussed.delete(agreed_shared_secret_id));
 
-    w.send_to_output(CommandOpenPGPDecryptResponse {
-        data: DataBytes::from_slice(&serialized_shared_secret.serialized_key)
-            .map_err(|_| Error::InternalError)?,
-    });
+    send_to_output(
+        CommandOpenPGPDecryptResponse {
+            data: DataBytes::from_slice(&serialized_shared_secret.serialized_key)
+                .map_err(|_| Error::InternalError)?,
+        },
+        reply,
+    );
 
     Ok(())
 }
 
 #[inline(never)]
-pub fn cmd_decrypt<C>(w: &mut Webcrypt<C>, req: CommandDecryptRequest) -> CommandResult
+pub fn cmd_decrypt<C>(
+    w: &mut WebcryptInternal<C>,
+    req: CommandDecryptRequest,
+    reply: &mut Message,
+) -> CommandResult
 where
     C: WebcryptTrussedClient,
 {
@@ -631,16 +672,19 @@ where
         syscall!(w.trussed.delete(kh_key));
     }
 
-    w.send_to_output(CommandDecryptResponse {
-        data: Bytes::from_slice(decrypted.as_slice()).unwrap(),
-    });
+    send_to_output(
+        CommandDecryptResponse {
+            data: Bytes::from_slice(decrypted.as_slice()).unwrap(),
+        },
+        reply,
+    );
 
     Ok(())
 }
 
 #[inline(never)]
 fn decrypt_rsa<C>(
-    _w: &mut Webcrypt<C>,
+    _w: &mut WebcryptInternal<C>,
     req: CommandDecryptRequest,
     _kh_key: KeyId,
 ) -> ResultW<Message>
@@ -669,7 +713,7 @@ where
 
 #[inline(never)]
 fn decrypt_ecc_p256<C>(
-    w: &mut Webcrypt<C>,
+    w: &mut WebcryptInternal<C>,
     req: CommandDecryptRequest,
     kh_key: KeyId,
 ) -> ResultW<Message>
@@ -790,12 +834,16 @@ where
 
 #[cfg(feature = "hmacsha256p256")]
 #[inline(never)]
-pub fn cmd_generate_key_from_data<C>(w: &mut Webcrypt<C>) -> CommandResult
+pub fn cmd_generate_key_from_data<C>(
+    w: &mut WebcryptInternal<C>,
+    req: CommandGenerateFromDataRequest,
+    reply: &mut Message,
+) -> CommandResult
 where
     C: WebcryptTrussedClient,
 {
-    let req: CommandGenerateFromDataRequest =
-        w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
+    // let req: CommandGenerateFromDataRequest =
+    //     w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
     w.session
         .check_token_res(req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -833,28 +881,35 @@ where
     syscall!(w.trussed.delete(public_key));
     syscall!(w.trussed.delete(private_key));
 
-    w.send_to_output({
-        let mut pubkey = Bytes65::from_slice(serialized_raw_public_key.as_slice()).unwrap();
-        // add identifier for uncompressed form - 0x04
-        pubkey
-            .insert(0, 0x04)
-            .map_err(|_| Error::FailedLoadingData)?;
-        CommandGenerateResponse {
-            pubkey,
-            keyhandle: KeyHandleSerialized::from_slice(&keyhandle_ser_enc[..]).unwrap(),
-        }
-    });
+    send_to_output(
+        {
+            let mut pubkey = Bytes65::from_slice(serialized_raw_public_key.as_slice()).unwrap();
+            // add identifier for uncompressed form - 0x04
+            pubkey
+                .insert(0, 0x04)
+                .map_err(|_| Error::FailedLoadingData)?;
+            CommandGenerateResponse {
+                pubkey,
+                keyhandle: KeyHandleSerialized::from_slice(&keyhandle_ser_enc[..]).unwrap(),
+            }
+        },
+        reply,
+    );
 
     Ok(())
 }
 
 #[inline(never)]
-pub fn cmd_read_resident_key_public<C>(w: &mut Webcrypt<C>) -> CommandResult
+pub fn cmd_read_resident_key_public<C>(
+    w: &mut WebcryptInternal<C>,
+    req: CommandReadResidentKeyRequest,
+    reply: &mut Message,
+) -> CommandResult
 where
     C: WebcryptTrussedClient,
 {
-    let req: CommandReadResidentKeyRequest =
-        w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
+    // let req: CommandReadResidentKeyRequest =
+    //     w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
     info!("WC cmd_read_resident_key_public {:?}", req);
     w.session
         .check_token_res(req.tp)
@@ -904,28 +959,35 @@ where
         // FIXME introduce types to distinct derived and resident keys
         syscall!(w.trussed.delete(private_key));
     }
-    w.send_to_output({
-        let mut pubkey = Message::from_slice(serialized_raw_public_key.as_slice()).unwrap();
-        if kind == Kind::P256 {
-            // add identifier for uncompressed form - 0x04
-            pubkey.insert(0, 0x04).map_err(|_| InternalError)?;
-        }
-        CommandGenerateResidentKeyResponse {
-            pubkey: pubkey.try_convert_into().map_err(|_| InternalError)?,
-            keyhandle: req.keyhandle,
-        }
-    });
+    send_to_output(
+        {
+            let mut pubkey = Message::from_slice(serialized_raw_public_key.as_slice()).unwrap();
+            if kind == Kind::P256 {
+                // add identifier for uncompressed form - 0x04
+                pubkey.insert(0, 0x04).map_err(|_| InternalError)?;
+            }
+            CommandGenerateResidentKeyResponse {
+                pubkey: pubkey.try_convert_into().map_err(|_| InternalError)?,
+                keyhandle: req.keyhandle,
+            }
+        },
+        reply,
+    );
 
     Ok(())
 }
 
 #[inline(never)]
-pub fn cmd_login<C>(w: &mut Webcrypt<C>) -> CommandResult
+pub fn cmd_login<C>(
+    w: &mut WebcryptInternal<C>,
+    req: CommandLoginRequest,
+    reply: &mut Message,
+) -> CommandResult
 where
     C: WebcryptTrussedClient,
 {
     // Check PIN and return temporary password for the further communication
-    let req: CommandLoginRequest = w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
+    // let req: CommandLoginRequest = w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
 
     // hash rpid if the request is coming from FIDO2
     // TODO move hashing to transport
@@ -961,17 +1023,21 @@ where
     w.state.save(&mut w.trussed);
     let tp = login_result?;
 
-    w.send_to_output(CommandLoginResponse { tp });
+    send_to_output(CommandLoginResponse { tp }, reply);
 
     Ok(())
 }
 
 #[inline(never)]
-pub fn cmd_logout<C>(w: &mut Webcrypt<C>) -> CommandResult
+pub fn cmd_logout<C>(
+    w: &mut WebcryptInternal<C>,
+    req: CommandLogoutRequest,
+    reply: &mut Message,
+) -> CommandResult
 where
     C: WebcryptTrussedClient,
 {
-    let _: CommandLogoutRequest = w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
+    // let _: CommandLogoutRequest = w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
 
     w.state.save(&mut w.trussed);
     // Clear session
@@ -988,7 +1054,7 @@ where
 }
 
 #[inline(never)]
-pub fn cmd_factory_reset<C>(w: &mut Webcrypt<C>) -> CommandResult
+pub fn cmd_factory_reset<C>(w: &mut WebcryptInternal<C>, reply: &mut Message) -> CommandResult
 where
     C: WebcryptTrussedClient,
 {
@@ -1022,15 +1088,19 @@ where
 }
 
 #[inline(never)]
-pub fn cmd_configure<C>(w: &mut Webcrypt<C>) -> CommandResult
+pub fn cmd_configure<C>(
+    w: &mut WebcryptInternal<C>,
+    mut req: CommandConfigureRequest,
+    reply: &mut Message,
+) -> CommandResult
 where
     C: WebcryptTrussedClient,
 {
     // Allow to set some configuration options, like when to require user touch confirmation
     // To decide: same handler for both setting and getting?
 
-    let mut req: CommandConfigureRequest =
-        w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
+    // let mut req: CommandConfigureRequest =
+    //     w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
     w.session
         .check_token_res(req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -1040,13 +1110,18 @@ where
     }
     req.confirmation = Some(w.state.configuration.confirmation);
     req.tp = None;
-    w.send_to_output(req);
+    send_to_output(req, reply);
 
     Ok(())
 }
 
 #[inline(never)]
-pub fn cmd_manage_pin<C>(w: &mut Webcrypt<C>) -> CommandResult
+pub fn cmd_manage_pin<C>(
+    w: &mut WebcryptInternal<C>,
+    req: Option<CommandSetPINRequest>,
+    req2: Option<CommandChangePINRequest>,
+    reply: &mut Message,
+) -> CommandResult
 where
     C: WebcryptTrussedClient,
 {
@@ -1054,8 +1129,7 @@ where
 
     match w.current_command_id {
         SetPin => {
-            let req: CommandSetPINRequest =
-                w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
+            let req = req.unwrap();
             w.state.pin.set_pin(req.pin)?;
 
             #[cfg(feature = "transparent-encryption")]
@@ -1072,8 +1146,7 @@ where
             Ok(())
         }
         ChangePin => {
-            let req: CommandChangePINRequest =
-                w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
+            let req = req2.unwrap();
             w.state.pin.change_pin(req.pin, req.newpin)?;
             #[cfg(feature = "transparent-encryption")]
             try_syscall!(w
@@ -1088,14 +1161,18 @@ where
 }
 
 #[inline(never)]
-pub fn cmd_discover_resident_key<C>(w: &mut Webcrypt<C>) -> CommandResult
+pub fn cmd_discover_resident_key<C>(
+    w: &mut WebcryptInternal<C>,
+    req: CommandDiscoverResidentKeyRequest,
+    reply: &mut Message,
+) -> CommandResult
 where
     C: WebcryptTrussedClient,
 {
     // Discover all RKs connected to this RP. Should be protected with PIN (L3 credprotect as of CTAP2.1).
 
-    let req: CommandDiscoverResidentKeyRequest =
-        w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
+    // let req: CommandDiscoverResidentKeyRequest =
+    //     w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
     w.session
         .check_token_res(req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -1148,12 +1225,16 @@ where
 }
 
 #[inline(never)]
-pub fn cmd_write_resident_key<C>(w: &mut Webcrypt<C>) -> CommandResult
+pub fn cmd_write_resident_key<C>(
+    w: &mut WebcryptInternal<C>,
+    req: CommandWriteResidentKeyRequest,
+    reply: &mut Message,
+) -> CommandResult
 where
     C: WebcryptTrussedClient,
 {
-    let req: CommandWriteResidentKeyRequest =
-        w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
+    // let req: CommandWriteResidentKeyRequest =
+    //     w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
     w.session
         .check_token_res(req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -1228,17 +1309,20 @@ where
 
     syscall!(w.trussed.delete(public_key));
 
-    w.send_to_output({
-        let mut pubkey = Message::from_slice(serialized_raw_public_key.as_slice()).unwrap();
-        if kind == Kind::P256 {
-            // add identifier for uncompressed form - 0x04
-            pubkey.insert(0, 0x04).map_err(|_| Error::InternalError)?;
-        }
-        CommandWriteResidentKeyResponse {
-            pubkey: pubkey.try_convert_into().map_err(|_| InternalError)?,
-            keyhandle: Bytes::from_slice(credential_id_hash.as_slice()).unwrap(),
-        }
-    });
+    send_to_output(
+        {
+            let mut pubkey = Message::from_slice(serialized_raw_public_key.as_slice()).unwrap();
+            if kind == Kind::P256 {
+                // add identifier for uncompressed form - 0x04
+                pubkey.insert(0, 0x04).map_err(|_| Error::InternalError)?;
+            }
+            CommandWriteResidentKeyResponse {
+                pubkey: pubkey.try_convert_into().map_err(|_| InternalError)?,
+                keyhandle: Bytes::from_slice(credential_id_hash.as_slice()).unwrap(),
+            }
+        },
+        reply,
+    );
 
     Ok(())
 }
@@ -1257,7 +1341,7 @@ fn keytype_to_kind(key_type: &KeyType) -> Kind {
 
 #[inline(never)]
 fn get_public_key<C>(
-    w: &mut Webcrypt<C>,
+    w: &mut WebcryptInternal<C>,
     kind: Kind,
     private_key: KeyId,
 ) -> ResultW<(KeyId, SerializedKey)>
@@ -1301,14 +1385,18 @@ where
 }
 
 #[inline(never)]
-pub fn cmd_generate_resident_key<C>(w: &mut Webcrypt<C>) -> CommandResult
+pub fn cmd_generate_resident_key<C>(
+    w: &mut WebcryptInternal<C>,
+    req: CommandGenerateResidentKeyRequest,
+    reply: &mut Message,
+) -> CommandResult
 where
     C: WebcryptTrussedClient + client::Sha256,
 {
     // write the RK similarly, as done with FIDO2, potentially with some extensions
 
-    let req: CommandGenerateResidentKeyRequest =
-        w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
+    // let req: CommandGenerateResidentKeyRequest =
+    //     w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
     w.session
         .check_token_res(req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -1348,25 +1436,32 @@ where
 
     syscall!(w.trussed.delete(public_key));
 
-    w.send_to_output({
-        let mut pubkey = Message::from_slice(serialized_raw_public_key.as_slice()).unwrap();
-        // add identifier for uncompressed form - 0x04
-        pubkey.insert(0, 0x04).map_err(|_| Error::InternalError)?;
-        CommandGenerateResidentKeyResponse {
-            pubkey: pubkey.try_convert_into().map_err(|_| InternalError)?,
-            keyhandle: Bytes::from_slice(credential_id_hash.as_slice()).unwrap(),
-        }
-    });
+    send_to_output(
+        {
+            let mut pubkey = Message::from_slice(serialized_raw_public_key.as_slice()).unwrap();
+            // add identifier for uncompressed form - 0x04
+            pubkey.insert(0, 0x04).map_err(|_| Error::InternalError)?;
+            CommandGenerateResidentKeyResponse {
+                pubkey: pubkey.try_convert_into().map_err(|_| InternalError)?,
+                keyhandle: Bytes::from_slice(credential_id_hash.as_slice()).unwrap(),
+            }
+        },
+        reply,
+    );
 
     Ok(())
 }
 
 #[inline(never)]
-pub fn cmd_restore_from_seed<C>(w: &mut Webcrypt<C>) -> CommandResult
+pub fn cmd_restore_from_seed<C>(
+    w: &mut WebcryptInternal<C>,
+    req: CommandRestoreRequest,
+    reply: &mut Message,
+) -> CommandResult
 where
     C: WebcryptTrussedClient,
 {
-    let req: CommandRestoreRequest = w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
+    // let req: CommandRestoreRequest = w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
     w.session
         .check_token_res(req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -1392,17 +1487,21 @@ where
     .to_bytes()
     .unwrap();
 
-    w.send_to_output(CommandRestoreResponse { hash });
+    send_to_output(CommandRestoreResponse { hash }, reply);
 
     Ok(())
 }
 
 #[inline(never)]
-pub fn cmd_initialize_seed<C>(w: &mut Webcrypt<C>) -> CommandResult
+pub fn cmd_initialize_seed<C>(
+    w: &mut WebcryptInternal<C>,
+    req: CommandInitializeRequest,
+    reply: &mut Message,
+) -> CommandResult
 where
     C: WebcryptTrussedClient,
 {
-    let req: CommandInitializeRequest = w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
+    // let req: CommandInitializeRequest = w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
     w.session
         .check_token_res(req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -1417,12 +1516,15 @@ where
 
     // TODO DESIGN to reconsider publishing raw key
     let master = w.state.get_master_key_raw().unwrap_or_default();
-    w.send_to_output({
-        CommandInitializeResponse {
-            master,
-            salt: Default::default(),
-        }
-    });
+    send_to_output(
+        {
+            CommandInitializeResponse {
+                master,
+                salt: Default::default(),
+            }
+        },
+        reply,
+    );
 
     Ok(())
 }

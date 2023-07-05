@@ -132,7 +132,7 @@ where
             let data = request.allow_list.unwrap();
             let data = &data[0].id;
             let rpid_hash = hash(
-                &mut w.trussed,
+                &mut w.wc.trussed,
                 Message::from_slice(request.rp_id.as_bytes()).unwrap(),
             );
             let maybe_output = w.bridge_u2f_to_webcrypt_raw(
@@ -280,7 +280,7 @@ where
     }
 
     fn interrupt(&self) -> Option<&'static InterruptFlag> {
-        self.trussed.interrupt()
+        self.wc.trussed.interrupt()
     }
 }
 
