@@ -221,7 +221,7 @@ impl<C: WebcryptTrussedClient> Webcrypt<C> {
     }
 
     #[inline(never)]
-    fn parse_execute(&mut self, reply: &mut Message) -> Result<(Error, CommandID), ()> {
+    fn parse_execute(&mut self, reply: &mut Message) -> Result<(Error, CommandID), Error> {
         self.WC_OUTPUT_BUFFER.clear();
         let parsed: ResponseReadFirst = (&self.WC_INPUT_BUFFER).into();
         let id_u8 = parsed.cmd_id;
@@ -235,33 +235,33 @@ impl<C: WebcryptTrussedClient> Webcrypt<C> {
             Login => cmd_login(
                 &mut self.wc,
                 WebcryptInternal::<C>::get_input_deserialized_from_slice(&self.WC_INPUT_BUFFER)
-                    .unwrap(),
+                    .map_err(|_| Error::BadFormat)?,
                 reply,
             ),
             Logout => cmd_logout(
                 &mut self.wc,
                 WebcryptInternal::<C>::get_input_deserialized_from_slice(&self.WC_INPUT_BUFFER)
-                    .unwrap(),
+                    .map_err(|_| Error::BadFormat)?,
                 reply,
             ),
             FactoryReset => cmd_factory_reset(&mut self.wc, reply),
             GetConfiguration => cmd_configure(
                 &mut self.wc,
                 WebcryptInternal::<C>::get_input_deserialized_from_slice(&self.WC_INPUT_BUFFER)
-                    .unwrap(),
+                    .map_err(|_| Error::BadFormat)?,
                 reply,
             ),
             SetConfiguration => cmd_configure(
                 &mut self.wc,
                 WebcryptInternal::<C>::get_input_deserialized_from_slice(&self.WC_INPUT_BUFFER)
-                    .unwrap(),
+                    .map_err(|_| Error::BadFormat)?,
                 reply,
             ),
             SetPin => cmd_manage_pin(
                 &mut self.wc,
                 Some(
                     WebcryptInternal::<C>::get_input_deserialized_from_slice(&self.WC_INPUT_BUFFER)
-                        .unwrap(),
+                        .map_err(|_| Error::BadFormat)?,
                 ),
                 None,
                 reply,
@@ -270,32 +270,32 @@ impl<C: WebcryptTrussedClient> Webcrypt<C> {
                 &mut self.wc,
                 None,
                 WebcryptInternal::<C>::get_input_deserialized_from_slice(&self.WC_INPUT_BUFFER)
-                    .unwrap(),
+                    .map_err(|_| Error::BadFormat)?,
                 reply,
             ),
             InitializeSeed => cmd_initialize_seed(
                 &mut self.wc,
                 WebcryptInternal::<C>::get_input_deserialized_from_slice(&self.WC_INPUT_BUFFER)
-                    .unwrap(),
+                    .map_err(|_| Error::BadFormat)?,
                 reply,
             ),
             RestoreFromSeed => cmd_restore_from_seed(
                 &mut self.wc,
                 WebcryptInternal::<C>::get_input_deserialized_from_slice(&self.WC_INPUT_BUFFER)
-                    .unwrap(),
+                    .map_err(|_| Error::BadFormat)?,
                 reply,
             ),
 
             GenerateKey => cmd_generate_key(
                 &mut self.wc,
                 WebcryptInternal::<C>::get_input_deserialized_from_slice(&self.WC_INPUT_BUFFER)
-                    .unwrap(),
+                    .map_err(|_| Error::BadFormat)?,
                 reply,
             ),
             Sign => cmd_sign(
                 &mut self.wc,
                 WebcryptInternal::<C>::get_input_deserialized_from_slice(&self.WC_INPUT_BUFFER)
-                    .unwrap(),
+                    .map_err(|_| Error::BadFormat)?,
                 reply,
             ),
             Decrypt => {
@@ -310,39 +310,38 @@ impl<C: WebcryptTrussedClient> Webcrypt<C> {
                         }
                     }
                 };
-                // let req: CommandDecryptRequest = req.map_err(|_| Error::BadFormat)?;
-                let req: CommandDecryptRequest = req.map_err(|_| ())?;
+                let req: CommandDecryptRequest = req.map_err(|_| Error::BadFormat)?;
                 cmd_decrypt(&mut self.wc, req, reply)
             }
 
             OpenPgpImport => cmd_openpgp_import(
                 &mut self.wc,
                 WebcryptInternal::<C>::get_input_deserialized_from_slice(&self.WC_INPUT_BUFFER)
-                    .unwrap(),
+                    .map_err(|_| Error::BadFormat)?,
                 reply,
             ),
             OpenPgpSign => cmd_openpgp_sign(
                 &mut self.wc,
                 WebcryptInternal::<C>::get_input_deserialized_from_slice(&self.WC_INPUT_BUFFER)
-                    .unwrap(),
+                    .map_err(|_| Error::BadFormat)?,
                 reply,
             ),
             OpenPgpDecrypt => cmd_openpgp_decrypt(
                 &mut self.wc,
                 WebcryptInternal::<C>::get_input_deserialized_from_slice(&self.WC_INPUT_BUFFER)
-                    .unwrap(),
+                    .map_err(|_| Error::BadFormat)?,
                 reply,
             ),
             OpenPgpInfo => cmd_openpgp_info(
                 &mut self.wc,
                 WebcryptInternal::<C>::get_input_deserialized_from_slice(&self.WC_INPUT_BUFFER)
-                    .unwrap(),
+                    .map_err(|_| Error::BadFormat)?,
                 reply,
             ),
             OpenPgpGenerate => cmd_openpgp_generate(
                 &mut self.wc,
                 WebcryptInternal::<C>::get_input_deserialized_from_slice(&self.WC_INPUT_BUFFER)
-                    .unwrap(),
+                    .map_err(|_| Error::BadFormat)?,
                 reply,
             ),
 
@@ -350,32 +349,32 @@ impl<C: WebcryptTrussedClient> Webcrypt<C> {
             GenerateKeyFromData => cmd_generate_key_from_data(
                 &mut self.wc,
                 WebcryptInternal::<C>::get_input_deserialized_from_slice(&self.WC_INPUT_BUFFER)
-                    .unwrap(),
+                    .map_err(|_| Error::BadFormat)?,
                 reply,
             ),
 
             ReadResidentKeyPublic => cmd_read_resident_key_public(
                 &mut self.wc,
                 WebcryptInternal::<C>::get_input_deserialized_from_slice(&self.WC_INPUT_BUFFER)
-                    .unwrap(),
+                    .map_err(|_| Error::BadFormat)?,
                 reply,
             ),
             GenerateResidentKey => cmd_generate_resident_key(
                 &mut self.wc,
                 WebcryptInternal::<C>::get_input_deserialized_from_slice(&self.WC_INPUT_BUFFER)
-                    .unwrap(),
+                    .map_err(|_| Error::BadFormat)?,
                 reply,
             ),
             DiscoverResidentKeys => cmd_discover_resident_key(
                 &mut self.wc,
                 WebcryptInternal::<C>::get_input_deserialized_from_slice(&self.WC_INPUT_BUFFER)
-                    .unwrap(),
+                    .map_err(|_| Error::BadFormat)?,
                 reply,
             ),
             WriteResidentKey => cmd_write_resident_key(
                 &mut self.wc,
                 WebcryptInternal::<C>::get_input_deserialized_from_slice(&self.WC_INPUT_BUFFER)
-                    .unwrap(),
+                    .map_err(|_| Error::BadFormat)?,
                 reply,
             ),
 
