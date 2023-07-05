@@ -609,11 +609,13 @@ pub fn cmd_decrypt<C>(w: &mut Webcrypt<C>) -> CommandResult
 where
     C: WebcryptTrussedClient,
 {
-    let req = match w.get_input_deserialized() {
-        Ok(x) => Ok(x),
-        Err(e) => {
-            error!("Deserialization error: {:?}", e);
-            Err(e)
+    let req = {
+        match w.get_input_deserialized() {
+            Ok(x) => Ok(x),
+            Err(e) => {
+                error!("Deserialization error: {:?}", e);
+                Err(e)
+            }
         }
     };
 
@@ -622,7 +624,12 @@ where
         .check_token_res(req.tp.clone())
         .map_err(|_| Error::RequireAuthentication)?;
 
-    let (kh_key, mech, is_rk) = get_key_from_keyhandle(w, req.keyhandle.clone())?;
+    let (kh_key, mech, is_rk) = {
+        get_key_from_keyhandle(
+            w,
+            Bytes::from_slice(req.keyhandle.clone()).map_err(|_| Error::BadFormat)?,
+        )?
+    };
 
     let decrypted = match mech {
         Mechanism::P256 => decrypt_ecc_p256(w, req, kh_key),
@@ -722,10 +729,10 @@ where
     // TODO DESIGN derive separate key for HMAC
     let encoded_ciphertext_len: [u8; 2] = (req.data.len() as u16).to_le_bytes();
     let mut data_to_hmac = Message::new(); // FIXME check length
-    data_to_hmac.extend(req.data.clone());
-    data_to_hmac.extend(req_eccekey);
+    data_to_hmac.extend_from_slice(req.data);
+    data_to_hmac.extend_from_slice(req_eccekey);
     data_to_hmac.extend(encoded_ciphertext_len);
-    data_to_hmac.extend(req.keyhandle);
+    data_to_hmac.extend_from_slice(req.keyhandle);
 
     let calculated_hmac = try_syscall!(w.trussed.sign(
         Mechanism::HmacSha256,

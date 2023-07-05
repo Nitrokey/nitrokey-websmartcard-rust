@@ -1377,6 +1377,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_bytes"
+version = "0.11.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f3c5113243e4a3a1c96587342d067f3e6b0f50790b6cf40d2868eb647a3eef0e"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "serde_cbor"
 version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1827,7 +1836,7 @@ checksum = "6a02e4885ed3bc0f2de90ea6dd45ebcbb66dacffe03547fadbb0eeae2770887d"
 
 [[package]]
 name = "webcrypt"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "admin-app",
  "apdu-dispatch",
@@ -1845,6 +1854,7 @@ dependencies = [
  "pretty_env_logger",
  "serde",
  "serde-indexed",
+ "serde_bytes",
  "trussed",
  "trussed-auth",
  "trussed-rsa-alloc",

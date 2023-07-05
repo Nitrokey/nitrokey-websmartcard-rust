@@ -189,22 +189,31 @@ pub struct CommandOpenPGPImportRequest {
 // no response
 // pub type CommandOpenPGPImportResponse = CommandOpenPGPInfoResponse;
 
+use serde_bytes;
+
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "UPPERCASE")]
-pub struct CommandDecryptRequest {
+pub struct CommandDecryptRequest<'a> {
     /// data to decrypt
-    pub(crate) data: DataBytes,
+    #[serde(with = "serde_bytes")]
+    pub(crate) data: &'a [u8],
 
     #[serde(skip_serializing_if = "Option::is_none")]
     /// ciphertext's hmac
-    pub(crate) hmac: Option<DataBytes>,
+    // pub(crate) hmac: Option<DataBytes>,
+    #[serde(with = "serde_bytes")]
+    pub(crate) hmac: Option<&'a [u8]>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     /// ephemeral ecc encryption key
-    pub(crate) eccekey: Option<DataBytes>,
+    // pub(crate) eccekey: Option<DataBytes>,
+    #[serde(with = "serde_bytes")]
+    pub(crate) eccekey: Option<&'a [u8]>,
 
     /// key handle, should be less than 200 bytes
-    pub(crate) keyhandle: KeyHandleSerialized,
+    // pub(crate) keyhandle: KeyHandleSerialized,
+    #[serde(with = "serde_bytes")]
+    pub(crate) keyhandle: &'a [u8],
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) tp: ExpectedSessionToken,
