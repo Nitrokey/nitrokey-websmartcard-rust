@@ -8,7 +8,7 @@ use crate::types::*;
 use crate::types::{ExtWebcryptCmd, WebcryptRequest};
 use crate::wcstate::{WebcryptSession, WebcryptState};
 
-use crate::commands_types::WebcryptMessage;
+use crate::commands_types::{CommandDecryptRequest, WebcryptMessage};
 use crate::{Bytes, Message, Options};
 
 #[allow(non_snake_case)]
@@ -85,7 +85,20 @@ where
 
             GenerateKey => cmd_generate_key(self),
             Sign => cmd_sign(self),
-            Decrypt => cmd_decrypt(self),
+            Decrypt => {
+                let req = {
+                    match self.get_input_deserialized() {
+                        Ok(x) => Ok(x),
+                        Err(e) => {
+                            error!("Deserialization error: {:?}", e);
+                            Err(e)
+                        }
+                    }
+                };
+                // let req: CommandDecryptRequest = req.map_err(|_| Error::BadFormat)?;
+                let req: CommandDecryptRequest = req.map_err(|_| ())?;
+                cmd_decrypt(self, req)
+            },
 
             OpenPgpImport => cmd_openpgp_import(self),
             OpenPgpSign => cmd_openpgp_sign(self),

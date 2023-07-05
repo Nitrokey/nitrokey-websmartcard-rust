@@ -605,21 +605,10 @@ where
 }
 
 #[inline(never)]
-pub fn cmd_decrypt<C>(w: &mut Webcrypt<C>) -> CommandResult
+pub fn cmd_decrypt<C>(w: &mut Webcrypt<C>, req: CommandDecryptRequest) -> CommandResult
 where
     C: WebcryptTrussedClient,
 {
-    let req = {
-        match w.get_input_deserialized() {
-            Ok(x) => Ok(x),
-            Err(e) => {
-                error!("Deserialization error: {:?}", e);
-                Err(e)
-            }
-        }
-    };
-
-    let req: CommandDecryptRequest = req.map_err(|_| Error::BadFormat)?;
     w.session
         .check_token_res(req.tp.clone())
         .map_err(|_| Error::RequireAuthentication)?;
