@@ -189,8 +189,6 @@ pub struct CommandOpenPGPImportRequest {
 // no response
 // pub type CommandOpenPGPImportResponse = CommandOpenPGPInfoResponse;
 
-use serde_bytes;
-
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "UPPERCASE")]
 pub struct CommandDecryptRequest<'a> {
