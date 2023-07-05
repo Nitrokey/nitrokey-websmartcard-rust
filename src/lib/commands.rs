@@ -114,7 +114,7 @@ where
     C: WebcryptTrussedClient,
 {
     w.session
-        .check_token_res(req.tp)
+        .check_token_res(&req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
 
     // Generate a new P256 key pair.
@@ -219,7 +219,7 @@ where
     C: WebcryptTrussedClient,
 {
     w.session
-        .check_token_res(req.tp)
+        .check_token_res(&req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
 
     if !(req.keyhandle.len() > 0 && req.hash.len() > 0) {
@@ -454,7 +454,7 @@ where
 {
 
     w.session
-        .check_token_res(req.tp)
+        .check_token_res(&req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
 
     w.state.openpgp_data = Some(OpenPGPData::import(
@@ -481,7 +481,7 @@ where
 {
 
     w.session
-        .check_token_res(req.tp)
+        .check_token_res(&req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
 
     // FIXME remove -> initialize in a separate command
@@ -520,7 +520,7 @@ where
 {
 
     w.session
-        .check_token_res(req.tp)
+        .check_token_res(&req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
 
     // FIXME remove -> initialize in a separate command
@@ -625,7 +625,7 @@ where
     C: WebcryptTrussedClient,
 {
     w.session
-        .check_token_res(req.tp.clone())
+        .check_token_res(&req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
 
     let (kh_key, mech, is_rk) = {
@@ -818,7 +818,7 @@ where
 {
 
     w.session
-        .check_token_res(req.tp)
+        .check_token_res(&req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
 
     let kek = w.state.get_key_master(&mut w.trussed).unwrap();
@@ -884,7 +884,7 @@ where
 
     info!("WC cmd_read_resident_key_public {:?}", req);
     w.session
-        .check_token_res(req.tp)
+        .check_token_res(&req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
 
     // Get private keyid
@@ -1073,7 +1073,7 @@ where
     // let mut req: CommandConfigureRequest =
     //     w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
     w.session
-        .check_token_res(req.tp)
+        .check_token_res(&req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
 
     if req.confirmation.is_some() {
@@ -1144,7 +1144,7 @@ where
 
 
     w.session
-        .check_token_res(req.tp)
+        .check_token_res(&req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
 
     // then store key, making it resident
@@ -1205,7 +1205,7 @@ where
 {
 
     w.session
-        .check_token_res(req.tp)
+        .check_token_res(&req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
 
     let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
@@ -1365,7 +1365,7 @@ where
     // write the RK similarly, as done with FIDO2, potentially with some extensions
 
     w.session
-        .check_token_res(req.tp)
+        .check_token_res(&req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
 
     // Generate a new P256 key pair.
@@ -1429,7 +1429,7 @@ where
     C: WebcryptTrussedClient,
 {
     w.session
-        .check_token_res(req.tp)
+        .check_token_res(&req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
 
     let master = &req.master;
@@ -1468,7 +1468,7 @@ where
     C: WebcryptTrussedClient,
 {
     w.session
-        .check_token_res(req.tp)
+        .check_token_res(&req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
 
     if req.entropy.is_some() && req.entropy.unwrap().len() > 0 {

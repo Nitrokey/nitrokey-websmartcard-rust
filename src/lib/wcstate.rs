@@ -186,7 +186,7 @@ impl WebcryptSession {
     }
 
     #[inline(never)]
-    pub fn check_token_res(&self, token: ExpectedSessionToken) -> Result<(), ()> {
+    pub fn check_token_res(&self, token: &ExpectedSessionToken) -> Result<(), ()> {
         #[cfg(feature = "no-authentication")]
         return Ok(());
 
