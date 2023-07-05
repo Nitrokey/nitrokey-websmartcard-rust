@@ -261,7 +261,7 @@ impl<C: WebcryptTrussedClient> Webcrypt<C> {
                 &mut self.wc,
                 Some(
                     WebcryptInternal::<C>::get_input_deserialized_from_slice(&self.WC_INPUT_BUFFER)
-                        .map_err(|_| Error::BadFormat)?,
+                        .map_err(|_| Error::InternalError)?, // TODO use BadFormat
                 ),
                 None,
                 reply,
