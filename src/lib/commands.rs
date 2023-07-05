@@ -113,7 +113,6 @@ pub fn cmd_generate_key<C>(
 where
     C: WebcryptTrussedClient,
 {
-    // let req: CommandGenerateRequest = w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
     w.session
         .check_token_res(req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -219,7 +218,6 @@ pub fn cmd_sign<C>(
 where
     C: WebcryptTrussedClient,
 {
-    // let req: CommandSignRequest = w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
     w.session
         .check_token_res(req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -454,15 +452,7 @@ pub fn cmd_openpgp_import<C>(
 where
     C: WebcryptTrussedClient,
 {
-    // let req = match w.get_input_deserialized() {
-    //     Ok(x) => Ok(x),
-    //     Err(e) => {
-    //         error!("Deserialization error: {:?}", e);
-    //         Err(e)
-    //     }
-    // };
-    //
-    // let req: CommandOpenPGPImportRequest = req.map_err(|_| Error::BadFormat)?;
+
     w.session
         .check_token_res(req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -489,15 +479,7 @@ pub fn cmd_openpgp_sign<C>(
 where
     C: WebcryptTrussedClient,
 {
-    // let req = match w.get_input_deserialized() {
-    //     Ok(x) => Ok(x),
-    //     Err(e) => {
-    //         error!("Deserialization error: {:?}", e);
-    //         Err(e)
-    //     }
-    // };
-    //
-    // let req: CommandOpenPGPSignRequest = req.map_err(|_| Error::BadFormat)?;
+
     w.session
         .check_token_res(req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -536,15 +518,7 @@ pub fn cmd_openpgp_decrypt<C>(
 where
     C: WebcryptTrussedClient,
 {
-    // let req = match w.get_input_deserialized() {
-    //     Ok(x) => Ok(x),
-    //     Err(e) => {
-    //         error!("Deserialization error: {:?}", e);
-    //         Err(e)
-    //     }
-    // };
-    //
-    // let req: CommandOpenPGPDecryptRequest = req.map_err(|_| Error::BadFormat)?;
+
     w.session
         .check_token_res(req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -842,8 +816,7 @@ pub fn cmd_generate_key_from_data<C>(
 where
     C: WebcryptTrussedClient,
 {
-    // let req: CommandGenerateFromDataRequest =
-    //     w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
+
     w.session
         .check_token_res(req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -908,8 +881,7 @@ pub fn cmd_read_resident_key_public<C>(
 where
     C: WebcryptTrussedClient,
 {
-    // let req: CommandReadResidentKeyRequest =
-    //     w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
+
     info!("WC cmd_read_resident_key_public {:?}", req);
     w.session
         .check_token_res(req.tp)
@@ -987,7 +959,6 @@ where
     C: WebcryptTrussedClient,
 {
     // Check PIN and return temporary password for the further communication
-    // let req: CommandLoginRequest = w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
 
     // hash rpid if the request is coming from FIDO2
     // TODO move hashing to transport
@@ -1171,8 +1142,7 @@ where
 {
     // Discover all RKs connected to this RP. Should be protected with PIN (L3 credprotect as of CTAP2.1).
 
-    // let req: CommandDiscoverResidentKeyRequest =
-    //     w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
+
     w.session
         .check_token_res(req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -1233,8 +1203,7 @@ pub fn cmd_write_resident_key<C>(
 where
     C: WebcryptTrussedClient,
 {
-    // let req: CommandWriteResidentKeyRequest =
-    //     w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
+
     w.session
         .check_token_res(req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -1395,8 +1364,6 @@ where
 {
     // write the RK similarly, as done with FIDO2, potentially with some extensions
 
-    // let req: CommandGenerateResidentKeyRequest =
-    //     w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
     w.session
         .check_token_res(req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -1461,7 +1428,6 @@ pub fn cmd_restore_from_seed<C>(
 where
     C: WebcryptTrussedClient,
 {
-    // let req: CommandRestoreRequest = w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
     w.session
         .check_token_res(req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -1501,7 +1467,6 @@ pub fn cmd_initialize_seed<C>(
 where
     C: WebcryptTrussedClient,
 {
-    // let req: CommandInitializeRequest = w.get_input_deserialized().map_err(|_| Error::BadFormat)?;
     w.session
         .check_token_res(req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
