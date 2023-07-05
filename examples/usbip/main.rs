@@ -19,7 +19,7 @@ mod dispatch {
         platform::Platform,
         serde_extensions::{ExtensionDispatch, ExtensionId, ExtensionImpl as _},
         service::ServiceResources,
-        types::{Bytes, Context, Location},
+        types::{Bytes, Context},
     };
     use trussed_auth::{AuthBackend, AuthContext, AuthExtension, MAX_HW_KEY_LEN};
 
@@ -180,12 +180,12 @@ use clap::Parser;
 use clap_num::maybe_hex;
 use trussed::backend::BackendId;
 use trussed::platform::{consent, reboot, ui};
-use trussed::serde_extensions::ExtensionId;
+
 use trussed::types::Location;
 use trussed::{virt, ClientImplementation, Platform};
 use trussed_usbip::ClientBuilder;
 
-use crate::dispatch::Extension;
+
 use usbd_ctaphid::constants::MESSAGE_SIZE;
 use webcrypt::{debug, info, try_debug, try_info, try_warn, warn};
 use webcrypt::{Options, PeekingBypass};
@@ -311,7 +311,7 @@ impl trussed::platform::UserInterface for UserInterface {
     fn set_status(&mut self, status: ui::Status) {
         debug!("Set status: {:?}", status);
         if let ui::Status::Custom(s) = status {
-            let cs: CustomStatus = CustomStatus::try_from(s).unwrap_or_else(|_| {
+            let _cs: CustomStatus = CustomStatus::try_from(s).unwrap_or_else(|_| {
                 warn!("Unsupported status value: {:?}", status);
                 CustomStatus::Unknown
             });
@@ -332,7 +332,7 @@ impl trussed::platform::UserInterface for UserInterface {
         self.start_time.elapsed()
     }
 
-    fn reboot(&mut self, to: reboot::To) -> ! {
+    fn reboot(&mut self, _to: reboot::To) -> ! {
         info!("Restart!  ({:?})", to);
         std::process::exit(25);
     }
