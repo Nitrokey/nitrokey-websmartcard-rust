@@ -221,7 +221,7 @@ impl<C: WebcryptTrussedClient> Webcrypt<C> {
 
     #[inline(never)]
     fn parse_execute(&mut self, reply: &mut Message) -> Result<(Error, CommandID), Error> {
-        self.WC_OUTPUT_BUFFER.clear();
+        reply.clear();
         let parsed: ResponseReadFirst = (&self.WC_INPUT_BUFFER).into();
         let id_u8 = parsed.cmd_id;
         let operation = id_u8;
