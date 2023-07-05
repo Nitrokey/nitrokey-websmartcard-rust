@@ -35,6 +35,15 @@ pub struct Webcrypt<C: WebcryptTrussedClient> {
 }
 
 impl<C: WebcryptTrussedClient> Webcrypt<C> {
+
+    pub fn new_with_options(client: C, options: Options) -> Self {
+        Self {
+            WC_INPUT_BUFFER: Default::default(),
+            WC_OUTPUT_BUFFER: Default::default(),
+            wc: WebcryptInternal::new_with_options(client, options),
+        }
+    }
+
     /// The main transport function, gateway to the extension from the Webauthn perspective
     /// Decodes incoming request low-level packet data, and either saves it to the input buffer,
     /// triggers execution or allows reading output buffer.
@@ -96,9 +105,11 @@ impl<C: WebcryptTrussedClient> Webcrypt<C> {
                 output.status_code = Error::Success;
                 let should_execute = webcrypt_req.is_final();
                 if should_execute {
+                    let mut tmp_buffer = self.WC_OUTPUT_BUFFER.clone();
                     let res = self
-                        .parse_execute(&mut self.WC_OUTPUT_BUFFER)
+                        .parse_execute(&mut tmp_buffer)
                         .map_err(|_| Error::InternalError)?;
+                    self.WC_OUTPUT_BUFFER = tmp_buffer;
                     output.status_code = res.0;
                     self.wc.current_command_id = res.1;
                 }
