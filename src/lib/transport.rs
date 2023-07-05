@@ -64,7 +64,7 @@ where
     #[inline(never)]
     fn parse_execute(&mut self) -> Result<(Error, CommandID), ()> {
         self.WC_OUTPUT_BUFFER.clear();
-        let parsed: ResponseReadFirst = self.WC_INPUT_BUFFER.clone().into();
+        let parsed: ResponseReadFirst = (&self.WC_INPUT_BUFFER).into();
         let id_u8 = parsed.cmd_id;
         let operation = id_u8;
         self.current_command_id = operation;

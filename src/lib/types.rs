@@ -456,8 +456,8 @@ impl ResponseReadFirst {
     }
 }
 
-impl From<Message> for ResponseReadFirst {
-    fn from(v: Message) -> Self {
+impl From<&Message> for ResponseReadFirst {
+    fn from(v: &Message) -> Self {
         let mut rr = ResponseReadFirst::new();
         rr.data_len = u16::from_le_bytes(v[0..2].try_into().unwrap());
         // rr.cmd_id = CommandID::rdr.read_u8();
