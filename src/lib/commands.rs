@@ -452,7 +452,6 @@ pub fn cmd_openpgp_import<C>(
 where
     C: WebcryptTrussedClient,
 {
-
     w.session
         .check_token_res(&req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -479,7 +478,6 @@ pub fn cmd_openpgp_sign<C>(
 where
     C: WebcryptTrussedClient,
 {
-
     w.session
         .check_token_res(&req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -518,7 +516,6 @@ pub fn cmd_openpgp_decrypt<C>(
 where
     C: WebcryptTrussedClient,
 {
-
     w.session
         .check_token_res(&req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -816,7 +813,6 @@ pub fn cmd_generate_key_from_data<C>(
 where
     C: WebcryptTrussedClient,
 {
-
     w.session
         .check_token_res(&req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -881,7 +877,6 @@ pub fn cmd_read_resident_key_public<C>(
 where
     C: WebcryptTrussedClient,
 {
-
     info!("WC cmd_read_resident_key_public {:?}", req);
     w.session
         .check_token_res(&req.tp)
@@ -1142,7 +1137,6 @@ where
 {
     // Discover all RKs connected to this RP. Should be protected with PIN (L3 credprotect as of CTAP2.1).
 
-
     w.session
         .check_token_res(&req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
@@ -1203,7 +1197,6 @@ pub fn cmd_write_resident_key<C>(
 where
     C: WebcryptTrussedClient,
 {
-
     w.session
         .check_token_res(&req.tp)
         .map_err(|_| Error::RequireAuthentication)?;

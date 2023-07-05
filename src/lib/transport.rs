@@ -35,7 +35,6 @@ pub struct Webcrypt<C: WebcryptTrussedClient> {
 }
 
 impl<C: WebcryptTrussedClient> Webcrypt<C> {
-
     pub fn new_with_options(client: C, options: Options) -> Self {
         Self {
             WC_INPUT_BUFFER: Default::default(),
