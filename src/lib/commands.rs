@@ -20,7 +20,7 @@ use crate::commands_types::*;
 use crate::constants::GIT_VERSION;
 use crate::constants::{WEBCRYPT_AVAILABLE_SLOTS_MAX, WEBCRYPT_VERSION};
 use crate::rk_files::*;
-use crate::transport::{send_to_output, Webcrypt, WebcryptInternal};
+use crate::transport::{send_to_output, WebcryptInternal};
 use crate::types::CommandID::{ChangePin, SetPin};
 use crate::types::Error;
 
@@ -291,12 +291,12 @@ where
 
 #[inline(never)]
 fn cred_to_mechanism(cred: &CredentialData) -> Mechanism {
-    let mech = match cred.algorithm {
+    
+    match cred.algorithm {
         0 => Mechanism::P256,
         1 => Mechanism::Rsa2048Pkcs1v15,
         _ => Mechanism::P256,
-    };
-    mech
+    }
 }
 
 #[inline(never)]
@@ -365,8 +365,8 @@ where
 #[inline(never)]
 pub fn cmd_openpgp_generate<C>(
     w: &mut WebcryptInternal<C>,
-    req: CommandOpenPGPInitRequest,
-    reply: &mut Message,
+    _req: CommandOpenPGPInitRequest,
+    _reply: &mut Message,
 ) -> CommandResult
 where
     C: WebcryptTrussedClient,
@@ -383,7 +383,7 @@ where
 #[inline(never)]
 pub fn cmd_openpgp_info<C>(
     w: &mut WebcryptInternal<C>,
-    req: CommandOpenPGPInfoRequest,
+    _req: CommandOpenPGPInfoRequest,
     reply: &mut Message,
 ) -> CommandResult
 where
@@ -447,7 +447,7 @@ where
 pub fn cmd_openpgp_import<C>(
     w: &mut WebcryptInternal<C>,
     req: CommandOpenPGPImportRequest,
-    reply: &mut Message,
+    _reply: &mut Message,
 ) -> CommandResult
 where
     C: WebcryptTrussedClient,
@@ -662,8 +662,8 @@ fn decrypt_rsa<C>(
 where
     C: WebcryptTrussedClient,
 {
-    if !(req.keyhandle.len() > 0
-        && req.data.len() > 0
+    if !(!req.keyhandle.is_empty()
+        && !req.data.is_empty()
         && req.hmac.is_none()
         && req.eccekey.is_none())
     {
@@ -693,10 +693,10 @@ where
 {
     let req_eccekey = req.eccekey.ok_or(BadFormat)?;
     let req_hmac = req.hmac.ok_or(BadFormat)?;
-    if !(req.keyhandle.len() > 0
-        && req_eccekey.len() > 0
-        && req.data.len() > 0
-        && req_hmac.len() > 0)
+    if !(!req.keyhandle.is_empty()
+        && !req_eccekey.is_empty()
+        && !req.data.is_empty()
+        && !req_hmac.is_empty())
     {
         return Err(BadFormat);
     }
@@ -787,7 +787,7 @@ where
     // decrypt with shared secret
     let decrypted = try_syscall!(w
         .trussed
-        .decrypt_aes256cbc(serialized_reimported, &req.data))
+        .decrypt_aes256cbc(serialized_reimported, req.data))
     .map_err(|_e| {
         error!("Decryption error: {:?}", _e);
         Error::FailedLoadingData
@@ -798,9 +798,9 @@ where
     syscall!(w.trussed.delete(shared_secret));
     syscall!(w.trussed.delete(serialized_reimported));
     syscall!(w.trussed.delete(ephem_pub_bin_key));
-    Ok(decrypted
+    decrypted
         .try_convert_into()
-        .map_err(|_| Error::InternalError)?)
+        .map_err(|_| Error::InternalError)
 }
 
 #[cfg(feature = "hmacsha256p256")]
@@ -997,8 +997,8 @@ where
 #[inline(never)]
 pub fn cmd_logout<C>(
     w: &mut WebcryptInternal<C>,
-    req: CommandLogoutRequest,
-    reply: &mut Message,
+    _req: CommandLogoutRequest,
+    _reply: &mut Message,
 ) -> CommandResult
 where
     C: WebcryptTrussedClient,
@@ -1020,7 +1020,7 @@ where
 }
 
 #[inline(never)]
-pub fn cmd_factory_reset<C>(w: &mut WebcryptInternal<C>, reply: &mut Message) -> CommandResult
+pub fn cmd_factory_reset<C>(w: &mut WebcryptInternal<C>, _reply: &mut Message) -> CommandResult
 where
     C: WebcryptTrussedClient,
 {
@@ -1086,7 +1086,7 @@ pub fn cmd_manage_pin<C>(
     w: &mut WebcryptInternal<C>,
     req: Option<CommandSetPINRequest>,
     req2: Option<CommandChangePINRequest>,
-    reply: &mut Message,
+    _reply: &mut Message,
 ) -> CommandResult
 where
     C: WebcryptTrussedClient,
@@ -1130,7 +1130,7 @@ where
 pub fn cmd_discover_resident_key<C>(
     w: &mut WebcryptInternal<C>,
     req: CommandDiscoverResidentKeyRequest,
-    reply: &mut Message,
+    _reply: &mut Message,
 ) -> CommandResult
 where
     C: WebcryptTrussedClient,
