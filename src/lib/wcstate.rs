@@ -369,15 +369,6 @@ impl WebcryptState {
         }
         cbor_deserialize(data).map_err(|_| Error::InternalError)
     }
-    #[inline(never)]
-    fn serialize(&self) -> Result<Message, ()> {
-        // TODO decide on memory limits
-        // TODO this should be inlined to avoid unnecessary coping and conversions
-        let mut buffer = [0u8; OUTPUT_BUFFER_SIZE_FOR_CBOR_SERIALIZATION_STATE];
-        Message::from_slice(
-            cbor_serialize(self, &mut buffer).map_err(|_| ())?
-        )
-    }
 
     #[inline(never)]
     pub fn file_reset<T>(&self, t: &mut T)
@@ -407,12 +398,14 @@ impl WebcryptState {
             return;
         }
 
-        let serialized = self.serialize();
+        // TODO decide on memory limits
+        let mut buffer = [0u8; OUTPUT_BUFFER_SIZE_FOR_CBOR_SERIALIZATION_STATE];
+        let serialized = cbor_serialize(self, &mut buffer);
         if let Ok(serialized) = serialized {
             try_syscall!(t.write_file(
             self.location,
             PathBuf::from(STATE_FILE_PATH),
-            Bytes::from_slice(serialized.as_slice()).unwrap(),
+            Bytes::from_slice(serialized).unwrap(),
             None,
         ))
                 .map_err(|_| Error::MemoryFull)
