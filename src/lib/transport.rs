@@ -105,8 +105,7 @@ impl<C: WebcryptTrussedClient> Webcrypt<C> {
                 let should_execute = webcrypt_req.is_final();
                 if should_execute {
                     let mut tmp_buffer = self.WC_OUTPUT_BUFFER.clone();
-                    let res = self
-                        .parse_execute(&mut tmp_buffer);
+                    let res = self.parse_execute(&mut tmp_buffer);
                     self.WC_OUTPUT_BUFFER = tmp_buffer;
                     match res {
                         Ok(res) => {
@@ -267,8 +266,7 @@ impl<C: WebcryptTrussedClient> Webcrypt<C> {
             ),
             SetPin => cmd_manage_pin(
                 &mut self.wc,
-                Self::get_request(&self.WC_INPUT_BUFFER)
-                        .map_err(|_| Error::InternalError)?, // TODO use BadFormat
+                Self::get_request(&self.WC_INPUT_BUFFER).map_err(|_| Error::InternalError)?, // TODO use BadFormat
                 None,
                 reply,
             ),

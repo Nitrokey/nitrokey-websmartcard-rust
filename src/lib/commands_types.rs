@@ -102,7 +102,7 @@ pub struct CommandSignRequest<'a> {
 
     /// key handle, should be less than 200 bytes
     #[serde(with = "serde_bytes")]
-    pub(crate) keyhandle:  &'a [u8],
+    pub(crate) keyhandle: &'a [u8],
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) tp: ExpectedSessionToken,
@@ -245,7 +245,7 @@ pub type CommandLogoutRequest = CommandEmptyRequest;
 pub struct CommandGenerateFromDataRequest<'a> {
     /// data to be used for key derivation
     #[serde(with = "serde_bytes")]
-    pub(crate) hash:  &'a [u8],
+    pub(crate) hash: &'a [u8],
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) tp: ExpectedSessionToken,

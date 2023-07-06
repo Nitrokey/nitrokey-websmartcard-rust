@@ -228,12 +228,9 @@ where
 
     let (key, mechanism, keyhandle_points_to_rk) = get_key_from_keyhandle(w, req.keyhandle)?;
 
-    let signature = syscall!(w.trussed.sign(
-        mechanism,
-        key,
-        req.hash,
-        SignatureSerialization::Raw
-    ))
+    let signature = syscall!(w
+        .trussed
+        .sign(mechanism, key, req.hash, SignatureSerialization::Raw))
     .signature;
     let signature = signature.to_bytes().expect("Too small target buffer");
 
@@ -275,10 +272,7 @@ where
         let rp_id_hash = w.session.rp_id_hash.as_ref().unwrap();
         let cred_data = try_syscall!(w.trussed.read_file(
             w.options.location,
-            rk_path(
-                rp_id_hash,
-                &Bytes32::from_slice(keyhandle).unwrap()
-            )
+            rk_path(rp_id_hash, &Bytes32::from_slice(keyhandle).unwrap())
         ))
         .map_err(|_| Error::MemoryFull)?
         .data;
@@ -301,7 +295,7 @@ fn cred_to_mechanism(cred: &CredentialData) -> Mechanism {
 #[inline(never)]
 fn import_key_from_keyhandle<C>(
     w: &mut WebcryptInternal<C>,
-    encrypted_serialized_keyhandle:  &[u8],
+    encrypted_serialized_keyhandle: &[u8],
 ) -> Result<(KeyId, Mechanism), Error>
 where
     C: WebcryptTrussedClient,
@@ -315,8 +309,8 @@ where
 
     let appid = w.session.rp_id_hash.clone().ok_or(Error::BadOrigin)?;
 
-    let encr_message: Encrypt = cbor_deserialize(encrypted_serialized_keyhandle)
-        .map_err(|_| Error::BadFormat)?;
+    let encr_message: Encrypt =
+        cbor_deserialize(encrypted_serialized_keyhandle).map_err(|_| Error::BadFormat)?;
 
     let kek = w
         .store
@@ -624,12 +618,7 @@ where
         .check_token_res(&req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
 
-    let (kh_key, mech, is_rk) = {
-        get_key_from_keyhandle(
-            w,
-            req.keyhandle,
-        )?
-    };
+    let (kh_key, mech, is_rk) = { get_key_from_keyhandle(w, req.keyhandle)? };
 
     let decrypted = match mech {
         Mechanism::P256 => decrypt_ecc_p256(w, req, kh_key),
@@ -957,10 +946,7 @@ where
     let rpid = {
         let rpid = &w.req_details.as_ref().unwrap().rpid;
         if w.req_details.as_ref().unwrap().source == RequestSource::RS_FIDO2 {
-            hash(
-                &mut w.trussed,
-                rpid.as_slice(),
-            ).map_err(|_| Error::InternalError)?
+            hash(&mut w.trussed, rpid.as_slice()).map_err(|_| Error::InternalError)?
         } else {
             rpid.clone()
         }

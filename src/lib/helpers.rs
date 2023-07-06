@@ -13,11 +13,7 @@ where
         + client::Sha256,
 {
     use trussed::types::Mechanism;
-    let hash = syscall!(trussed.hash(
-        Mechanism::Sha256,
-        Bytes::from_slice(data)?
-    ))
-    .hash;
+    let hash = syscall!(trussed.hash(Mechanism::Sha256, Bytes::from_slice(data)?)).hash;
     Bytes32::from_slice(hash.as_slice())
 }
 

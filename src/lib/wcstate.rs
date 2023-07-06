@@ -9,7 +9,10 @@ use trussed::{
 // use std::borrow::Borrow;
 use crate::constants::RESIDENT_KEY_COUNT;
 use crate::types::Error;
-use crate::{Message, OUTPUT_BUFFER_SIZE_FOR_CBOR_SERIALIZATION, OUTPUT_BUFFER_SIZE_FOR_CBOR_SERIALIZATION_STATE};
+use crate::{
+    Message, OUTPUT_BUFFER_SIZE_FOR_CBOR_SERIALIZATION,
+    OUTPUT_BUFFER_SIZE_FOR_CBOR_SERIALIZATION_STATE,
+};
 use trussed::key::Kind;
 use trussed::types::PathBuf;
 
@@ -403,13 +406,13 @@ impl WebcryptState {
         let serialized = cbor_serialize(self, &mut buffer);
         if let Ok(serialized) = serialized {
             try_syscall!(t.write_file(
-            self.location,
-            PathBuf::from(STATE_FILE_PATH),
-            Bytes::from_slice(serialized).unwrap(),
-            None,
-        ))
-                .map_err(|_| Error::MemoryFull)
-                .unwrap();
+                self.location,
+                PathBuf::from(STATE_FILE_PATH),
+                Bytes::from_slice(serialized).unwrap(),
+                None,
+            ))
+            .map_err(|_| Error::MemoryFull)
+            .unwrap();
             info!("State saved");
         } else {
             warn!("State not saved");
