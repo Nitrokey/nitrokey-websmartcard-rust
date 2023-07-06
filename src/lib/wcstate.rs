@@ -9,7 +9,7 @@ use trussed::{
 // use std::borrow::Borrow;
 use crate::constants::RESIDENT_KEY_COUNT;
 use crate::types::Error;
-use crate::Message;
+use crate::{Message, OUTPUT_BUFFER_SIZE_FOR_CBOR_SERIALIZATION, OUTPUT_BUFFER_SIZE_FOR_CBOR_SERIALIZATION_STATE};
 use trussed::key::Kind;
 use trussed::types::PathBuf;
 
@@ -370,10 +370,13 @@ impl WebcryptState {
         cbor_deserialize(data).map_err(|_| Error::InternalError)
     }
     #[inline(never)]
-    fn serialize(&self) -> Message {
+    fn serialize(&self) -> Result<Message, ()> {
         // TODO decide on memory limits
-        let mut slice = [0u8; 2 * 1024];
-        Message::from_slice(cbor_serialize(self, &mut slice).unwrap()).unwrap()
+        // TODO this should be inlined to avoid unnecessary coping and conversions
+        let mut buffer = [0u8; OUTPUT_BUFFER_SIZE_FOR_CBOR_SERIALIZATION_STATE];
+        Message::from_slice(
+            cbor_serialize(self, &mut buffer).map_err(|_| ())?
+        )
     }
 
     #[inline(never)]
@@ -403,17 +406,21 @@ impl WebcryptState {
             // abort save on uninitialized structure
             return;
         }
-        // todo!();
 
-        try_syscall!(t.write_file(
+        let serialized = self.serialize();
+        if let Ok(serialized) = serialized {
+            try_syscall!(t.write_file(
             self.location,
             PathBuf::from(STATE_FILE_PATH),
-            Bytes::from_slice(self.serialize().as_slice()).unwrap(),
+            Bytes::from_slice(serialized.as_slice()).unwrap(),
             None,
         ))
-        .map_err(|_| Error::MemoryFull)
-        .unwrap();
-        info!("State saved");
+                .map_err(|_| Error::MemoryFull)
+                .unwrap();
+            info!("State saved");
+        } else {
+            warn!("State not saved");
+        }
     }
 
     #[inline(never)]
