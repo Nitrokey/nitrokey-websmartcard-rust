@@ -106,11 +106,18 @@ impl<C: WebcryptTrussedClient> Webcrypt<C> {
                 if should_execute {
                     let mut tmp_buffer = self.WC_OUTPUT_BUFFER.clone();
                     let res = self
-                        .parse_execute(&mut tmp_buffer)
-                        .map_err(|_| Error::InternalError)?;
+                        .parse_execute(&mut tmp_buffer);
                     self.WC_OUTPUT_BUFFER = tmp_buffer;
-                    output.status_code = res.0;
-                    self.wc.current_command_id = res.1;
+                    match res {
+                        Ok(res) => {
+                            output.status_code = res.0;
+                            self.wc.current_command_id = res.1;
+                        }
+                        Err(e) => {
+                            output.status_code = e;
+                            self.wc.current_command_id = CommandID::NotSetInvalid;
+                        }
+                    }
                 }
                 Ok(WebcryptResponseType::Write(ResponseWrite {
                     result: output.status_code,
