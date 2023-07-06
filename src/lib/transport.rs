@@ -426,7 +426,7 @@ where
     //     })
     // }
 
-    // #[inline(never)]
+    #[inline(never)]
     pub fn get_input_deserialized_from_slice<'a, T: Deserialize<'a>>(
         message: &'a Message,
     ) -> Result<T, cbor_smol::Error> {
