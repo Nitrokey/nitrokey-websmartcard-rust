@@ -201,18 +201,15 @@ pub struct CommandDecryptRequest<'a> {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     /// ciphertext's hmac
-    // pub(crate) hmac: Option<DataBytes>,
     #[serde(with = "serde_bytes")]
     pub(crate) hmac: Option<&'a [u8]>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     /// ephemeral ecc encryption key
-    // pub(crate) eccekey: Option<DataBytes>,
     #[serde(with = "serde_bytes")]
     pub(crate) eccekey: Option<&'a [u8]>,
 
     /// key handle, should be less than 200 bytes
-    // pub(crate) keyhandle: KeyHandleSerialized,
     #[serde(with = "serde_bytes")]
     pub(crate) keyhandle: &'a [u8],
 
