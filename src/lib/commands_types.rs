@@ -1,5 +1,5 @@
 use crate::MAX_MESSAGE_LENGTH;
-use heapless_bytes::{Bytes, Bytes32, Bytes64};
+use heapless_bytes::{Bytes, Bytes32};
 use serde::{Deserialize, Serialize};
 use trussed::types::{KeyId, Mechanism, Message};
 

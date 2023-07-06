@@ -8,7 +8,7 @@ use crate::types::*;
 use crate::types::{ExtWebcryptCmd, WebcryptRequest};
 use crate::wcstate::{WebcryptSession, WebcryptState};
 
-use crate::commands_types::{CommandDecryptRequest, WebcryptMessage};
+use crate::commands_types::WebcryptMessage;
 use crate::{Bytes, Message, Options};
 
 // struct CommandHandler {

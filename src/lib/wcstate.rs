@@ -9,10 +9,7 @@ use trussed::{
 // use std::borrow::Borrow;
 use crate::constants::RESIDENT_KEY_COUNT;
 use crate::types::Error;
-use crate::{
-    Message, OUTPUT_BUFFER_SIZE_FOR_CBOR_SERIALIZATION,
-    OUTPUT_BUFFER_SIZE_FOR_CBOR_SERIALIZATION_STATE,
-};
+use crate::OUTPUT_BUFFER_SIZE_FOR_CBOR_SERIALIZATION_STATE;
 use trussed::key::Kind;
 use trussed::types::PathBuf;
 

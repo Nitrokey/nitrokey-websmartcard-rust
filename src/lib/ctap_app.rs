@@ -16,7 +16,6 @@ use crate::helpers::hash;
 use crate::transport::Webcrypt;
 use crate::types::RequestSource::RS_FIDO2;
 use crate::types::{CtapSignatureSize, RequestDetails, RequestSource};
-use crate::Message;
 
 #[inline(never)]
 fn try_handle_ctap1<C>(

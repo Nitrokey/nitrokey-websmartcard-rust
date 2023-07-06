@@ -222,7 +222,7 @@ where
         .check_token_res(&req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
 
-    if !(req.keyhandle.len() > 0 && req.hash.len() > 0) {
+    if !(!req.keyhandle.is_empty() && !req.hash.is_empty()) {
         return Err(Error::FailedLoadingData);
     }
 
@@ -259,7 +259,7 @@ fn get_key_from_keyhandle<C>(
 where
     C: WebcryptTrussedClient,
 {
-    if keyhandle.len() == 0 {
+    if keyhandle.is_empty() {
         return Err(BadFormat);
     }
 
@@ -809,7 +809,7 @@ where
     // req.hash
     //     .extend_from_slice(rpid.as_slice())
     //     .map_err(|_| Error::FailedLoadingData)?;
-    let data_for_key = &req.hash[..];
+    let data_for_key = req.hash;
     if req.hash.len() < 32 {
         return Err(Error::FailedLoadingData);
     }
