@@ -1,6 +1,6 @@
 #![allow(non_camel_case_types)]
 
-use heapless_bytes::{Bytes, Bytes32, Bytes64};
+use heapless_bytes::{Bytes, Bytes32};
 use trussed::{
     client, syscall, try_syscall,
     types::{KeyId, Location},
@@ -32,14 +32,14 @@ impl Default for WebcryptConfiguration {
 }
 
 use crate::commands::WebcryptTrussedClient;
-use crate::commands_types::ExpectedSessionToken;
+use crate::commands_types::{ExpectedSessionToken, PinBytes};
 use crate::openpgp::OpenPGPData;
 use cbor_smol::{cbor_deserialize, cbor_serialize};
 use serde::{Deserialize, Serialize};
 
 #[derive(Default, Serialize, Deserialize)]
 pub struct WebcryptPIN {
-    pin: Option<Bytes64>,
+    pin: Option<PinBytes>,
     counter: u8,
 }
 
@@ -60,7 +60,7 @@ impl WebcryptPIN {
     }
 
     #[inline(never)]
-    pub fn check_pin(&mut self, pin: Bytes64) -> Result<bool, Error> {
+    pub fn check_pin(&mut self, pin: PinBytes) -> Result<bool, Error> {
         if self.pin.is_none() {
             info!("PIN not set");
             return Err(Error::NotAllowed);
@@ -82,7 +82,7 @@ impl WebcryptPIN {
         Ok(true)
     }
     #[inline(never)]
-    fn validate_pin(&self, pin: &Bytes64) -> Result<(), Error> {
+    fn validate_pin(&self, pin: &PinBytes) -> Result<(), Error> {
         let l = pin.len();
         if !(4..=64).contains(&l) {
             Err(Error::NotAllowed)
@@ -92,7 +92,7 @@ impl WebcryptPIN {
     }
 
     #[inline(never)]
-    pub fn set_pin(&mut self, pin: Bytes64) -> Result<bool, Error> {
+    pub fn set_pin(&mut self, pin: PinBytes) -> Result<bool, Error> {
         if self.pin.is_some() {
             return Err(Error::NotAllowed);
         }
@@ -102,7 +102,7 @@ impl WebcryptPIN {
         Ok(true)
     }
     #[inline(never)]
-    pub fn change_pin(&mut self, pin: Bytes64, new_pin: Bytes64) -> Result<bool, Error> {
+    pub fn change_pin(&mut self, pin: PinBytes, new_pin: PinBytes) -> Result<bool, Error> {
         if self.pin.is_none() {
             return Err(Error::NotAllowed);
         }
@@ -162,7 +162,7 @@ impl WebcryptSession {
     #[inline(never)]
     pub fn login<C: trussed::Client>(
         &mut self,
-        pin: Bytes64,
+        pin: PinBytes,
         trussed: &mut C,
         rp_id_hash: &Bytes<32>,
         state: &mut WebcryptState,

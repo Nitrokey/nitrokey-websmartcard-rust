@@ -30,6 +30,7 @@ pub type WebcryptMessage = Bytes<{ MAX_MESSAGE_LENGTH }>;
 pub type DataBytes = WebcryptMessage;
 // pub type WebcryptMessage = Message;
 pub type SessionToken = Bytes32;
+pub type PinBytes = Bytes32;
 pub type ExpectedSessionToken = Option<SessionToken>;
 pub(crate) type SerializedCredential = Message;
 pub type ResultW<T> = Result<T, Error>;
@@ -393,7 +394,7 @@ pub struct CommandReadResidentKeyRequest<'a> {
 #[serde(rename_all = "UPPERCASE")]
 pub struct CommandLoginRequest {
     /// User PIN. Equal requirements to the FIDO2 PIN.
-    pub(crate) pin: Bytes64,
+    pub(crate) pin: PinBytes,
 
     // TODO this command does not need TP, but added this field
     // to make the calls unified. Remove later?
@@ -405,7 +406,7 @@ pub struct CommandLoginRequest {
 #[serde(rename_all = "UPPERCASE")]
 pub struct CommandSetPINRequest {
     /// User PIN. Equal requirements to the FIDO2 PIN.
-    pub(crate) pin: Bytes64,
+    pub(crate) pin: PinBytes,
 
     // TODO this command does not need TP, but added this field
     // to make the calls unified. Remove later?
@@ -417,8 +418,8 @@ pub struct CommandSetPINRequest {
 #[serde(rename_all = "UPPERCASE")]
 pub struct CommandChangePINRequest {
     /// User PIN. Equal requirements to the FIDO2 PIN.
-    pub(crate) pin: Bytes64,
-    pub(crate) newpin: Bytes64,
+    pub(crate) pin: PinBytes,
+    pub(crate) newpin: PinBytes,
 
     // TODO this command does not need TP, but added this field
     // to make the calls unified. Remove later?
