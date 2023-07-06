@@ -231,7 +231,7 @@ where
     let signature = syscall!(w.trussed.sign(
         mechanism,
         key,
-        req.hash.as_slice(),
+        req.hash,
         SignatureSerialization::Raw
     ))
     .signature;
@@ -257,7 +257,7 @@ where
 #[inline(never)]
 fn get_key_from_keyhandle<C>(
     w: &mut WebcryptInternal<C>,
-    keyhandle: KeyHandleSerialized,
+    keyhandle: &[u8],
 ) -> ResultW<(KeyId, Mechanism, bool)>
 where
     C: WebcryptTrussedClient,
@@ -268,7 +268,7 @@ where
 
     let res = if keyhandle.len() > 32 {
         // invalid keyhandle or lack of memory
-        let (keyid, mechanism) = import_key_from_keyhandle(w, &keyhandle)?;
+        let (keyid, mechanism) = import_key_from_keyhandle(w, keyhandle)?;
         (keyid, mechanism, false)
     } else {
         // this is RK
@@ -277,7 +277,7 @@ where
             w.options.location,
             rk_path(
                 rp_id_hash,
-                &Bytes32::from_slice(keyhandle.as_slice()).unwrap()
+                &Bytes32::from_slice(keyhandle).unwrap()
             )
         ))
         .map_err(|_| Error::MemoryFull)?
@@ -301,7 +301,7 @@ fn cred_to_mechanism(cred: &CredentialData) -> Mechanism {
 #[inline(never)]
 fn import_key_from_keyhandle<C>(
     w: &mut WebcryptInternal<C>,
-    encrypted_serialized_keyhandle: &KeyHandleSerialized,
+    encrypted_serialized_keyhandle:  &[u8],
 ) -> Result<(KeyId, Mechanism), Error>
 where
     C: WebcryptTrussedClient,
@@ -315,7 +315,7 @@ where
 
     let appid = w.session.rp_id_hash.clone().ok_or(Error::BadOrigin)?;
 
-    let encr_message: Encrypt = cbor_deserialize(encrypted_serialized_keyhandle.as_slice())
+    let encr_message: Encrypt = cbor_deserialize(encrypted_serialized_keyhandle)
         .map_err(|_| Error::BadFormat)?;
 
     let kek = w
@@ -627,7 +627,7 @@ where
     let (kh_key, mech, is_rk) = {
         get_key_from_keyhandle(
             w,
-            Bytes::from_slice(req.keyhandle).map_err(|_| Error::BadFormat)?,
+            req.keyhandle,
         )?
     };
 
@@ -909,7 +909,7 @@ where
     //     .to_bytes()
     //     .unwrap();
 
-    let (private_key, mech, is_rk) = get_key_from_keyhandle(w, req.keyhandle.clone())?;
+    let (private_key, mech, is_rk) = get_key_from_keyhandle(w, req.keyhandle)?;
 
     let kind = match mech {
         Mechanism::P256 => Kind::P256,
@@ -1277,7 +1277,7 @@ where
             }
             CommandWriteResidentKeyResponse {
                 pubkey: pubkey.try_convert_into().map_err(|_| InternalError)?,
-                keyhandle: Bytes::from_slice(credential_id_hash.as_slice()).unwrap(),
+                keyhandle: credential_id_hash.as_slice(),
             }
         },
         reply,
@@ -1400,7 +1400,7 @@ where
             pubkey.insert(0, 0x04).map_err(|_| Error::InternalError)?;
             CommandGenerateResidentKeyResponse {
                 pubkey: pubkey.try_convert_into().map_err(|_| InternalError)?,
-                keyhandle: Bytes::from_slice(credential_id_hash.as_slice()).unwrap(),
+                keyhandle: credential_id_hash.as_slice(),
             }
         },
         reply,

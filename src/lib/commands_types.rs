@@ -83,9 +83,10 @@ pub struct CommandGenerateResponse {
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "UPPERCASE")]
-pub struct CommandSignResponse {
+pub struct CommandSignResponse<'a> {
     /// signed hash, the same given on input, 32 bytes
-    pub(crate) inhash: Bytes64,
+    #[serde(with = "serde_bytes")]
+    pub(crate) inhash: &'a [u8],
 
     /// signature, should be less than 100 bytes
     pub(crate) signature: Message,
@@ -93,12 +94,14 @@ pub struct CommandSignResponse {
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "UPPERCASE")]
-pub struct CommandSignRequest {
+pub struct CommandSignRequest<'a> {
     /// hash to sign, 32 bytes
-    pub(crate) hash: Bytes64,
+    #[serde(with = "serde_bytes")]
+    pub(crate) hash: &'a [u8],
 
     /// key handle, should be less than 200 bytes
-    pub(crate) keyhandle: KeyHandleSerialized,
+    #[serde(with = "serde_bytes")]
+    pub(crate) keyhandle:  &'a [u8],
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) tp: ExpectedSessionToken,
@@ -106,13 +109,14 @@ pub struct CommandSignRequest {
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "UPPERCASE")]
-pub struct CommandOpenPGPDecryptRequest {
+pub struct CommandOpenPGPDecryptRequest<'a> {
     /// ephemeral ecc encryption key
     pub(crate) eccekey: DataBytes,
 
     /// key handle, should be less than 200 bytes
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) keyhandle: Option<KeyHandleSerialized>,
+    #[serde(with = "serde_bytes")]
+    pub(crate) keyhandle: Option<&'a [u8]>,
 
     /// public key fingerprint
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -237,9 +241,10 @@ pub type CommandLogoutRequest = CommandEmptyRequest;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "UPPERCASE")]
-pub struct CommandGenerateFromDataRequest {
+pub struct CommandGenerateFromDataRequest<'a> {
     /// data to be used for key derivation
-    pub(crate) hash: DataBytes,
+    #[serde(with = "serde_bytes")]
+    pub(crate) hash:  &'a [u8],
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) tp: ExpectedSessionToken,
@@ -337,18 +342,18 @@ pub struct CommandGenerateResidentKeyRequest {
     pub(crate) tp: ExpectedSessionToken,
 }
 
-pub type CommandWriteResidentKeyResponse = CommandGenerateResidentKeyResponse;
+pub type CommandWriteResidentKeyResponse<'a> = CommandGenerateResidentKeyResponse<'a>;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "UPPERCASE")]
-pub struct CommandGenerateResidentKeyResponse {
+pub struct CommandGenerateResidentKeyResponse<'a> {
     /// resulting public key
     pub(crate) pubkey: Message,
 
     /// key handle, should be less than 200 bytes
     /// should contain short KH, with the type==RK
-    // pub(crate) keyhandle: KeyHandleSerialized,
-    pub(crate) keyhandle: KeyHandleSerialized,
+    #[serde(with = "serde_bytes")]
+    pub(crate) keyhandle: &'a [u8],
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -374,10 +379,11 @@ pub struct CommandDiscoverResidentKeyResponse {
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "UPPERCASE")]
-pub struct CommandReadResidentKeyRequest {
+pub struct CommandReadResidentKeyRequest<'a> {
     /// key handle, should be less than 200 bytes
     /// should contain short KH, with the type==RK
-    pub(crate) keyhandle: KeyHandleSerialized,
+    #[serde(with = "serde_bytes")]
+    pub(crate) keyhandle: &'a [u8],
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) tp: ExpectedSessionToken,
