@@ -721,10 +721,18 @@ where
     // TODO DESIGN derive separate key for HMAC
     let encoded_ciphertext_len: [u8; 2] = (req.data.len() as u16).to_le_bytes();
     let mut data_to_hmac = Message::new(); // FIXME check length
-    data_to_hmac.extend_from_slice(req.data);
-    data_to_hmac.extend_from_slice(req_eccekey);
-    data_to_hmac.extend(encoded_ciphertext_len);
-    data_to_hmac.extend_from_slice(req.keyhandle);
+    data_to_hmac
+        .extend_from_slice(req.data)
+        .map_err(|_| InternalError)?;
+    data_to_hmac
+        .extend_from_slice(req_eccekey)
+        .map_err(|_| InternalError)?;
+    data_to_hmac
+        .extend_from_slice(&encoded_ciphertext_len)
+        .map_err(|_| InternalError)?;
+    data_to_hmac
+        .extend_from_slice(req.keyhandle)
+        .map_err(|_| InternalError)?;
 
     let calculated_hmac = try_syscall!(w.trussed.sign(
         Mechanism::HmacSha256,

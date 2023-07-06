@@ -23,8 +23,6 @@ pub struct CommandStatusResponse {
 pub type Bytes8 = Bytes<8>;
 pub type Bytes40 = Bytes<40>;
 pub type Bytes65 = Bytes<65>;
-pub type Bytes200 = Bytes<200>;
-pub type Bytes250 = Bytes<250>;
 pub type Bytes512 = Bytes<512>;
 pub type WebcryptMessage = Bytes<{ MAX_MESSAGE_LENGTH }>;
 pub type DataBytes = WebcryptMessage;

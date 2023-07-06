@@ -11,13 +11,12 @@ mod dispatch {
     use trussed_staging::StagingBackend;
     use trussed_staging::StagingContext;
 
-    use trussed::serde_extensions::ExtensionImpl;
     use trussed::{
         api::{reply, request, Reply, Request},
         backend::{Backend as _, BackendId},
         error::Error,
         platform::Platform,
-        serde_extensions::{ExtensionDispatch, ExtensionId, ExtensionImpl as _},
+        serde_extensions::{ExtensionDispatch, ExtensionId, ExtensionImpl},
         service::ServiceResources,
         types::{Bytes, Context},
     };

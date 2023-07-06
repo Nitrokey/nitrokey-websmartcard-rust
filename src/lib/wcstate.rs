@@ -178,14 +178,6 @@ impl WebcryptSession {
     }
 
     #[inline(never)]
-    pub fn check_token(&self, token: Bytes32) -> bool {
-        match &self.temporary_password_token {
-            None => false,
-            Some(current) => token == current,
-        }
-    }
-
-    #[inline(never)]
     pub fn check_token_res(&self, token: &ExpectedSessionToken) -> Result<(), ()> {
         #[cfg(feature = "no-authentication")]
         return Ok(());
