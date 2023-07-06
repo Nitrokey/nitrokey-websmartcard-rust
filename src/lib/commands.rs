@@ -959,8 +959,8 @@ where
         if w.req_details.as_ref().unwrap().source == RequestSource::RS_FIDO2 {
             hash(
                 &mut w.trussed,
-                Message::from_slice(rpid.as_slice()).unwrap(),
-            )
+                rpid.as_slice(),
+            ).map_err(|_| Error::InternalError)?
         } else {
             rpid.clone()
         }
