@@ -73,7 +73,7 @@ impl PersistentState {
 
         if result.is_err() {
             info!("err deser'ing: {:?}", result.err().unwrap());
-            info!("{}", hex_str!(&data));
+            info!("{:?}", data);
             return Err(Error::Other);
         }
 

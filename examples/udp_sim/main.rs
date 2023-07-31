@@ -1,9 +1,10 @@
 #[macro_use]
 extern crate delog;
 
+use delog::log;
 use heapless_bytes::{Bytes, Bytes32};
 
-use webcrypt::{RequestDetails, RequestSource, Webcrypt};
+use webcrypt::{Options, RequestDetails, RequestSource, Webcrypt};
 
 use crate::udp_server::UDPServer;
 
@@ -13,6 +14,7 @@ mod udp_server;
 
 #[cfg(feature = "enable-logs")]
 use pretty_env_logger::env_logger;
+use trussed::types::Location;
 
 mod virt;
 
@@ -21,7 +23,10 @@ fn main() {
     env_logger::init();
 
     virt::with_ram_client("webcrypt", |client| {
-        let mut w = Webcrypt::new(client);
+        let mut w = webcrypt::Webcrypt::new_with_options(
+            client,
+            Options::new(Location::External, *b"1234", 10000),
+        );
 
         let mut server = UDPServer::new();
         loop {

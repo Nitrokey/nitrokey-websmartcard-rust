@@ -94,7 +94,7 @@ where
         }
         Err(status) => {
             let code: [u8; 2] = status.into();
-            info!("WC CTAP1 error: {:?} ({})", status, hex_str!(&code));
+            info!("WC CTAP1 error: {:?} ({:?})", status, code);
             response.extend_from_slice(&code).ok();
         }
     }

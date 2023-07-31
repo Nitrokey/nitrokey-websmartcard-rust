@@ -19,7 +19,7 @@ pub mod dispatch {
         platform::Platform,
         serde_extensions::{ExtensionDispatch, ExtensionId, ExtensionImpl},
         service::ServiceResources,
-        types::{Bytes, Context, Location},
+        types::{Bytes, Context},
     };
     use trussed_auth::{AuthBackend, AuthContext, AuthExtension, MAX_HW_KEY_LEN};
 
@@ -144,11 +144,10 @@ pub mod dispatch {
     }
 }
 
-use std::path::PathBuf;
 use trussed::types::Location;
 use trussed::{
     types::Bytes,
-    virt::{self, Client, Filesystem, Ram, StoreProvider},
+    virt::{self, Client, Ram, StoreProvider},
 };
 
 /// Client type using a dispatcher with the backends required by opcard
