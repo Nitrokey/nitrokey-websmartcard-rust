@@ -239,12 +239,10 @@ where
     }
 
     send_to_output(
-        {
-            CommandSignResponse {
-                inhash: req.hash,
-                signature,
-            }
-        },
+        CommandSignResponse {
+            inhash: req.hash,
+            signature,
+        }
         reply,
     );
 
