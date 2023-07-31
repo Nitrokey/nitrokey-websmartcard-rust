@@ -242,7 +242,7 @@ where
         CommandSignResponse {
             inhash: req.hash,
             signature,
-        }
+        },
         reply,
     );
 
