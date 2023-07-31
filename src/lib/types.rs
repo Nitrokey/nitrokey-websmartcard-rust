@@ -414,6 +414,7 @@ impl From<PacketNum> for u8 {
 }
 
 #[derive(Debug, Default)]
+// TODO: move from Message to &[u8]
 pub struct CborPart(pub Message);
 
 impl From<Message> for CborPart {

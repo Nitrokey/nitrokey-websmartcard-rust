@@ -169,6 +169,7 @@ pub type CommandOpenPGPInitRequest = CommandOpenPGPInfoRequest;
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "UPPERCASE")]
 pub struct CommandOpenPGPInfoResponse {
+    // TODO: move from Message to &[u8]
     pub(crate) encr_pubkey: DataBytes,
     pub(crate) auth_pubkey: DataBytes,
     pub(crate) sign_pubkey: DataBytes,
@@ -179,6 +180,7 @@ pub struct CommandOpenPGPInfoResponse {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "UPPERCASE")]
 pub struct CommandOpenPGPImportRequest {
+    // TODO: move from Message to &[u8]
     pub(crate) encr_privkey: DataBytes,
     pub(crate) auth_privkey: DataBytes,
     pub(crate) sign_privkey: DataBytes,
