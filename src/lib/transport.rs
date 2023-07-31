@@ -11,22 +11,6 @@ use crate::wcstate::{WebcryptSession, WebcryptState};
 use crate::commands_types::WebcryptMessage;
 use crate::{Bytes, Message, Options};
 
-// struct CommandHandler {
-//     buffer_out: Bytes<LEN>,
-//     buffer_out: Bytes<LEN>,
-//     wc: WebCrypt,
-// }
-//
-// struct Webcrypt {
-//     pub(crate) current_command_id: CommandID,
-//     pub(crate) trussed: C,
-//     pub(crate) state: WebcryptState,
-//     pub(crate) store: State,
-//     pub(crate) session: WebcryptSession,
-//     pub(crate) req_details: Option<RequestDetails>,
-//     pub(crate) options: Options,
-// }
-
 #[allow(non_snake_case)]
 pub struct Webcrypt<C: WebcryptTrussedClient> {
     WC_INPUT_BUFFER: WebcryptMessage,
@@ -397,19 +381,6 @@ where
         webcrypt.try_into()
     }
 
-    // #[inline(never)]
-    // pub fn get_input(&self) -> &[u8] {
-    //     self.WC_INPUT_BUFFER.as_slice()
-    // }
-
-    // #[inline(never)]
-    // pub fn get_input_deserialized<'a, T: Deserialize<'a>>(&'a self) -> Result<T, cbor_smol::Error> {
-    //     cbor_deserialize::<T>(&self.WC_INPUT_BUFFER[3..]).map_err(|e| {
-    //         debug_now!("Input deserialization error: {:?}", e);
-    //         e
-    //     })
-    // }
-
     #[inline(never)]
     pub fn get_input_deserialized_from_slice<'a, T: Deserialize<'a>>(
         message: &'a Message,
@@ -419,19 +390,6 @@ where
             e
         })
     }
-
-    // #[inline(never)]
-    // pub fn send_to_output_arr(&mut self, o: &WebcryptMessage) {
-    //     info!("Clear write: {:?}", o);
-    //     self.WC_OUTPUT_BUFFER.extend_from_slice(o).unwrap();
-    // }
-
-    // #[inline(never)]
-    // pub fn send_input_to_output(&mut self) {
-    //     self.WC_OUTPUT_BUFFER
-    //         .extend_from_slice(&self.WC_INPUT_BUFFER[3..])
-    //         .unwrap();
-    // }
 }
 
 #[inline(never)]

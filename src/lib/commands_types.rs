@@ -159,12 +159,13 @@ pub struct CommandOpenPGPSignResponse {
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "UPPERCASE")]
-pub struct CommandOpenPGPInfoRequest {
+pub struct CommandOpenPGPEmptyRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) tp: ExpectedSessionToken,
 }
 
-pub type CommandOpenPGPInitRequest = CommandOpenPGPInfoRequest;
+pub type CommandOpenPGPInitRequest = CommandOpenPGPEmptyRequest;
+pub type CommandOpenPGPInfoRequest = CommandOpenPGPEmptyRequest;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "UPPERCASE")]

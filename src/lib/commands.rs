@@ -362,10 +362,6 @@ pub fn cmd_openpgp_generate<C>(
 where
     C: WebcryptTrussedClient,
 {
-    // let _: CommandOpenPGPInitRequest = w
-    //     .get_input_deserialized()
-    //     .map_err(|_| Error::FailedLoadingData)?;
-
     w.state.openpgp_data = Some(OpenPGPData::init(&mut w.trussed, w.options.location));
     w.state.save(&mut w.trussed);
     Ok(())
@@ -380,10 +376,6 @@ pub fn cmd_openpgp_info<C>(
 where
     C: WebcryptTrussedClient,
 {
-    // let _: CommandOpenPGPInfoRequest = w
-    //     .get_input_deserialized()
-    //     .map_err(|_| Error::FailedLoadingData)?;
-
     // FIXME remove -> initialize in a separate command
     // move to state initialization
     if w.state.openpgp_data.is_none() {
