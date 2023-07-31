@@ -363,17 +363,6 @@ impl WebcryptState {
     }
 
     #[inline(never)]
-    pub fn file_reset<T>(&self, t: &mut T)
-    where
-        T: client::Client,
-    {
-        let r = try_syscall!(t.remove_file(self.location, PathBuf::from(STATE_FILE_PATH)));
-        if r.is_ok() {
-            info!("State removed");
-        }
-    }
-
-    #[inline(never)]
     pub fn initialized(&self) -> bool {
         self.initialized_tag == 0xA5
     }

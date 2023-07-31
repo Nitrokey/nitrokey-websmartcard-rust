@@ -15,9 +15,9 @@ impl KeyFingerprint {
     // TODO
     // https://www.rfc-editor.org/rfc/rfc4880#section-12.2
     // https://crypto.stackexchange.com/a/32097
-    pub fn from_public_key(_trussed: &mut impl client::Client, _pk: Bytes<64>) -> Result<Self, ()> {
-        todo!();
-    }
+    // pub fn from_public_key(_trussed: &mut impl client::Client, _pk: Bytes<64>) -> Result<Self, ()> {
+    //     todo!();
+    // }
 }
 
 impl TryFrom<&[u8]> for KeyFingerprint {

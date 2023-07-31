@@ -94,6 +94,12 @@ mod dispatch {
         }
     }
 
+    impl Default for Dispatch {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
+
     impl ExtensionDispatch for Dispatch {
         type BackendId = Backend;
         type Context = DispatchContext;
@@ -393,7 +399,7 @@ struct Apps {
 
 const MAX_RESIDENT_CREDENTIAL_COUNT: u32 = 50;
 
-impl<'a> trussed_usbip::Apps<'static, VirtClient, dispatch::Dispatch> for Apps {
+impl trussed_usbip::Apps<'static, VirtClient, dispatch::Dispatch> for Apps {
     type Data = ();
     fn new<B: ClientBuilder<VirtClient, dispatch::Dispatch>>(builder: &B, _data: ()) -> Self {
         let fido = fido_authenticator::Authenticator::new(

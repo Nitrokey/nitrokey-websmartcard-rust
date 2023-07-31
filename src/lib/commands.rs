@@ -648,10 +648,10 @@ fn decrypt_rsa<C>(
 where
     C: WebcryptTrussedClient,
 {
-    if !(!req.keyhandle.is_empty()
-        && !req.data.is_empty()
-        && req.hmac.is_none()
-        && req.eccekey.is_none())
+    if req.keyhandle.is_empty()
+        || req.data.is_empty()
+        || req.hmac.is_some()
+        || req.eccekey.is_some()
     {
         return Err(Error::BadFormat);
     }
