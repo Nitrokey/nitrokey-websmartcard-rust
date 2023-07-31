@@ -616,7 +616,7 @@ where
         .check_token_res(&req.tp)
         .map_err(|_| Error::RequireAuthentication)?;
 
-    let (kh_key, mech, is_rk) = { get_key_from_keyhandle(w, req.keyhandle)? };
+    let (kh_key, mech, is_rk) = get_key_from_keyhandle(w, req.keyhandle)?;
 
     let decrypted = match mech {
         Mechanism::P256 => decrypt_ecc_p256(w, req, kh_key),
@@ -1464,11 +1464,9 @@ where
     // TODO DESIGN to reconsider publishing raw key
     let master = w.state.get_master_key_raw().unwrap_or_default();
     send_to_output(
-        {
-            CommandInitializeResponse {
-                master,
-                salt: Default::default(),
-            }
+        CommandInitializeResponse {
+            master,
+            salt: Default::default(),
         },
         reply,
     );
