@@ -254,12 +254,8 @@ impl<C: WebcryptTrussedClient> Webcrypt<C> {
                 reply,
             ),
             FactoryReset => cmd_factory_reset(&mut self.wc, reply),
-            GetConfiguration => cmd_configure(
-                &mut self.wc,
-                Self::get_request(&self.WC_INPUT_BUFFER)?,
-                reply,
-            ),
-            SetConfiguration => cmd_configure(
+            // Proper command variant is selected inside the cmd_configure
+            GetConfiguration | SetConfiguration => cmd_configure(
                 &mut self.wc,
                 Self::get_request(&self.WC_INPUT_BUFFER)?,
                 reply,
