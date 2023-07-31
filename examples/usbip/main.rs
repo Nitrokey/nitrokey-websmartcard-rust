@@ -319,7 +319,7 @@ impl trussed::platform::UserInterface for UserInterface {
                 warn!("Unsupported status value: {:?}", status);
                 CustomStatus::Unknown
             });
-            info!("Set status: [{}] {:?}", s, cs);
+            info!("Set status: [{}] {:?}", s, _cs);
         }
 
         if status == ui::Status::WaitingForUserPresence {
@@ -337,7 +337,7 @@ impl trussed::platform::UserInterface for UserInterface {
     }
 
     fn reboot(&mut self, _to: reboot::To) -> ! {
-        info!("Restart!  ({:?})", to);
+        info!("Restart!  ({:?})", _to);
         std::process::exit(25);
     }
 }
