@@ -72,7 +72,7 @@ impl<C: WebcryptTrussedClient> Webcrypt<C> {
                 output.extend([x.result as u8]);
             }
         }
-        // info!("> outputH: {:?}", hex::encode(output.clone()));
+        info!("> outputH: {:?}", output.clone());
         Ok(output)
     }
 
@@ -191,14 +191,14 @@ impl<C: WebcryptTrussedClient> Webcrypt<C> {
         output
             .extend_from_slice(&self.WC_OUTPUT_BUFFER[offset..offset_right_clamp])
             .unwrap();
-        // info!(
-        //     "Read: [{}..{})({})/{} {:?}",
-        //     offset,
-        //     offset_right_clamp,
-        //     output.len(),
-        //     self.WC_OUTPUT_BUFFER.len(),
-        //     hex::encode(output)
-        // );
+        info!(
+            "Read: [{}..{})({})/{} {:?}",
+            offset,
+            offset_right_clamp,
+            output.len(),
+            self.WC_OUTPUT_BUFFER.len(),
+            output
+        );
         Error::Success
     }
 
@@ -440,6 +440,6 @@ pub fn send_to_output<T: Serialize>(o: T, output: &mut Message) {
     // limited to 256*8 bytes for now for a single write
     let mut buffer = [0u8; crate::OUTPUT_BUFFER_SIZE_FOR_CBOR_SERIALIZATION];
     let encoded = cbor_serialize(&o, &mut buffer).unwrap();
-    // info!("Encoded: {:?}", hex::encode(encoded));
+    info!("Encoded: {:?}", encoded);
     output.extend_from_slice(encoded).unwrap();
 }

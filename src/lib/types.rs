@@ -5,6 +5,7 @@ use crate::types::Error::BadFormat;
 use crate::types::TRANSPORT_CMD_ID::COMM_CMD_WRITE;
 use crate::{Bytes, Message};
 use ctap_types::ctap2::PinAuth;
+use delog::log;
 use heapless_bytes::Bytes32;
 
 pub type CtapSignatureSize = Bytes<72>;
@@ -515,16 +516,10 @@ impl WebcryptResponseType {
     pub fn log_hex(&self) {
         match &self {
             WebcryptResponseType::First(_d) => {
-                // log::info!(
-                //     "WebcryptResponseType data: {:?}",
-                //     hex::encode(_d.data.0.clone())
-                // )
+                log::info!("WebcryptResponseType data: {:?}", _d.data.0.clone())
             }
             WebcryptResponseType::Next(_d) => {
-                // log::info!(
-                //     "WebcryptResponseType data: {:?}",
-                //     hex::encode(_d.data.0.clone())
-                // )
+                log::info!("WebcryptResponseType data: {:?}", _d.data.0.clone())
             }
             WebcryptResponseType::Write(_d) => {}
         }
