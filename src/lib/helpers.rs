@@ -3,7 +3,7 @@ use heapless_bytes::{Bytes, Bytes32};
 use trussed::{client, syscall};
 
 #[inline(never)]
-pub fn hash<C>(trussed: &mut C, data: Message) -> Bytes<32>
+pub fn hash<C>(trussed: &mut C, data: &[u8]) -> Result<Bytes<32>, ()>
 where
     C: trussed::Client
         + client::Client
@@ -13,12 +13,8 @@ where
         + client::Sha256,
 {
     use trussed::types::Mechanism;
-    let hash = syscall!(trussed.hash(
-        Mechanism::Sha256,
-        Bytes::from_slice(data.as_slice()).unwrap()
-    ))
-    .hash;
-    Bytes32::from_slice(hash.as_slice()).unwrap()
+    let hash = syscall!(trussed.hash(Mechanism::Sha256, Bytes::from_slice(data)?)).hash;
+    Bytes32::from_slice(hash.as_slice())
 }
 
 pub fn cbor_serialize_message<T: serde::Serialize>(

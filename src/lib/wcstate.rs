@@ -1,6 +1,6 @@
 #![allow(non_camel_case_types)]
 
-use heapless_bytes::{Bytes, Bytes32, Bytes64};
+use heapless_bytes::{Bytes, Bytes32};
 use trussed::{
     client, syscall, try_syscall,
     types::{KeyId, Location},
@@ -9,7 +9,7 @@ use trussed::{
 // use std::borrow::Borrow;
 use crate::constants::RESIDENT_KEY_COUNT;
 use crate::types::Error;
-use crate::Message;
+use crate::OUTPUT_BUFFER_SIZE_FOR_CBOR_SERIALIZATION_STATE;
 use trussed::key::Kind;
 use trussed::types::PathBuf;
 
@@ -32,14 +32,14 @@ impl Default for WebcryptConfiguration {
 }
 
 use crate::commands::WebcryptTrussedClient;
-use crate::commands_types::ExpectedSessionToken;
+use crate::commands_types::{ExpectedSessionToken, PinBytes};
 use crate::openpgp::OpenPGPData;
 use cbor_smol::{cbor_deserialize, cbor_serialize};
 use serde::{Deserialize, Serialize};
 
 #[derive(Default, Serialize, Deserialize)]
 pub struct WebcryptPIN {
-    pin: Option<Bytes64>,
+    pin: Option<PinBytes>,
     counter: u8,
 }
 
@@ -60,7 +60,7 @@ impl WebcryptPIN {
     }
 
     #[inline(never)]
-    pub fn check_pin(&mut self, pin: Bytes64) -> Result<bool, Error> {
+    pub fn check_pin(&mut self, pin: PinBytes) -> Result<bool, Error> {
         if self.pin.is_none() {
             info!("PIN not set");
             return Err(Error::NotAllowed);
@@ -82,7 +82,7 @@ impl WebcryptPIN {
         Ok(true)
     }
     #[inline(never)]
-    fn validate_pin(&self, pin: &Bytes64) -> Result<(), Error> {
+    fn validate_pin(&self, pin: &PinBytes) -> Result<(), Error> {
         let l = pin.len();
         if !(4..=64).contains(&l) {
             Err(Error::NotAllowed)
@@ -92,7 +92,7 @@ impl WebcryptPIN {
     }
 
     #[inline(never)]
-    pub fn set_pin(&mut self, pin: Bytes64) -> Result<bool, Error> {
+    pub fn set_pin(&mut self, pin: PinBytes) -> Result<bool, Error> {
         if self.pin.is_some() {
             return Err(Error::NotAllowed);
         }
@@ -102,7 +102,7 @@ impl WebcryptPIN {
         Ok(true)
     }
     #[inline(never)]
-    pub fn change_pin(&mut self, pin: Bytes64, new_pin: Bytes64) -> Result<bool, Error> {
+    pub fn change_pin(&mut self, pin: PinBytes, new_pin: PinBytes) -> Result<bool, Error> {
         if self.pin.is_none() {
             return Err(Error::NotAllowed);
         }
@@ -162,7 +162,7 @@ impl WebcryptSession {
     #[inline(never)]
     pub fn login<C: trussed::Client>(
         &mut self,
-        pin: Bytes64,
+        pin: PinBytes,
         trussed: &mut C,
         rp_id_hash: &Bytes<32>,
         state: &mut WebcryptState,
@@ -178,15 +178,7 @@ impl WebcryptSession {
     }
 
     #[inline(never)]
-    pub fn check_token(&self, token: Bytes32) -> bool {
-        match &self.temporary_password_token {
-            None => false,
-            Some(current) => token == current,
-        }
-    }
-
-    #[inline(never)]
-    pub fn check_token_res(&self, token: ExpectedSessionToken) -> Result<(), ()> {
+    pub fn check_token_res(&self, token: &ExpectedSessionToken) -> Result<(), ()> {
         #[cfg(feature = "no-authentication")]
         return Ok(());
 
@@ -238,8 +230,8 @@ impl WebcryptState {
         info!("Resetting state");
         self.pin = Default::default();
         if let Some(x) = &self.openpgp_data {
-            if let Err(e) = x.clear(t) {
-                error!("Failed resetting state: {:?}", e);
+            if let Err(_e) = x.clear(t) {
+                error!("Failed resetting state: {:?}", _e);
             }
         }
         self.openpgp_data = None;
@@ -369,23 +361,6 @@ impl WebcryptState {
         }
         cbor_deserialize(data).map_err(|_| Error::InternalError)
     }
-    #[inline(never)]
-    fn serialize(&self) -> Message {
-        // TODO decide on memory limits
-        let mut slice = [0u8; 2 * 1024];
-        Message::from_slice(cbor_serialize(self, &mut slice).unwrap()).unwrap()
-    }
-
-    #[inline(never)]
-    pub fn file_reset<T>(&self, t: &mut T)
-    where
-        T: client::Client,
-    {
-        let r = try_syscall!(t.remove_file(self.location, PathBuf::from(STATE_FILE_PATH)));
-        if r.is_ok() {
-            info!("State removed");
-        }
-    }
 
     #[inline(never)]
     pub fn initialized(&self) -> bool {
@@ -403,17 +378,23 @@ impl WebcryptState {
             // abort save on uninitialized structure
             return;
         }
-        // todo!();
 
-        try_syscall!(t.write_file(
-            self.location,
-            PathBuf::from(STATE_FILE_PATH),
-            Bytes::from_slice(self.serialize().as_slice()).unwrap(),
-            None,
-        ))
-        .map_err(|_| Error::MemoryFull)
-        .unwrap();
-        info!("State saved");
+        // TODO decide on memory limits
+        let mut buffer = [0u8; OUTPUT_BUFFER_SIZE_FOR_CBOR_SERIALIZATION_STATE];
+        let serialized = cbor_serialize(self, &mut buffer);
+        if let Ok(serialized) = serialized {
+            try_syscall!(t.write_file(
+                self.location,
+                PathBuf::from(STATE_FILE_PATH),
+                Bytes::from_slice(serialized).unwrap(),
+                None,
+            ))
+            .map_err(|_| Error::MemoryFull)
+            .unwrap();
+            info!("State saved");
+        } else {
+            warn!("State not saved");
+        }
     }
 
     #[inline(never)]

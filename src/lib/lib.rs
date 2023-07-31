@@ -1,6 +1,5 @@
 #![no_std]
 
-#[macro_use]
 extern crate delog;
 delog::generate_macros!();
 
@@ -26,6 +25,8 @@ pub use peeking::Peeking;
 pub use peeking::PeekingBypass;
 
 pub const MAX_MESSAGE_LENGTH: usize = 800; // TODO required 1000 for the ping tests
+const OUTPUT_BUFFER_SIZE_FOR_CBOR_SERIALIZATION: usize = MAX_MESSAGE_LENGTH;
+const OUTPUT_BUFFER_SIZE_FOR_CBOR_SERIALIZATION_STATE: usize = MAX_MESSAGE_LENGTH;
 #[cfg(feature = "transparent-encryption")]
 pub const DEFAULT_ENCRYPTION_PIN: &str = "12345678";
 

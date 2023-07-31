@@ -11,15 +11,14 @@ mod dispatch {
     use trussed_staging::StagingBackend;
     use trussed_staging::StagingContext;
 
-    use trussed::serde_extensions::ExtensionImpl;
     use trussed::{
         api::{reply, request, Reply, Request},
         backend::{Backend as _, BackendId},
         error::Error,
         platform::Platform,
-        serde_extensions::{ExtensionDispatch, ExtensionId, ExtensionImpl as _},
+        serde_extensions::{ExtensionDispatch, ExtensionId, ExtensionImpl},
         service::ServiceResources,
-        types::{Bytes, Context, Location},
+        types::{Bytes, Context},
     };
     use trussed_auth::{AuthBackend, AuthContext, AuthExtension, MAX_HW_KEY_LEN};
 
@@ -92,6 +91,12 @@ mod dispatch {
                 auth: AuthBackend::with_hw_key(LOCATION_FOR_SIMULATION, hw_key),
                 staging: StagingBackend::new(),
             }
+        }
+    }
+
+    impl Default for Dispatch {
+        fn default() -> Self {
+            Self::new()
         }
     }
 
@@ -180,12 +185,11 @@ use clap::Parser;
 use clap_num::maybe_hex;
 use trussed::backend::BackendId;
 use trussed::platform::{consent, reboot, ui};
-use trussed::serde_extensions::ExtensionId;
+
 use trussed::types::Location;
 use trussed::{virt, ClientImplementation, Platform};
 use trussed_usbip::ClientBuilder;
 
-use crate::dispatch::Extension;
 use usbd_ctaphid::constants::MESSAGE_SIZE;
 use webcrypt::{debug, info, try_debug, try_info, try_warn, warn};
 use webcrypt::{Options, PeekingBypass};
@@ -311,11 +315,11 @@ impl trussed::platform::UserInterface for UserInterface {
     fn set_status(&mut self, status: ui::Status) {
         debug!("Set status: {:?}", status);
         if let ui::Status::Custom(s) = status {
-            let cs: CustomStatus = CustomStatus::try_from(s).unwrap_or_else(|_| {
+            let _cs: CustomStatus = CustomStatus::try_from(s).unwrap_or_else(|_| {
                 warn!("Unsupported status value: {:?}", status);
                 CustomStatus::Unknown
             });
-            info!("Set status: [{}] {:?}", s, cs);
+            info!("Set status: [{}] {:?}", s, _cs);
         }
 
         if status == ui::Status::WaitingForUserPresence {
@@ -332,8 +336,8 @@ impl trussed::platform::UserInterface for UserInterface {
         self.start_time.elapsed()
     }
 
-    fn reboot(&mut self, to: reboot::To) -> ! {
-        info!("Restart!  ({:?})", to);
+    fn reboot(&mut self, _to: reboot::To) -> ! {
+        info!("Restart!  ({:?})", _to);
         std::process::exit(25);
     }
 }
@@ -395,7 +399,7 @@ struct Apps {
 
 const MAX_RESIDENT_CREDENTIAL_COUNT: u32 = 50;
 
-impl<'a> trussed_usbip::Apps<'static, VirtClient, dispatch::Dispatch> for Apps {
+impl trussed_usbip::Apps<'static, VirtClient, dispatch::Dispatch> for Apps {
     type Data = ();
     fn new<B: ClientBuilder<VirtClient, dispatch::Dispatch>>(builder: &B, _data: ()) -> Self {
         let fido = fido_authenticator::Authenticator::new(

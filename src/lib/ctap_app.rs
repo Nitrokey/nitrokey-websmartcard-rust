@@ -10,14 +10,12 @@ use ctap_types::webauthn::PublicKeyCredentialUserEntity;
 use ctap_types::{ctap1, ctap2};
 use ctaphid_dispatch::app;
 use ctaphid_dispatch::app as ctaphid;
-use ctaphid_dispatch::app::{AppResult, Command};
 use heapless_bytes::Bytes;
 
 use crate::helpers::hash;
 use crate::transport::Webcrypt;
 use crate::types::RequestSource::RS_FIDO2;
 use crate::types::{CtapSignatureSize, RequestDetails, RequestSource};
-use crate::Message;
 
 #[inline(never)]
 fn try_handle_ctap1<C>(
@@ -96,7 +94,7 @@ where
         }
         Err(status) => {
             let code: [u8; 2] = status.into();
-            info!("WC CTAP1 error: {:?} ({})", status, hex_str!(&code));
+            info!("WC CTAP1 error: {:?} ({:?})", status, code);
             response.extend_from_slice(&code).ok();
         }
     }
@@ -132,10 +130,8 @@ where
             let output = Bytes::new();
             let data = request.allow_list.unwrap();
             let data = &data[0].id;
-            let rpid_hash = hash(
-                &mut w.trussed,
-                Message::from_slice(request.rp_id.as_bytes()).unwrap(),
-            );
+            let rpid_hash = hash(&mut w.wc.trussed, request.rp_id.as_bytes())
+                .map_err(|_| ctap2::Error::InvalidParameter as u8)?;
             let maybe_output = w.bridge_u2f_to_webcrypt_raw(
                 output,
                 &data.clone(),
@@ -248,7 +244,7 @@ fn handle_ctap2<C>(
         response.push(error).ok();
     }
 }
-use trussed::{client, interrupt::InterruptFlag};
+use trussed::interrupt::InterruptFlag;
 
 impl<C> app::App<'static> for Webcrypt<C>
 where
@@ -281,7 +277,7 @@ where
     }
 
     fn interrupt(&self) -> Option<&'static InterruptFlag> {
-        self.trussed.interrupt()
+        self.wc.trussed.interrupt()
     }
 }
 
