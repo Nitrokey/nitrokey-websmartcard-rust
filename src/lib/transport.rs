@@ -202,16 +202,6 @@ impl<C: WebcryptTrussedClient> Webcrypt<C> {
         Error::Success
     }
 
-    // pub fn bridge_u2f_to_webcrypt_raw(
-    //     &mut self,
-    //     mut output: CtapSignatureSize,
-    //     keyh: &Bytes<255>,
-    //     req_details: RequestDetails,
-    // ) -> Result<CtapSignatureSize, Error> {
-    //     self.wc
-    //         .bridge_u2f_to_webcrypt_raw(output, keyh, req_details)
-    // }
-
     #[inline(never)]
     fn webcrypt_write_request(
         &mut self,
