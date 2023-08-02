@@ -221,8 +221,8 @@ impl From<Message> for WebcryptRequest {
     }
 }
 
-impl From<&Bytes<255>> for WebcryptRequest {
-    fn from(arr: &Bytes<255>) -> Self {
+impl From<&[u8]> for WebcryptRequest {
+    fn from(arr: &[u8]) -> Self {
         let mut wc_magic_number = [0u8; 4]; // FIXME correct that
         for i in 0..4 {
             wc_magic_number[i] = arr[1 + i];

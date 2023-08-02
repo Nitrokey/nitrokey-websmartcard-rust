@@ -134,11 +134,11 @@ where
                 .map_err(|_| ctap2::Error::InvalidParameter as u8)?;
             let maybe_output = w.bridge_u2f_to_webcrypt_raw(
                 output,
-                &data.clone(),
+                data,
                 RequestDetails {
                     rpid: rpid_hash.clone(),
                     source: RS_FIDO2,
-                    pin_auth: request.pin_auth,
+                    pin_auth: request.pin_auth.copied(),
                 },
             );
 

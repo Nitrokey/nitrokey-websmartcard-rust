@@ -9,7 +9,7 @@ use crate::types::{ExtWebcryptCmd, WebcryptRequest};
 use crate::wcstate::{WebcryptSession, WebcryptState};
 
 use crate::commands_types::WebcryptMessage;
-use crate::{Bytes, Message, Options};
+use crate::{Message, Options};
 
 #[allow(non_snake_case)]
 pub struct Webcrypt<C: WebcryptTrussedClient> {
@@ -34,7 +34,7 @@ impl<C: WebcryptTrussedClient> Webcrypt<C> {
     pub fn bridge_u2f_to_webcrypt_raw(
         &mut self,
         mut output: CtapSignatureSize,
-        keyh: &Bytes<255>,
+        keyh: &[u8],
         req_details: RequestDetails,
     ) -> Result<CtapSignatureSize, Error> {
         let cmd = self.wc.get_webcrypt_cmd(keyh)?;
@@ -376,7 +376,7 @@ where
     }
 
     #[inline(never)]
-    fn get_webcrypt_cmd(&self, keyh: &Bytes<255>) -> Result<ExtWebcryptCmd, WebcryptError> {
+    fn get_webcrypt_cmd(&self, keyh: &[u8]) -> Result<ExtWebcryptCmd, WebcryptError> {
         let webcrypt: WebcryptRequest = keyh.try_into().map_err(|_| Error::BadFormat)?;
         webcrypt.try_into()
     }
