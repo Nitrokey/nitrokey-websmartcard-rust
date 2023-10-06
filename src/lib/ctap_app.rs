@@ -320,6 +320,7 @@ where
 
         let instruction: u8 = apdu.instruction().into();
         match instruction {
+            #[allow(clippy::manual_range_patterns)]
             0x00 | 0x01 | 0x02 => handle_ctap1(self, apdu.data(), response), //self.call_authenticator_u2f(apdu, response),
 
             _ => {
