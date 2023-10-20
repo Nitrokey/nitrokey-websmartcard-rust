@@ -224,7 +224,7 @@ impl From<Message> for WebcryptRequest {
 impl From<&[u8]> for WebcryptRequest {
     fn from(arr: &[u8]) -> Self {
         let mut wc_magic_number = [0u8; 4]; // FIXME correct that
-        wc_magic_number[..4].copy_from_slice(&arr[1..(4 + 1)]);
+        wc_magic_number.copy_from_slice(&arr[1..][..4]);
 
         let mut w = WebcryptRequest {
             operation_webcrypt_constant: arr[0],
