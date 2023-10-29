@@ -132,13 +132,18 @@ where
             let data = &data[0].id;
             let rpid_hash = hash(&mut w.wc.trussed, request.rp_id.as_bytes())
                 .map_err(|_| ctap2::Error::InvalidParameter as u8)?;
+            let pin_auth = request
+                .pin_auth
+                .map(|s| Bytes::from_slice(s))
+                .transpose()
+                .map_err(|_| ctap2::Error::InvalidParameter as u8)?;
             let maybe_output = w.bridge_u2f_to_webcrypt_raw(
                 output,
                 data,
                 RequestDetails {
                     rpid: rpid_hash.clone(),
                     source: RS_FIDO2,
-                    pin_auth: request.pin_auth.copied(),
+                    pin_auth,
                 },
             );
 

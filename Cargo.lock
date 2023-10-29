@@ -362,7 +362,7 @@ dependencies = [
 [[package]]
 name = "ctap-types"
 version = "0.1.2"
-source = "git+https://github.com/nitrokey/ctap-types.git?rev=de8aa1f3dc4f773160f427680e854759bed869d7#de8aa1f3dc4f773160f427680e854759bed869d7"
+source = "git+https://github.com/nitrokey/ctap-types.git?tag=v0.1.2-nitrokey.4#702b5b5248f88091b22c46c936cb0f99425c0a61"
 dependencies = [
  "bitflags",
  "cbor-smol",
@@ -550,7 +550,7 @@ dependencies = [
 [[package]]
 name = "fido-authenticator"
 version = "0.1.1"
-source = "git+https://github.com/Nitrokey/fido-authenticator.git?rev=82a85dc5fd88d32259b9e3f4f5542bc28b8c4f55#82a85dc5fd88d32259b9e3f4f5542bc28b8c4f55"
+source = "git+https://github.com/Nitrokey/fido-authenticator.git?tag=v0.1.1-nitrokey.7#2f49017eec5a87bd2570593571b87a15a9890ed0"
 dependencies = [
  "apdu-dispatch",
  "ctap-types",
