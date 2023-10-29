@@ -4,7 +4,6 @@ use crate::commands_types::WebcryptMessage;
 use crate::types::Error::BadFormat;
 use crate::types::TRANSPORT_CMD_ID::COMM_CMD_WRITE;
 use crate::{Bytes, Message};
-use ctap_types::ctap2::PinAuth;
 use delog::log;
 use heapless_bytes::Bytes32;
 
@@ -206,7 +205,7 @@ pub enum RequestSource {
 pub struct RequestDetails {
     pub source: RequestSource,
     pub rpid: Bytes32,
-    pub pin_auth: Option<PinAuth>,
+    pub pin_auth: Option<Bytes<16>>,
 }
 
 impl From<Message> for WebcryptRequest {
