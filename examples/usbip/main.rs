@@ -186,7 +186,9 @@ use clap_num::maybe_hex;
 use trussed::backend::BackendId;
 use trussed::platform::{consent, reboot, ui};
 
+use trussed::service::ClientFilestore;
 use trussed::types::Location;
+use trussed::virt::{Filesystem, StoreProvider};
 use trussed::{virt, ClientImplementation, Platform};
 use trussed_usbip::ClientBuilder;
 
@@ -393,7 +395,7 @@ type FidoAuthApp = fido_authenticator::Authenticator<fido_authenticator::Conform
 type WebcryptApp = webcrypt::Webcrypt<VirtClient>;
 
 struct Apps {
-    admin: admin_app::App<VirtClient, Reboot, AdminStatus>,
+    admin: admin_app::App<VirtClient, Reboot, AdminStatus, ()>,
     peeking_fido: PeekingBypass<'static, FidoAuthApp, WebcryptApp>,
 }
 
@@ -411,15 +413,16 @@ impl trussed_usbip::Apps<'static, VirtClient, dispatch::Dispatch> for Apps {
                 max_resident_credential_count: Some(MAX_RESIDENT_CREDENTIAL_COUNT),
             },
         );
+        let mut filestore = ClientFilestore::new("admin".into(), unsafe { Filesystem::store() });
         let data = AdminData::new(Variant::Usbip);
-        let admin = admin_app::App::new(
+        let admin = admin_app::App::load(
             builder.build("admin", &[BackendId::Core]),
+            &mut filestore,
             [0; 16],
             0,
             "",
             data.encode(),
         );
-
         let webcrypt = webcrypt::Webcrypt::new_with_options(
             builder.build("webcrypt", dispatch::BACKENDS),
             Options::new(Location::External, *b"1234", 10000),
