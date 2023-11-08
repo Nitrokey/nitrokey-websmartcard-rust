@@ -304,9 +304,14 @@ where
 {
     fn select(
         &mut self,
+        interface: Interface,
         _apdu: &apdu::Command<{ SIZE }>,
         reply: &mut apdu::Data<{ apdu_dispatch::response::SIZE }>,
     ) -> apdu::Result {
+        if interface != Interface::Contactless {
+            return Err(Status::ConditionsOfUseNotSatisfied);
+        }
+
         reply.extend_from_slice(b"U2F_V2").unwrap();
         Ok(())
     }
