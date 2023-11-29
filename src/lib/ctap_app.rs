@@ -224,6 +224,8 @@ where
                 // user: Some(user),
                 user: None,
                 number_of_credentials: None,
+                user_selected: None,
+                large_blob_key: None,
             }))
         }
 
@@ -304,6 +306,7 @@ where
 {
     fn select(
         &mut self,
+        _interface: Interface,
         _apdu: &apdu::Command<{ SIZE }>,
         reply: &mut apdu::Data<{ apdu_dispatch::response::SIZE }>,
     ) -> apdu::Result {
