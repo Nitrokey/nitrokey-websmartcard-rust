@@ -5,13 +5,19 @@ version = 3
 [[package]]
 name = "admin-app"
 version = "0.1.0"
-source = "git+https://github.com/Nitrokey/admin-app?tag=v0.1.0-nitrokey.3#15aec92ff3f30f2ad1ff157ac5077c7211a04c77"
+source = "git+https://github.com/Nitrokey/admin-app.git?tag=v0.1.0-nitrokey.8#8d4aa588ccd9599e82cafff478169578724a3bae"
 dependencies = [
  "apdu-dispatch",
+ "cbor-smol",
  "ctaphid-dispatch",
  "delog",
+ "hex-literal",
  "iso7816",
+ "littlefs2",
+ "serde",
+ "strum_macros",
  "trussed",
+ "trussed-staging",
 ]
 
 [[package]]
@@ -48,7 +54,7 @@ dependencies = [
 [[package]]
 name = "apdu-dispatch"
 version = "0.1.2"
-source = "git+https://github.com/Nitrokey/apdu-dispatch?tag=v0.1.2-nitrokey.1#b72d5eb9f4d7a3f107a78a2f0e41f3c403f4c7a4"
+source = "git+https://github.com/trussed-dev/apdu-dispatch.git?rev=915fc237103fcecc29d0f0b73391f19abf6576de#915fc237103fcecc29d0f0b73391f19abf6576de"
 dependencies = [
  "delog",
  "heapless",
@@ -94,7 +100,7 @@ version = "0.56.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2da379dbebc0b76ef63ca68d8fc6e71c0f13e59432e0987e508c1820e6ab5239"
 dependencies = [
- "bitflags",
+ "bitflags 1.3.2",
  "cexpr",
  "clang-sys",
  "lazy_static",
@@ -112,6 +118,12 @@ name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
+
+[[package]]
+name = "bitflags"
+version = "2.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "327762f6e5a765692301e5bb513e0d9fef63be86bbc14528052b1cd3e6f03e07"
 
 [[package]]
 name = "block-buffer"
@@ -244,7 +256,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ea181bf566f71cb9a5d17a59e1871af638180a18fb0035c92ae62b705207123"
 dependencies = [
  "atty",
- "bitflags",
+ "bitflags 1.3.2",
  "clap_derive",
  "clap_lex",
  "indexmap",
@@ -362,9 +374,9 @@ dependencies = [
 [[package]]
 name = "ctap-types"
 version = "0.1.2"
-source = "git+https://github.com/nitrokey/ctap-types.git?tag=v0.1.2-nitrokey.4#702b5b5248f88091b22c46c936cb0f99425c0a61"
+source = "git+https://github.com/trussed-dev/ctap-types.git?rev=7d4ad69e64ad308944c012aef5b9cfd7654d9be8#7d4ad69e64ad308944c012aef5b9cfd7654d9be8"
 dependencies = [
- "bitflags",
+ "bitflags 1.3.2",
  "cbor-smol",
  "cosey",
  "delog",
@@ -483,11 +495,11 @@ dependencies = [
 
 [[package]]
 name = "ed25519"
-version = "1.5.3"
+version = "2.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91cff35c70bba8a626e3185d8cd48cc11b5437e1a5bcd15b9b5fa3c64b6dfee7"
+checksum = "115531babc129696a58c64a4fef0a8bf9e9698629fb97e9e40767d235cfbcd53"
 dependencies = [
- "signature 1.3.2",
+ "signature 2.1.0",
 ]
 
 [[package]]
@@ -550,7 +562,7 @@ dependencies = [
 [[package]]
 name = "fido-authenticator"
 version = "0.1.1"
-source = "git+https://github.com/Nitrokey/fido-authenticator.git?tag=v0.1.1-nitrokey.7#2f49017eec5a87bd2570593571b87a15a9890ed0"
+source = "git+https://github.com/Nitrokey/fido-authenticator.git?rev=162ac6a2e603fb69944ff1679dced9752f0c7cf2#162ac6a2e603fb69944ff1679dced9752f0c7cf2"
 dependencies = [
  "apdu-dispatch",
  "ctap-types",
@@ -562,6 +574,7 @@ dependencies = [
  "serde",
  "serde-indexed",
  "serde_cbor",
+ "sha2 0.10.7",
  "trussed",
 ]
 
@@ -820,7 +833,7 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "95c72bdf63e7ad35f391e60c48e4c32560038f1d3a0dd97f90a2891ce09160bf"
 dependencies = [
- "bitflags",
+ "bitflags 1.3.2",
  "cstr_core",
  "cty",
  "delog",
@@ -1308,9 +1321,9 @@ checksum = "7ffc183a10b4478d04cbbbfc96d0873219d962dd5accaff2ffbd4ceb7df837f4"
 
 [[package]]
 name = "salty"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77cdd38ed8bfe51e53ee991aae0791b94349d0a05cfdecd283835a8a965d4c37"
+checksum = "b947325a585e90733e0e9ec097228f40b637cc346f9bd68f84d5c6297d0fcfef"
 dependencies = [
  "cosey",
  "ed25519",
@@ -1519,6 +1532,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
 
 [[package]]
+name = "strum_macros"
+version = "0.25.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23dc1fa9ac9c169a78ba62f0b841814b7abae11bdd047b9c58f893439e309ea0"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
+ "rustversion",
+ "syn 2.0.28",
+]
+
+[[package]]
 name = "subtle"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1648,10 +1674,10 @@ dependencies = [
 [[package]]
 name = "trussed"
 version = "0.1.0"
-source = "git+https://github.com/Nitrokey/trussed?tag=v0.1.0-nitrokey.12#f3c95ab16fe6f9357a5d792e709e93d06c304b34"
+source = "git+https://github.com/trussed-dev/trussed.git?rev=b1781805a2e33615d2d00b8bec80c0b1f5870ca1#b1781805a2e33615d2d00b8bec80c0b1f5870ca1"
 dependencies = [
  "aes",
- "bitflags",
+ "bitflags 2.4.1",
  "cbc",
  "cbor-smol",
  "cfg-if",
@@ -1685,7 +1711,7 @@ dependencies = [
 [[package]]
 name = "trussed-auth"
 version = "0.2.2"
-source = "git+https://github.com/Nitrokey/trussed-auth?tag=v0.2.2-nitrokey.1#203a90dd13a7378f596b3099cd986a8da6185137"
+source = "git+https://github.com/trussed-dev/trussed-auth?rev=62235294bd63977bbb88eb01e7ac44b8010eb450#62235294bd63977bbb88eb01e7ac44b8010eb450"
 dependencies = [
  "chacha20poly1305",
  "hkdf",
@@ -1701,7 +1727,7 @@ dependencies = [
 [[package]]
 name = "trussed-rsa-alloc"
 version = "0.1.0"
-source = "git+https://github.com/Nitrokey/trussed-rsa-backend.git?tag=v0.1.0#a72ce195a4495a8db26debfb0240a4dc712d8dbe"
+source = "git+https://github.com/trussed-dev/trussed-rsa-backend.git?rev=2f51478f0861ff8db19fdd5290f023ab6f4c2fb9#2f51478f0861ff8db19fdd5290f023ab6f4c2fb9"
 dependencies = [
  "delog",
  "heapless-bytes",
@@ -1715,7 +1741,7 @@ dependencies = [
 [[package]]
 name = "trussed-staging"
 version = "0.1.0"
-source = "git+https://github.com/Nitrokey/trussed-staging?branch=hmacsha256p256#1b54bf8703d515688a58f2f605c3efa0f2f60ced"
+source = "git+https://github.com/Nitrokey/trussed-staging.git?branch=hmacsha256p256-chunked#a21f11a95254dee81c6534a1260b1318bfac87b5"
 dependencies = [
  "delog",
  "hmac 0.12.1",
@@ -1799,7 +1825,7 @@ version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2e7a0b57d68d666cc85d8bfe8a32fb4196e8eb89b611658a0624af6428e7a2fd"
 dependencies = [
- "bitflags",
+ "bitflags 1.3.2",
  "log",
  "usb-device",
 ]

@@ -8,6 +8,7 @@ const LOCATION_FOR_SIMULATION: Location = Location::Internal;
 
 mod dispatch {
     use trussed_staging::hmacsha256p256::HmacSha256P256Extension;
+    use trussed_staging::manage::ManageExtension;
     use trussed_staging::StagingBackend;
     use trussed_staging::StagingContext;
 
@@ -44,6 +45,7 @@ mod dispatch {
     pub enum Extension {
         Auth,
         HmacShaP256,
+        Manage,
     }
 
     impl From<Extension> for u8 {
@@ -51,6 +53,7 @@ mod dispatch {
             match extension {
                 Extension::Auth => 0,
                 Extension::HmacShaP256 => 1,
+                Extension::Manage => 2,
             }
         }
     }
@@ -62,6 +65,7 @@ mod dispatch {
             match id {
                 0 => Ok(Extension::Auth),
                 1 => Ok(Extension::HmacShaP256),
+                2 => Ok(Extension::Manage),
                 _ => Err(Error::InternalError),
             }
         }
@@ -144,7 +148,7 @@ mod dispatch {
                         request,
                         resources,
                     ),
-                    _ => todo!(),
+                    _ => Err(Error::RequestNotAvailable),
                 },
                 #[cfg(feature = "rsa")]
                 Backend::Rsa => Err(Error::RequestNotAvailable),
@@ -159,6 +163,15 @@ mod dispatch {
                         request,
                         resources,
                     ),
+                    Extension::Manage => {
+                        ExtensionImpl::<ManageExtension>::extension_request_serialized(
+                            &mut self.staging,
+                            &mut ctx.core,
+                            &mut ctx.backends.staging,
+                            request,
+                            resources,
+                        )
+                    }
                     Extension::Auth => Err(Error::RequestNotAvailable),
                 },
             }
@@ -175,6 +188,12 @@ mod dispatch {
         type Id = Extension;
 
         const ID: Self::Id = Self::Id::HmacShaP256;
+    }
+
+    impl ExtensionId<ManageExtension> for Dispatch {
+        type Id = Extension;
+
+        const ID: Self::Id = Self::Id::Manage;
     }
 }
 
@@ -393,7 +412,7 @@ type FidoAuthApp = fido_authenticator::Authenticator<fido_authenticator::Conform
 type WebcryptApp = webcrypt::Webcrypt<VirtClient>;
 
 struct Apps {
-    admin: admin_app::App<VirtClient, Reboot, AdminStatus>,
+    admin: admin_app::App<VirtClient, Reboot, AdminStatus, ()>,
     peeking_fido: PeekingBypass<'static, FidoAuthApp, WebcryptApp>,
 }
 
@@ -409,10 +428,11 @@ impl trussed_usbip::Apps<'static, VirtClient, dispatch::Dispatch> for Apps {
                 max_msg_size: MESSAGE_SIZE,
                 skip_up_timeout: None,
                 max_resident_credential_count: Some(MAX_RESIDENT_CREDENTIAL_COUNT),
+                large_blobs: None,
             },
         );
         let data = AdminData::new(Variant::Usbip);
-        let admin = admin_app::App::new(
+        let admin = admin_app::App::without_config(
             builder.build("admin", &[BackendId::Core]),
             [0; 16],
             0,
