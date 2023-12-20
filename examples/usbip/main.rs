@@ -205,7 +205,9 @@ use clap_num::maybe_hex;
 use trussed::backend::BackendId;
 use trussed::platform::{consent, reboot, ui};
 
+use trussed::service::ClientFilestore;
 use trussed::types::Location;
+use trussed::virt::{Filesystem, StoreProvider};
 use trussed::{virt, ClientImplementation, Platform};
 use trussed_usbip::ClientBuilder;
 
@@ -431,15 +433,19 @@ impl trussed_usbip::Apps<'static, VirtClient, dispatch::Dispatch> for Apps {
                 large_blobs: None,
             },
         );
+        let mut filestore = ClientFilestore::new("admin".into(), unsafe { Filesystem::store() });
         let data = AdminData::new(Variant::Usbip);
-        let admin = admin_app::App::without_config(
+        let admin = match admin_app::App::load_config(
             builder.build("admin", &[BackendId::Core]),
+            &mut filestore,
             [0; 16],
             0,
             "",
             data.encode(),
-        );
-
+        ) {
+            Ok(admin) => admin,
+            Err((_, err)) => panic!("{err:?}"),
+        };
         let webcrypt = webcrypt::Webcrypt::new_with_options(
             builder.build("webcrypt", dispatch::BACKENDS),
             Options::new(Location::External, *b"1234", 10000),

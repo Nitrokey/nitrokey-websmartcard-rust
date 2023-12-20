@@ -5,7 +5,7 @@ version = 3
 [[package]]
 name = "admin-app"
 version = "0.1.0"
-source = "git+https://github.com/Nitrokey/admin-app.git?tag=v0.1.0-nitrokey.8#8d4aa588ccd9599e82cafff478169578724a3bae"
+source = "git+https://github.com/Nitrokey/admin-app?tag=v0.1.0-nitrokey.9#75c7c969cfa811aa774d1a08d48e8563f8732497"
 dependencies = [
  "apdu-dispatch",
  "cbor-smol",
@@ -54,7 +54,7 @@ dependencies = [
 [[package]]
 name = "apdu-dispatch"
 version = "0.1.2"
-source = "git+https://github.com/trussed-dev/apdu-dispatch.git?rev=915fc237103fcecc29d0f0b73391f19abf6576de#915fc237103fcecc29d0f0b73391f19abf6576de"
+source = "git+https://github.com/Nitrokey/apdu-dispatch.git?tag=v0.1.2-nitrokey.2#647029550ea204b7a714ddf8852b93e644f4a429"
 dependencies = [
  "delog",
  "heapless",
@@ -562,7 +562,7 @@ dependencies = [
 [[package]]
 name = "fido-authenticator"
 version = "0.1.1"
-source = "git+https://github.com/Nitrokey/fido-authenticator.git?rev=162ac6a2e603fb69944ff1679dced9752f0c7cf2#162ac6a2e603fb69944ff1679dced9752f0c7cf2"
+source = "git+https://github.com/Nitrokey/fido-authenticator.git?tag=v0.1.1-nitrokey.10#8c26ab39201191296ec6cc95c7409410bf12ee32"
 dependencies = [
  "apdu-dispatch",
  "ctap-types",
@@ -830,8 +830,7 @@ checksum = "f7012b1bbb0719e1097c47611d3898568c546d597c2e74d66f6087edd5233ff4"
 [[package]]
 name = "littlefs2"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95c72bdf63e7ad35f391e60c48e4c32560038f1d3a0dd97f90a2891ce09160bf"
+source = "git+https://github.com/trussed-dev/littlefs2?rev=ebd27e49ca321089d01d8c9b169c4aeb58ceeeca#ebd27e49ca321089d01d8c9b169c4aeb58ceeeca"
 dependencies = [
  "bitflags 1.3.2",
  "cstr_core",
@@ -1674,7 +1673,7 @@ dependencies = [
 [[package]]
 name = "trussed"
 version = "0.1.0"
-source = "git+https://github.com/trussed-dev/trussed.git?rev=b1781805a2e33615d2d00b8bec80c0b1f5870ca1#b1781805a2e33615d2d00b8bec80c0b1f5870ca1"
+source = "git+https://github.com/Nitrokey/trussed.git?tag=v0.1.0-nitrokey.17#419dd5c60aa9a59d5f31b9a88e96989e8d2da10d"
 dependencies = [
  "aes",
  "bitflags 2.4.1",
@@ -1741,7 +1740,7 @@ dependencies = [
 [[package]]
 name = "trussed-staging"
 version = "0.1.0"
-source = "git+https://github.com/Nitrokey/trussed-staging.git?branch=hmacsha256p256-chunked#a21f11a95254dee81c6534a1260b1318bfac87b5"
+source = "git+https://github.com/Nitrokey/trussed-staging.git?tag=v0.1.0-nitrokey-hmac256p256.3#c4d701ff1fe2d169ccf9c4a75c414faeb75c75db"
 dependencies = [
  "delog",
  "hmac 0.12.1",
