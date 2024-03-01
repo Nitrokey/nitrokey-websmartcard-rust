@@ -58,7 +58,7 @@ source = "git+https://github.com/trussed-dev/apdu-dispatch.git?rev=915fc237103fc
 dependencies = [
  "delog",
  "heapless",
- "interchange 0.3.0",
+ "interchange",
  "iso7816",
 ]
 
@@ -374,18 +374,15 @@ dependencies = [
 [[package]]
 name = "ctap-types"
 version = "0.1.2"
-source = "git+https://github.com/trussed-dev/ctap-types.git?rev=7d4ad69e64ad308944c012aef5b9cfd7654d9be8#7d4ad69e64ad308944c012aef5b9cfd7654d9be8"
+source = "git+https://github.com/trussed-dev/ctap-types.git?rev=a9f8003a1d9f05f9eea39e615b9159bc0613fcb5#a9f8003a1d9f05f9eea39e615b9159bc0613fcb5"
 dependencies = [
  "bitflags 1.3.2",
  "cbor-smol",
- "cosey",
  "delog",
  "heapless",
  "heapless-bytes",
- "interchange 0.2.2",
  "iso7816",
  "serde",
- "serde-byte-array",
  "serde-indexed",
  "serde_bytes",
  "serde_repr",
@@ -399,7 +396,7 @@ dependencies = [
  "delog",
  "heapless",
  "heapless-bytes",
- "interchange 0.3.0",
+ "interchange",
  "ref-swap",
  "trussed",
 ]
@@ -562,20 +559,20 @@ dependencies = [
 [[package]]
 name = "fido-authenticator"
 version = "0.1.1"
-source = "git+https://github.com/Nitrokey/fido-authenticator.git?rev=162ac6a2e603fb69944ff1679dced9752f0c7cf2#162ac6a2e603fb69944ff1679dced9752f0c7cf2"
+source = "git+https://github.com/Nitrokey/fido-authenticator.git?tag=v0.1.1-nitrokey.11#4e3047023248cefa4c66895ab5539e4398ccc55b"
 dependencies = [
  "apdu-dispatch",
  "ctap-types",
  "ctaphid-dispatch",
  "delog",
  "heapless",
- "interchange 0.2.2",
  "iso7816",
  "serde",
  "serde-indexed",
  "serde_cbor",
  "sha2 0.10.7",
  "trussed",
+ "trussed-hkdf",
 ]
 
 [[package]]
@@ -768,12 +765,6 @@ dependencies = [
 
 [[package]]
 name = "interchange"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "310d743c23f798f10d5ba2f77fdd3eff06aaf2d8f8b9d78beba7fb1167f4ccbf"
-
-[[package]]
-name = "interchange"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92cfaa4be499da454ab279e04dee4837e71b3803eced4bd2b4cdec4bb3377b4f"
@@ -830,8 +821,7 @@ checksum = "f7012b1bbb0719e1097c47611d3898568c546d597c2e74d66f6087edd5233ff4"
 [[package]]
 name = "littlefs2"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95c72bdf63e7ad35f391e60c48e4c32560038f1d3a0dd97f90a2891ce09160bf"
+source = "git+https://github.com/trussed-dev/littlefs2.git?rev=ebd27e49ca321089d01d8c9b169c4aeb58ceeeca#ebd27e49ca321089d01d8c9b169c4aeb58ceeeca"
 dependencies = [
  "bitflags 1.3.2",
  "cstr_core",
@@ -1674,7 +1664,7 @@ dependencies = [
 [[package]]
 name = "trussed"
 version = "0.1.0"
-source = "git+https://github.com/trussed-dev/trussed.git?rev=b1781805a2e33615d2d00b8bec80c0b1f5870ca1#b1781805a2e33615d2d00b8bec80c0b1f5870ca1"
+source = "git+https://github.com/trussed-dev/trussed.git?rev=cff2e663841b6a68d3a8ce12647d57b2b6fbc36c#cff2e663841b6a68d3a8ce12647d57b2b6fbc36c"
 dependencies = [
  "aes",
  "bitflags 2.4.1",
@@ -1693,7 +1683,7 @@ dependencies = [
  "heapless-bytes",
  "hex-literal",
  "hmac 0.12.1",
- "interchange 0.3.0",
+ "interchange",
  "littlefs2",
  "nb 1.1.0",
  "p256-cortex-m4",
@@ -1721,6 +1711,21 @@ dependencies = [
  "serde-byte-array",
  "sha2 0.10.7",
  "subtle",
+ "trussed",
+]
+
+[[package]]
+name = "trussed-hkdf"
+version = "0.1.0"
+source = "git+https://github.com/Nitrokey/trussed-hkdf-backend.git?tag=v0.1.0#4a172d88c0fd4be713a863db0cb18266acb0da43"
+dependencies = [
+ "heapless-bytes",
+ "hkdf",
+ "hmac 0.12.1",
+ "log",
+ "postcard",
+ "serde",
+ "sha2 0.10.7",
  "trussed",
 ]
 
@@ -1759,7 +1764,7 @@ version = "0.0.1"
 source = "git+https://github.com/Nitrokey/pc-usbip-runner?tag=v0.0.1-nitrokey.1#e78883847fb01ac93179074ff29e13a0d470775b"
 dependencies = [
  "ctaphid-dispatch",
- "interchange 0.3.0",
+ "interchange",
  "log",
  "trussed",
  "usb-device",
@@ -1812,7 +1817,7 @@ dependencies = [
  "embedded-time",
  "heapless",
  "heapless-bytes",
- "interchange 0.3.0",
+ "interchange",
  "ref-swap",
  "serde",
  "trussed",
@@ -1870,6 +1875,7 @@ dependencies = [
  "serde_bytes",
  "trussed",
  "trussed-auth",
+ "trussed-hkdf",
  "trussed-rsa-alloc",
  "trussed-staging",
  "trussed-usbip",

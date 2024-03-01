@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 const LOCATION_FOR_SIMULATION: Location = Location::Internal;
 
 mod dispatch {
+    use trussed_hkdf::HkdfExtension;
     use trussed_staging::hmacsha256p256::HmacSha256P256Extension;
     use trussed_staging::manage::ManageExtension;
     use trussed_staging::StagingBackend;
@@ -46,6 +47,7 @@ mod dispatch {
         Auth,
         HmacShaP256,
         Manage,
+        Hkdf,
     }
 
     impl From<Extension> for u8 {
@@ -54,6 +56,7 @@ mod dispatch {
                 Extension::Auth => 0,
                 Extension::HmacShaP256 => 1,
                 Extension::Manage => 2,
+                Extension::Hkdf => 3,
             }
         }
     }
@@ -66,6 +69,7 @@ mod dispatch {
                 0 => Ok(Extension::Auth),
                 1 => Ok(Extension::HmacShaP256),
                 2 => Ok(Extension::Manage),
+                3 => Ok(Extension::Hkdf),
                 _ => Err(Error::InternalError),
             }
         }
@@ -172,7 +176,7 @@ mod dispatch {
                             resources,
                         )
                     }
-                    Extension::Auth => Err(Error::RequestNotAvailable),
+                    _ => Err(Error::RequestNotAvailable),
                 },
             }
         }
@@ -194,6 +198,12 @@ mod dispatch {
         type Id = Extension;
 
         const ID: Self::Id = Self::Id::Manage;
+    }
+
+    impl ExtensionId<HkdfExtension> for Dispatch {
+        type Id = Extension;
+
+        const ID: Self::Id = Self::Id::Hkdf;
     }
 }
 
@@ -429,6 +439,7 @@ impl trussed_usbip::Apps<'static, VirtClient, dispatch::Dispatch> for Apps {
                 skip_up_timeout: None,
                 max_resident_credential_count: Some(MAX_RESIDENT_CREDENTIAL_COUNT),
                 large_blobs: None,
+                nfc_transport: false,
             },
         );
         let data = AdminData::new(Variant::Usbip);

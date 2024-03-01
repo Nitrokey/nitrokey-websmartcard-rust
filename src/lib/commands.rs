@@ -176,7 +176,7 @@ where
     let wrapped_key =
         syscall!(w
             .trussed
-            .wrap_key_chacha8poly1305(wrapping_key, private_key, &appid))
+            .wrap_key_chacha8poly1305(wrapping_key, private_key, &appid, None))
         .wrapped_key;
 
     let nonce_2 = syscall!(w.trussed.random_bytes(12));
@@ -770,13 +770,15 @@ where
     .ok_or(Error::FailedLoadingData)?;
 
     // decrypt with shared secret
-    let decrypted = try_syscall!(w.trussed.decrypt_aes256cbc(serialized_reimported, req.data))
-        .map_err(|_e| {
-            error!("Decryption error: {:?}", _e);
-            Error::FailedLoadingData
-        })?
-        .plaintext
-        .ok_or(Error::InternalError)?;
+    let decrypted = try_syscall!(w
+        .trussed
+        .decrypt_aes256cbc(serialized_reimported, req.data, &[]))
+    .map_err(|_e| {
+        error!("Decryption error: {:?}", _e);
+        Error::FailedLoadingData
+    })?
+    .plaintext
+    .ok_or(Error::InternalError)?;
 
     syscall!(w.trussed.delete(shared_secret));
     syscall!(w.trussed.delete(serialized_reimported));
