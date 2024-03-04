@@ -74,6 +74,7 @@ pub enum Error {
     AlreadyInDatabase = 0xF7,
     NotFound = 0xF8,
     AssertFailed = 0xF9,
+    #[allow(clippy::enum_variant_names)]
     InternalError = 0xFA,
     MemoryFull = 0xFB,
     NotImplemented = 0xFC,

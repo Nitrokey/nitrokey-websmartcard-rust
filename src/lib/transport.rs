@@ -377,7 +377,7 @@ where
 
     #[inline(never)]
     fn get_webcrypt_cmd(&self, keyh: &[u8]) -> Result<ExtWebcryptCmd, WebcryptError> {
-        let webcrypt: WebcryptRequest = keyh.try_into().map_err(|_| Error::BadFormat)?;
+        let webcrypt: WebcryptRequest = keyh.into();
         webcrypt.try_into()
     }
 
