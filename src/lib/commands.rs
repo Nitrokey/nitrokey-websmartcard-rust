@@ -1,5 +1,4 @@
 use cbor_smol::cbor_deserialize;
-pub use ctap_types::ctap1::Error as U2fError;
 use heapless::Vec;
 
 use heapless_bytes::{Bytes, Bytes32};
@@ -1146,7 +1145,7 @@ where
             .trussed
             .read_dir_first(w.options.location, rp_rk_dir(rp_id_hash), None,))
         .entry
-        .map(|entry| PathBuf::try_from(entry.path()).unwrap());
+        .map(|entry| PathBuf::from(entry.path()));
 
     // following reads
     while let Some(path) = maybe_path {
@@ -1155,7 +1154,7 @@ where
 
         maybe_path = syscall!(w.trussed.read_dir_next())
             .entry
-            .map(|entry| PathBuf::try_from(entry.path()).unwrap());
+            .map(|entry| PathBuf::from(entry.path()));
     }
 
     // TODO finish

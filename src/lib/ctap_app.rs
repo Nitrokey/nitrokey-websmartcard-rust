@@ -212,8 +212,8 @@ where
                 PublicKeyCredentialUserEntity {
                     id: Bytes::from_slice(&[3u8; 16]).unwrap(),
                     icon: None,
-                    name: Some("name".try_into().unwrap()),
-                    display_name: Some("display".try_into().unwrap()),
+                    name: Some("name".into()),
+                    display_name: Some("display".into()),
                 }
             };
 
