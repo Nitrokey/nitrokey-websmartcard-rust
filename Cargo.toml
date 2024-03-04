@@ -28,6 +28,9 @@ pretty_env_logger = { version = "0.4.0", optional = true }
 trussed-rsa-alloc = { version = "0.1.0", optional = true }
 trussed-staging = { version = "0.1.0"}
 
+# For hmacsha256p256
+hmac = { version = "0.12", default-features = false, optional = true}
+sha2 = { version = "0.10", default-features = false, optional = true}
 
 [dev-dependencies]
 pretty_env_logger = "0.4.0"
@@ -62,12 +65,12 @@ no-authentication = []
 apdu-peek = []
 
 # Support P256 key derivation from HMAC
-# Uses trussed-staging
-hmacsha256p256 = ["trussed-staging/hmacsha256p256"]
+# Uses custom backend extension
+hmacsha256p256 = ["hmac", "sha2"]
 
 # Allow to inject raw key data with specified type into the Trussed key store. Needed for OpenPGP support to use Kind::P256.
-# Uses trussed-staging
-inject-any-key = ["trussed-staging/hmacsha256p256"]
+# Uses custom backend extension
+inject-any-key = ["hmacsha256p256"]
 
 # Support RSA
 rsa = ["trussed-rsa-alloc"]
@@ -109,7 +112,7 @@ trussed-auth = { git = "https://github.com/trussed-dev/trussed-auth", rev = "622
 trussed-hkdf = { git = "https://github.com/Nitrokey/trussed-hkdf-backend.git", tag = "v0.1.0" }
 trussed-rsa-alloc = { git = "https://github.com/trussed-dev/trussed-rsa-backend.git", rev = "2f51478f0861ff8db19fdd5290f023ab6f4c2fb9" }
 trussed-usbip = { git = "https://github.com/Nitrokey/pc-usbip-runner", tag = "v0.0.1-nitrokey.1" }
-trussed-staging = { git = "https://github.com/Nitrokey/trussed-staging.git", branch = "hmacsha256p256-chunked" }
+trussed-staging = { git = "https://github.com/Nitrokey/trussed-staging.git", rev = "6e70fc4db31b92c413d56e28c6d3683a87384d46" }
 
 # Local development
 #trussed = { path = "../trussed" }
