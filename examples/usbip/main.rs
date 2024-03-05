@@ -8,10 +8,10 @@ const LOCATION_FOR_SIMULATION: Location = Location::Internal;
 
 mod dispatch {
     use trussed_hkdf::HkdfExtension;
-    use trussed_staging::hmacsha256p256::HmacSha256P256Extension;
     use trussed_staging::manage::ManageExtension;
     use trussed_staging::StagingBackend;
     use trussed_staging::StagingContext;
+    use webcrypt::hmacsha256p256::HmacSha256P256Extension;
 
     use trussed::{
         api::{reply, request, Reply, Request},
@@ -41,6 +41,7 @@ mod dispatch {
         Staging,
         #[cfg(feature = "rsa")]
         Rsa,
+        HmacShaP256,
     }
 
     pub enum Extension {
@@ -78,12 +79,14 @@ mod dispatch {
     pub struct Dispatch {
         auth: AuthBackend,
         staging: StagingBackend,
+        hmacsha256p256: webcrypt::hmacsha256p256::Backend,
     }
 
     #[derive(Default)]
     pub struct DispatchContext {
         auth: AuthContext,
         staging: StagingContext,
+        hmacsha256p256: webcrypt::hmacsha256p256::BackendContext,
     }
 
     impl Dispatch {
@@ -91,6 +94,7 @@ mod dispatch {
             Self {
                 auth: AuthBackend::new(LOCATION_FOR_SIMULATION),
                 staging: StagingBackend::new(),
+                hmacsha256p256: webcrypt::hmacsha256p256::Backend::new(),
             }
         }
 
@@ -98,6 +102,7 @@ mod dispatch {
             Self {
                 auth: AuthBackend::with_hw_key(LOCATION_FOR_SIMULATION, hw_key),
                 staging: StagingBackend::new(),
+                hmacsha256p256: webcrypt::hmacsha256p256::Backend::new(),
             }
         }
     }
@@ -133,6 +138,12 @@ mod dispatch {
                     request,
                     resources,
                 ),
+                Backend::HmacShaP256 => self.hmacsha256p256.request(
+                    &mut ctx.core,
+                    &mut ctx.backends.hmacsha256p256,
+                    request,
+                    resources,
+                ),
             }
         }
 
@@ -158,20 +169,25 @@ mod dispatch {
                 Backend::Rsa => Err(Error::RequestNotAvailable),
                 // #[cfg(feature = "hmacsha256p256")]
                 Backend::Staging => match extension {
-                    Extension::HmacShaP256 => <StagingBackend as ExtensionImpl<
-                        HmacSha256P256Extension,
-                    >>::extension_request_serialized(
-                        &mut self.staging,
-                        &mut ctx.core,
-                        &mut ctx.backends.staging,
-                        request,
-                        resources,
-                    ),
                     Extension::Manage => {
                         ExtensionImpl::<ManageExtension>::extension_request_serialized(
                             &mut self.staging,
                             &mut ctx.core,
                             &mut ctx.backends.staging,
+                            request,
+                            resources,
+                        )
+                    }
+                    _ => Err(Error::RequestNotAvailable),
+                },
+                Backend::HmacShaP256 => match extension {
+                    Extension::HmacShaP256 => {
+                        <webcrypt::hmacsha256p256::Backend as ExtensionImpl<
+                            HmacSha256P256Extension,
+                        >>::extension_request_serialized(
+                            &mut self.hmacsha256p256,
+                            &mut ctx.core,
+                            &mut ctx.backends.hmacsha256p256,
                             request,
                             resources,
                         )
@@ -188,7 +204,7 @@ mod dispatch {
         const ID: Self::Id = Self::Id::Auth;
     }
 
-    impl ExtensionId<trussed_staging::hmacsha256p256::HmacSha256P256Extension> for Dispatch {
+    impl ExtensionId<webcrypt::hmacsha256p256::HmacSha256P256Extension> for Dispatch {
         type Id = Extension;
 
         const ID: Self::Id = Self::Id::HmacShaP256;

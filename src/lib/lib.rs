@@ -37,3 +37,6 @@ pub use constants::GIT_VERSION;
 pub use transport::Webcrypt;
 pub use types::RequestDetails;
 pub use types::RequestSource;
+
+#[cfg(feature = "hmacsha256p256")]
+pub mod hmacsha256p256;
