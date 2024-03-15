@@ -5,7 +5,7 @@ version = 3
 [[package]]
 name = "admin-app"
 version = "0.1.0"
-source = "git+https://github.com/Nitrokey/admin-app.git?tag=v0.1.0-nitrokey.8#8d4aa588ccd9599e82cafff478169578724a3bae"
+source = "git+https://github.com/Nitrokey/admin-app.git?tag=v0.1.0-nitrokey.11#0ba0e766cba65a1fe7b0865f343de589e4202d82"
 dependencies = [
  "apdu-dispatch",
  "cbor-smol",
@@ -17,7 +17,7 @@ dependencies = [
  "serde",
  "strum_macros",
  "trussed",
- "trussed-staging",
+ "trussed-manage",
 ]
 
 [[package]]
@@ -1725,6 +1725,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "trussed-manage"
+version = "0.1.0"
+source = "git+https://github.com/trussed-dev/trussed-staging.git?tag=manage-v0.1.0#5fc00717e6aa3f43d4f72fd3bd589f2de3a89b98"
+dependencies = [
+ "serde",
+ "trussed",
+]
+
+[[package]]
 name = "trussed-rsa-alloc"
 version = "0.1.0"
 source = "git+https://github.com/trussed-dev/trussed-rsa-backend.git?rev=2f51478f0861ff8db19fdd5290f023ab6f4c2fb9#2f51478f0861ff8db19fdd5290f023ab6f4c2fb9"
@@ -1740,8 +1749,8 @@ dependencies = [
 
 [[package]]
 name = "trussed-staging"
-version = "0.1.0"
-source = "git+https://github.com/Nitrokey/trussed-staging.git?rev=6e70fc4db31b92c413d56e28c6d3683a87384d46#6e70fc4db31b92c413d56e28c6d3683a87384d46"
+version = "0.2.0"
+source = "git+https://github.com/trussed-dev/trussed-staging.git?tag=v0.2.0#5fc00717e6aa3f43d4f72fd3bd589f2de3a89b98"
 dependencies = [
  "delog",
  "littlefs2",
@@ -1749,6 +1758,7 @@ dependencies = [
  "serde",
  "serde-byte-array",
  "trussed",
+ "trussed-manage",
 ]
 
 [[package]]
@@ -1871,6 +1881,7 @@ dependencies = [
  "trussed",
  "trussed-auth",
  "trussed-hkdf",
+ "trussed-manage",
  "trussed-rsa-alloc",
  "trussed-staging",
  "trussed-usbip",
@@ -2050,8 +2061,3 @@ dependencies = [
  "quote",
  "syn 2.0.52",
 ]
-
-[[patch.unused]]
-name = "trussed-hmacsha256p256"
-version = "0.1.0"
-source = "git+https://github.com/Nitrokey/trussed-hmacsha256p256.git?rev=9a12feb358437628844b844cddd08e2de0c36b3c#9a12feb358437628844b844cddd08e2de0c36b3c"

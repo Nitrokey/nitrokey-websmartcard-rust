@@ -8,7 +8,7 @@ const LOCATION_FOR_SIMULATION: Location = Location::Internal;
 
 mod dispatch {
     use trussed_hkdf::HkdfExtension;
-    use trussed_staging::manage::ManageExtension;
+    use trussed_manage::ManageExtension;
     use trussed_staging::StagingBackend;
     use trussed_staging::StagingContext;
     use webcrypt::hmacsha256p256::HmacSha256P256Extension;
@@ -459,7 +459,7 @@ impl trussed_usbip::Apps<'static, VirtClient, dispatch::Dispatch> for Apps {
             },
         );
         let data = AdminData::new(Variant::Usbip);
-        let admin = admin_app::App::without_config(
+        let admin = admin_app::App::with_default_config(
             builder.build("admin", &[BackendId::Core]),
             [0; 16],
             0,
