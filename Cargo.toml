@@ -19,7 +19,7 @@ serde = { version = "1.0", default-features = false }
 serde-indexed = "0.1.0"
 serde_bytes = { version = "0.11.10", default-features = false, features=["alloc"] }
 generic-array = "0.14.3"
-ctap-types = "0.1"
+ctap-types = "0.2"
 ctaphid-dispatch = "0.1"
 apdu-dispatch = "0.1"
 
@@ -40,9 +40,9 @@ clap = { version = "3.0.0", features = ["cargo", "derive"] }
 clap-num = "1.0.0"
 delog = { version = "0.1.6", features = ["std-log"] }
 fido-authenticator = {version = "0.1.1", features = ["dispatch", "log-all"]}
-trussed-hkdf = { version = "0.1.0" }
+trussed-hkdf = { version = "0.2.0" }
 trussed-manage = { version = "0.1.0" }
-trussed-staging = { version = "0.2.0" }
+trussed-staging = { version = "0.3.0", features = ["chunked", "hkdf", "manage", "virt"] }
 trussed-usbip = { version = "0.0.1", features = ["ctaphid"], default-features = false }
 admin-app = { version = "0.1", features = ["log-all"] }
 
@@ -97,12 +97,10 @@ ctaphid-dispatch = { git = "https://github.com/Nitrokey/ctaphid-dispatch", tag =
 
 # forked
 admin-app = { git = "https://github.com/Nitrokey/admin-app.git", tag = "v0.1.0-nitrokey.11" }
-fido-authenticator = { git = "https://github.com/Nitrokey/fido-authenticator.git", tag = "v0.1.1-nitrokey.11" }
-serde-indexed = { git = "https://github.com/sosthene-nitrokey/serde-indexed.git", rev = "5005d23cb4ee8622e62188ea0f9466146f851f0d" }
+fido-authenticator = { git = "https://github.com/Nitrokey/fido-authenticator.git", tag = "v0.1.1-nitrokey.16" }
 
 # unreleased upstream changes
 apdu-dispatch = { git = "https://github.com/trussed-dev/apdu-dispatch.git", rev = "915fc237103fcecc29d0f0b73391f19abf6576de" }
-ctap-types = { git = "https://github.com/trussed-dev/ctap-types.git", rev = "a9f8003a1d9f05f9eea39e615b9159bc0613fcb5" }
 iso7816 = { git = "https://github.com/Nitrokey/iso7816.git", tag = "v0.1.1-nitrokey.1" }
 littlefs2 = { git = "https://github.com/sosthene-nitrokey/littlefs2.git", rev = "2b45a7559ff44260c6dd693e4cb61f54ae5efc53" }
 trussed = { git = "https://github.com/trussed-dev/trussed.git", rev = "b548d379dcbd67d29453d94847b7bc33ae92e673" }
@@ -110,10 +108,11 @@ usbd-ctaphid = { git = "https://github.com/Nitrokey/usbd-ctaphid", tag = "v0.1.0
 
 # unreleased crates
 trussed-auth = { git = "https://github.com/trussed-dev/trussed-auth", rev = "62235294bd63977bbb88eb01e7ac44b8010eb450" }
+trussed-chunked = { git = "https://github.com/trussed-dev/trussed-staging.git", tag = "chunked-v0.1.0" }
+trussed-hkdf = { git = "https://github.com/trussed-dev/trussed-staging.git", tag = "hkdf-v0.2.0" }
 trussed-manage = { git = "https://github.com/trussed-dev/trussed-staging.git", tag = "manage-v0.1.0" }
-trussed-hkdf = { git = "https://github.com/Nitrokey/trussed-hkdf-backend.git", tag = "v0.1.0" }
 trussed-rsa-alloc = { git = "https://github.com/trussed-dev/trussed-rsa-backend.git", tag = "v0.2.0" }
-trussed-staging = { git = "https://github.com/trussed-dev/trussed-staging.git", tag = "v0.2.0" }
+trussed-staging = { git = "https://github.com/trussed-dev/trussed-staging.git", tag = "v0.3.0" }
 trussed-usbip = { git = "https://github.com/Nitrokey/pc-usbip-runner", tag = "v0.0.1-nitrokey.1" }
 
 # Local development

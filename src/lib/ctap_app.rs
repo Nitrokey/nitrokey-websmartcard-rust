@@ -6,7 +6,7 @@ use apdu_dispatch::command::SIZE as APDU_SIZE;
 use apdu_dispatch::iso7816::{Aid, App};
 use ctap_types::ctap1::{authenticate, Request as Request1, Response as Response1};
 use ctap_types::ctap2::{get_assertion, Request, Response};
-use ctap_types::webauthn::PublicKeyCredentialUserEntity;
+use ctap_types::webauthn::PublicKeyCredentialDescriptor;
 use ctap_types::{ctap1, ctap2};
 use ctaphid_dispatch::app;
 use ctaphid_dispatch::app as ctaphid;
@@ -27,11 +27,9 @@ where
     C: WebcryptTrussedClient,
 {
     let ctap_response = {
-        let ctap_request = {
-            let command = apdu_dispatch::Command::try_from(data)
-                .map_err(|_| Status::IncorrectDataParameter)?;
-            ctap1::Request::try_from(&command)?
-        };
+        let command =
+            apdu_dispatch::Command::try_from(data).map_err(|_| Status::IncorrectDataParameter)?;
+        let ctap_request = ctap1::Request::try_from(&command)?;
 
         match ctap_request {
             // Request1::Register(reg) => {
@@ -50,9 +48,10 @@ where
                 let data = auth.key_handle;
                 let maybe_output = w.bridge_u2f_to_webcrypt_raw(
                     output,
-                    &data,
+                    data,
                     RequestDetails {
-                        rpid: auth.app_id,
+                        rpid: Bytes::from_slice(auth.app_id)
+                            .map_err(|_| Status::IncorrectDataParameter)?,
                         source: RequestSource::RS_U2F,
                         pin_auth: None,
                     },
@@ -159,7 +158,7 @@ where
 
             use ctap2::AuthenticatorDataFlags as Flags;
             let authenticator_data = ctap2::make_credential::AuthenticatorData {
-                rp_id_hash: rpid_hash,
+                rp_id_hash: rpid_hash.as_slice().try_into().unwrap(),
 
                 flags: {
                     let mut flags = Flags::USER_PRESENCE;
@@ -175,21 +174,19 @@ where
                 attested_credential_data: {
                     let _attested_credential_data =
                         ctap2::make_credential::AttestedCredentialData {
-                            aaguid: Bytes::from_slice(&[1u8; 16]).unwrap(),
+                            aaguid: &[1u8; 16],
                             // credential_id: Bytes::from_slice(&[2u8; 255]).unwrap(),
-                            credential_id: Bytes::from_slice(&data[..]).unwrap(),
-                            credential_public_key: {
+                            credential_id: data,
+                            credential_public_key:
                                 // FIXME replace with a properly serialized empty cose public key
-                                let a = [
+                                &[
                                     165, 1, 2, 3, 38, 32, 1, 33, 88, 32, 101, 237, 165, 161, 37,
                                     119, 194, 186, 232, 41, 67, 127, 227, 56, 112, 26, 16, 170,
                                     163, 117, 225, 187, 91, 93, 225, 8, 222, 67, 156, 8, 85, 29,
                                     34, 88, 32, 30, 82, 237, 117, 112, 17, 99, 247, 249, 228, 13,
                                     223, 159, 52, 27, 61, 201, 186, 134, 10, 247, 224, 202, 124,
                                     167, 233, 238, 205, 0, 132, 209, 156,
-                                ];
-                                Bytes::from_slice(&a).unwrap()
-                            },
+                                ],
                         };
                     // Some(attested_credential_data)
                     None
@@ -197,36 +194,19 @@ where
 
                 extensions: { None },
             };
-            let serialized_auth_data = authenticator_data.serialize();
+            let serialized_auth_data = authenticator_data.serialize().map_err(|err| err as u8)?;
 
-            // let user = {
-            //     PublicKeyCredentialUserEntity {
-            //         id: Bytes::from_slice(&[3u8; 16]).unwrap(),
-            //         icon: Some("icon".try_into().unwrap()),
-            //         name: Some("name".try_into().unwrap()),
-            //         display_name: Some("display".try_into().unwrap()),
-            //     }
-            // };
-
-            let _user = {
-                PublicKeyCredentialUserEntity {
-                    id: Bytes::from_slice(&[3u8; 16]).unwrap(),
-                    icon: None,
-                    name: Some("name".into()),
-                    display_name: Some("display".into()),
-                }
+            let credential = PublicKeyCredentialDescriptor {
+                id: Bytes::from_slice(data).unwrap(),
+                key_type: "public-key".into(),
             };
-
-            Ok(Response::GetAssertion(get_assertion::Response {
-                credential: None,
+            let response = get_assertion::ResponseBuilder {
+                credential,
                 auth_data: serialized_auth_data,
-                signature: Bytes::<77>::from_slice(&output[..]).unwrap(),
-                // user: Some(user),
-                user: None,
-                number_of_credentials: None,
-                user_selected: None,
-                large_blob_key: None,
-            }))
+                signature: output.to_bytes().unwrap(),
+            }
+            .build();
+            Ok(Response::GetAssertion(response))
         }
 
         _ => Err(0xFF), // FIXME set proper error on getting unhandled CTAP request code

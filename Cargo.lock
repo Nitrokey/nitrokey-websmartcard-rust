@@ -58,7 +58,7 @@ source = "git+https://github.com/trussed-dev/apdu-dispatch.git?rev=915fc237103fc
 dependencies = [
  "delog",
  "heapless",
- "interchange",
+ "interchange 0.3.0",
  "iso7816",
 ]
 
@@ -371,10 +371,31 @@ dependencies = [
 [[package]]
 name = "ctap-types"
 version = "0.1.2"
-source = "git+https://github.com/trussed-dev/ctap-types.git?rev=a9f8003a1d9f05f9eea39e615b9159bc0613fcb5#a9f8003a1d9f05f9eea39e615b9159bc0613fcb5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e4fa005ff525537460e1fd70a1ff4f417ae4a6ed14887f3e4720221e20f7562"
 dependencies = [
  "bitflags 1.3.2",
  "cbor-smol",
+ "cosey",
+ "delog",
+ "heapless",
+ "heapless-bytes",
+ "interchange 0.2.2",
+ "iso7816",
+ "serde",
+ "serde-indexed",
+ "serde_repr",
+]
+
+[[package]]
+name = "ctap-types"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb60d898980133d08bc1c5f3fc3facecf18833bf4ff3d962871bb43607ac0b81"
+dependencies = [
+ "bitflags 1.3.2",
+ "cbor-smol",
+ "cosey",
  "delog",
  "heapless",
  "heapless-bytes",
@@ -393,7 +414,7 @@ dependencies = [
  "delog",
  "heapless",
  "heapless-bytes",
- "interchange",
+ "interchange 0.3.0",
  "ref-swap",
  "trussed",
 ]
@@ -556,17 +577,18 @@ dependencies = [
 [[package]]
 name = "fido-authenticator"
 version = "0.1.1"
-source = "git+https://github.com/Nitrokey/fido-authenticator.git?tag=v0.1.1-nitrokey.11#4e3047023248cefa4c66895ab5539e4398ccc55b"
+source = "git+https://github.com/Nitrokey/fido-authenticator.git?tag=v0.1.1-nitrokey.16#79b05b576863236fe54750b18e862ce0801f2040"
 dependencies = [
  "apdu-dispatch",
- "ctap-types",
+ "cosey",
+ "ctap-types 0.2.0",
  "ctaphid-dispatch",
  "delog",
  "heapless",
  "iso7816",
  "serde",
  "serde-indexed",
- "serde_cbor",
+ "serde_bytes",
  "sha2 0.10.8",
  "trussed",
  "trussed-hkdf",
@@ -634,12 +656,6 @@ dependencies = [
  "rand_core",
  "subtle",
 ]
-
-[[package]]
-name = "half"
-version = "1.8.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b43ede17f21864e81be2fa654110bf1e793774238d86ef8555c37e6519c0403"
 
 [[package]]
 name = "hash32"
@@ -758,6 +774,12 @@ dependencies = [
  "block-padding",
  "generic-array",
 ]
+
+[[package]]
+name = "interchange"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "310d743c23f798f10d5ba2f77fdd3eff06aaf2d8f8b9d78beba7fb1167f4ccbf"
 
 [[package]]
 name = "interchange"
@@ -1353,8 +1375,9 @@ dependencies = [
 
 [[package]]
 name = "serde-indexed"
-version = "0.1.0"
-source = "git+https://github.com/sosthene-nitrokey/serde-indexed.git?rev=5005d23cb4ee8622e62188ea0f9466146f851f0d#5005d23cb4ee8622e62188ea0f9466146f851f0d"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fca2da10b1f1623f47130256065e05e94fd7a98dbd26a780a4c5de831b21e5c2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1367,16 +1390,6 @@ version = "0.11.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b8497c313fd43ab992087548117643f6fcd935cbf36f176ffda0aacf9591734"
 dependencies = [
- "serde",
-]
-
-[[package]]
-name = "serde_cbor"
-version = "0.11.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2bef2ebfde456fb76bbcf9f59315333decc4fda0b2b44b420243c11e0f5ec1f5"
-dependencies = [
- "half",
  "serde",
 ]
 
@@ -1676,7 +1689,7 @@ dependencies = [
  "heapless-bytes",
  "hex-literal",
  "hmac 0.12.1",
- "interchange",
+ "interchange 0.3.0",
  "littlefs2",
  "nb 1.1.0",
  "p256-cortex-m4",
@@ -1708,17 +1721,21 @@ dependencies = [
 ]
 
 [[package]]
-name = "trussed-hkdf"
+name = "trussed-chunked"
 version = "0.1.0"
-source = "git+https://github.com/Nitrokey/trussed-hkdf-backend.git?tag=v0.1.0#4a172d88c0fd4be713a863db0cb18266acb0da43"
+source = "git+https://github.com/trussed-dev/trussed-staging.git?tag=chunked-v0.1.0#5fc00717e6aa3f43d4f72fd3bd589f2de3a89b98"
 dependencies = [
- "heapless-bytes",
- "hkdf",
- "hmac 0.12.1",
- "log",
- "postcard",
  "serde",
- "sha2 0.10.8",
+ "serde-byte-array",
+ "trussed",
+]
+
+[[package]]
+name = "trussed-hkdf"
+version = "0.2.0"
+source = "git+https://github.com/trussed-dev/trussed-staging.git?tag=hkdf-v0.2.0#e016b25fbc49f3ba13272d58a9e9d47a16d8ea14"
+dependencies = [
+ "serde",
  "trussed",
 ]
 
@@ -1747,15 +1764,20 @@ dependencies = [
 
 [[package]]
 name = "trussed-staging"
-version = "0.2.0"
-source = "git+https://github.com/trussed-dev/trussed-staging.git?tag=v0.2.0#5fc00717e6aa3f43d4f72fd3bd589f2de3a89b98"
+version = "0.3.0"
+source = "git+https://github.com/trussed-dev/trussed-staging.git?tag=v0.3.0#e016b25fbc49f3ba13272d58a9e9d47a16d8ea14"
 dependencies = [
+ "chacha20poly1305",
  "delog",
+ "hkdf",
  "littlefs2",
  "rand_core",
  "serde",
  "serde-byte-array",
+ "sha2 0.10.8",
  "trussed",
+ "trussed-chunked",
+ "trussed-hkdf",
  "trussed-manage",
 ]
 
@@ -1765,7 +1787,7 @@ version = "0.0.1"
 source = "git+https://github.com/Nitrokey/pc-usbip-runner?tag=v0.0.1-nitrokey.1#e78883847fb01ac93179074ff29e13a0d470775b"
 dependencies = [
  "ctaphid-dispatch",
- "interchange",
+ "interchange 0.3.0",
  "log",
  "trussed",
  "usb-device",
@@ -1812,13 +1834,13 @@ name = "usbd-ctaphid"
 version = "0.1.0"
 source = "git+https://github.com/Nitrokey/usbd-ctaphid?tag=v0.1.0-nitrokey.1#e9cbf904f548979685c4c06d75479b75e3695160"
 dependencies = [
- "ctap-types",
+ "ctap-types 0.1.2",
  "ctaphid-dispatch",
  "delog",
  "embedded-time",
  "heapless",
  "heapless-bytes",
- "interchange",
+ "interchange 0.3.0",
  "ref-swap",
  "serde",
  "trussed",
@@ -1863,7 +1885,7 @@ dependencies = [
  "cbor-smol",
  "clap",
  "clap-num",
- "ctap-types",
+ "ctap-types 0.2.0",
  "ctaphid-dispatch",
  "delog",
  "fido-authenticator",
