@@ -425,9 +425,9 @@ dependencies = [
 
 [[package]]
 name = "der"
-version = "0.6.1"
+version = "0.7.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1a467a65c5e759bce6e65eaf91cc29f466cdc57cb65777bd646872a8a1fd4de"
+checksum = "f55bf8e7b65898637379c1b74eb1551107c8294ed26d855ceb9fd1a09cfc9bc0"
 dependencies = [
  "const-oid",
  "zeroize",
@@ -678,7 +678,6 @@ checksum = "7285eba272c6af3e9f15fb9e1c1b6e7d35aa70580ffe0d47af017e97dfb6f48b"
 dependencies = [
  "heapless",
  "serde",
- "serde_cbor",
  "typenum",
 ]
 
@@ -818,7 +817,7 @@ checksum = "4ec2a862134d2a7d32d7983ddcdd1c4923530833c9f2ea1a44fc5fa473989058"
 [[package]]
 name = "littlefs2"
 version = "0.4.0"
-source = "git+https://github.com/trussed-dev/littlefs2.git?rev=ebd27e49ca321089d01d8c9b169c4aeb58ceeeca#ebd27e49ca321089d01d8c9b169c4aeb58ceeeca"
+source = "git+https://github.com/sosthene-nitrokey/littlefs2.git?rev=2b45a7559ff44260c6dd693e4cb61f54ae5efc53#2b45a7559ff44260c6dd693e4cb61f54ae5efc53"
 dependencies = [
  "bitflags 1.3.2",
  "cstr_core",
@@ -1075,23 +1074,22 @@ checksum = "8afb450f006bf6385ca15ef45d71d2288452bc3683ce2e2cacc0d18e4be60b58"
 
 [[package]]
 name = "pkcs1"
-version = "0.4.1"
+version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eff33bdbdfc54cc98a2eca766ebdec3e1b8fb7387523d5c9c9a2891da856f719"
+checksum = "c8ffb9f10fa047879315e6625af03c164b16962a5368d724ed16323b68ace47f"
 dependencies = [
- "der 0.6.1",
+ "der 0.7.9",
  "pkcs8",
  "spki",
- "zeroize",
 ]
 
 [[package]]
 name = "pkcs8"
-version = "0.9.0"
+version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9eca2c590a5f85da82668fa685c09ce2888b9430e83299debf1f34b65fd4a4ba"
+checksum = "f950b2377845cebe5cf8b5165cb3cc1a5e0fa5cfa3e1f7f55707d8fd82e0a7b7"
 dependencies = [
- "der 0.6.1",
+ "der 0.7.9",
  "spki",
 ]
 
@@ -1265,21 +1263,21 @@ checksum = "c08c74e62047bb2de4ff487b251e4a92e24f48745648451635cec7d591162d9f"
 
 [[package]]
 name = "rsa"
-version = "0.8.2"
+version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "55a77d189da1fee555ad95b7e50e7457d91c0e089ec68ca69ad2989413bbdab4"
+checksum = "5d0e5124fcb30e76a7e79bfee683a2746db83784b86289f6251b54b7950a0dfc"
 dependencies = [
- "byteorder",
+ "const-oid",
  "digest 0.10.7",
  "num-bigint-dig",
  "num-integer",
- "num-iter",
  "num-traits",
  "pkcs1",
  "pkcs8",
  "rand_core",
  "sha2 0.10.8",
  "signature 2.2.0",
+ "spki",
  "subtle",
  "zeroize",
 ]
@@ -1497,12 +1495,12 @@ dependencies = [
 
 [[package]]
 name = "spki"
-version = "0.6.0"
+version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67cf02bbac7a337dc36e4f5a693db6c21e7863f45070f7064577eb4367a3212b"
+checksum = "d91ed6c858b01f942cd56b37a94b3e0a1798290327d1236e4d9cf4eaca44d29d"
 dependencies = [
  "base64ct",
- "der 0.6.1",
+ "der 0.7.9",
 ]
 
 [[package]]
@@ -1659,7 +1657,7 @@ dependencies = [
 [[package]]
 name = "trussed"
 version = "0.1.0"
-source = "git+https://github.com/trussed-dev/trussed.git?rev=cff2e663841b6a68d3a8ce12647d57b2b6fbc36c#cff2e663841b6a68d3a8ce12647d57b2b6fbc36c"
+source = "git+https://github.com/trussed-dev/trussed.git?rev=b548d379dcbd67d29453d94847b7bc33ae92e673#b548d379dcbd67d29453d94847b7bc33ae92e673"
 dependencies = [
  "aes",
  "bitflags 2.4.2",
@@ -1735,8 +1733,8 @@ dependencies = [
 
 [[package]]
 name = "trussed-rsa-alloc"
-version = "0.1.0"
-source = "git+https://github.com/trussed-dev/trussed-rsa-backend.git?rev=2f51478f0861ff8db19fdd5290f023ab6f4c2fb9#2f51478f0861ff8db19fdd5290f023ab6f4c2fb9"
+version = "0.2.0"
+source = "git+https://github.com/trussed-dev/trussed-rsa-backend.git?tag=v0.2.0#6a96ad0eb0804ef23a6323424b3bbcc2bc89f475"
 dependencies = [
  "delog",
  "heapless-bytes",

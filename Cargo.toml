@@ -13,7 +13,7 @@ path = "src/lib/lib.rs"
 [dependencies]
 delog = { version = "0.1.6", features = ["std-log"] }
 cbor-smol = "0.4.0"
-heapless-bytes = { version = "0.3.0", features = ["cbor"] }
+heapless-bytes = { version = "0.3.0" }
 heapless = "0.7"
 serde = { version = "1.0", default-features = false }
 serde-indexed = "0.1.0"
@@ -25,7 +25,7 @@ apdu-dispatch = "0.1"
 
 trussed = "0.1.0"
 pretty_env_logger = { version = "0.4.0", optional = true }
-trussed-rsa-alloc = { version = "0.1.0", optional = true }
+trussed-rsa-alloc = { version = "0.2.0", optional = true }
 
 # For hmacsha256p256
 hmac = { version = "0.12", default-features = false, optional = true}
@@ -47,7 +47,7 @@ trussed-usbip = { version = "0.0.1", features = ["ctaphid"], default-features = 
 admin-app = { version = "0.1", features = ["log-all"] }
 
 # extensions
-trussed-rsa-alloc = { version = "0.1.0", features = ["virt"] }
+trussed-rsa-alloc = { version = "0.2.0", features = ["virt"] }
 trussed-auth = "0.2.2"
 
 
@@ -104,15 +104,15 @@ serde-indexed = { git = "https://github.com/sosthene-nitrokey/serde-indexed.git"
 apdu-dispatch = { git = "https://github.com/trussed-dev/apdu-dispatch.git", rev = "915fc237103fcecc29d0f0b73391f19abf6576de" }
 ctap-types = { git = "https://github.com/trussed-dev/ctap-types.git", rev = "a9f8003a1d9f05f9eea39e615b9159bc0613fcb5" }
 iso7816 = { git = "https://github.com/Nitrokey/iso7816.git", tag = "v0.1.1-nitrokey.1" }
-littlefs2 = { git = "https://github.com/trussed-dev/littlefs2.git", rev = "ebd27e49ca321089d01d8c9b169c4aeb58ceeeca" }
-trussed = { git = "https://github.com/trussed-dev/trussed.git", rev = "cff2e663841b6a68d3a8ce12647d57b2b6fbc36c" }
+littlefs2 = { git = "https://github.com/sosthene-nitrokey/littlefs2.git", rev = "2b45a7559ff44260c6dd693e4cb61f54ae5efc53" }
+trussed = { git = "https://github.com/trussed-dev/trussed.git", rev = "b548d379dcbd67d29453d94847b7bc33ae92e673" }
 usbd-ctaphid = { git = "https://github.com/Nitrokey/usbd-ctaphid", tag = "v0.1.0-nitrokey.1" }
 
 # unreleased crates
 trussed-auth = { git = "https://github.com/trussed-dev/trussed-auth", rev = "62235294bd63977bbb88eb01e7ac44b8010eb450" }
 trussed-manage = { git = "https://github.com/trussed-dev/trussed-staging.git", tag = "manage-v0.1.0" }
 trussed-hkdf = { git = "https://github.com/Nitrokey/trussed-hkdf-backend.git", tag = "v0.1.0" }
-trussed-rsa-alloc = { git = "https://github.com/trussed-dev/trussed-rsa-backend.git", rev = "2f51478f0861ff8db19fdd5290f023ab6f4c2fb9" }
+trussed-rsa-alloc = { git = "https://github.com/trussed-dev/trussed-rsa-backend.git", tag = "v0.2.0" }
 trussed-staging = { git = "https://github.com/trussed-dev/trussed-staging.git", tag = "v0.2.0" }
 trussed-usbip = { git = "https://github.com/Nitrokey/pc-usbip-runner", tag = "v0.0.1-nitrokey.1" }
 
