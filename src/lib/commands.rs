@@ -2,6 +2,7 @@ use cbor_smol::cbor_deserialize;
 use heapless::Vec;
 
 use heapless_bytes::{Bytes, Bytes32};
+use littlefs2::path;
 use trussed::api::reply::Encrypt;
 use trussed::key::Kind;
 use trussed::types::{KeyId, SerializedKey};
@@ -1017,7 +1018,7 @@ where
     syscall!(w.trussed.delete_all(w.options.location));
     syscall!(w
         .trussed
-        .remove_dir_all(w.options.location, PathBuf::from("wcrk"),));
+        .remove_dir_all(w.options.location, path!("wcrk").into()));
 
     #[cfg(feature = "transparent-encryption")]
     {

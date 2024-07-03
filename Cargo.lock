@@ -5,7 +5,7 @@ version = 3
 [[package]]
 name = "admin-app"
 version = "0.1.0"
-source = "git+https://github.com/Nitrokey/admin-app.git?tag=v0.1.0-nitrokey.11#0ba0e766cba65a1fe7b0865f343de589e4202d82"
+source = "git+https://github.com/Nitrokey/admin-app.git?branch=littlefs2#b0eac6363ee40280a35529d1c3c23f7b5864ed31"
 dependencies = [
  "apdu-dispatch",
  "cbor-smol",
@@ -13,7 +13,7 @@ dependencies = [
  "delog",
  "hex-literal",
  "iso7816",
- "littlefs2",
+ "littlefs2-core",
  "serde",
  "strum_macros",
  "trussed",
@@ -96,21 +96,22 @@ checksum = "8c3c1a368f70d6cf7302d78f8f7093da241fb8e8807c05cc9e51a125895a6d5b"
 
 [[package]]
 name = "bindgen"
-version = "0.56.0"
+version = "0.69.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2da379dbebc0b76ef63ca68d8fc6e71c0f13e59432e0987e508c1820e6ab5239"
+checksum = "a00dc851838a2120612785d195287475a3ac45514741da670b735818822129a0"
 dependencies = [
- "bitflags 1.3.2",
+ "bitflags 2.6.0",
  "cexpr",
  "clang-sys",
+ "itertools",
  "lazy_static",
  "lazycell",
- "peeking_take_while",
  "proc-macro2",
  "quote",
  "regex",
  "rustc-hash",
  "shlex",
+ "syn 2.0.52",
 ]
 
 [[package]]
@@ -121,9 +122,9 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
 name = "bitflags"
-version = "2.4.2"
+version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed570934406eb16438a4e976b1b4500774099c13b8cb96eec99f620f05090ddf"
+checksum = "b048fb63fd8b5923fc5aa7b340d8e156aec7ec02f0c78fa8a6ddc2613f6f71de"
 
 [[package]]
 name = "block-buffer"
@@ -186,9 +187,9 @@ checksum = "a0ba8f7aaa012f30d5b2861462f6708eccd49c3c39863fe083a308035f63d723"
 
 [[package]]
 name = "cexpr"
-version = "0.4.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4aedb84272dbe89af497cf81375129abda4fc0a9e7c5d317498c15cc30c0d27"
+checksum = "6fac387a98bb7c37292057cffc56d62ecb629900026402633ae9160df93a8766"
 dependencies = [
  "nom",
 ]
@@ -358,16 +359,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cstr_core"
-version = "0.2.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd98742e4fdca832d40cab219dc2e3048de17d873248f83f17df47c1bea70956"
-dependencies = [
- "cty",
- "memchr",
-]
-
-[[package]]
 name = "ctap-types"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -517,6 +508,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "either"
+version = "1.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "60b1af1c220855b6ceac025d3f6ecdd2b7c4894bfe9cd9bda4fbb4bc7c0d4cf0"
+
+[[package]]
 name = "elliptic-curve"
 version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -576,7 +573,7 @@ dependencies = [
 [[package]]
 name = "fido-authenticator"
 version = "0.1.1"
-source = "git+https://github.com/Nitrokey/fido-authenticator.git?tag=v0.1.1-nitrokey.18#58a8ca1166cdda5dc7119ae393b05f71a16164be"
+source = "git+https://github.com/Nitrokey/fido-authenticator.git?branch=littlefs2#91584908c86d8912334bed920158009b89b52f91"
 dependencies = [
  "apdu-dispatch",
  "cbor-smol",
@@ -586,6 +583,7 @@ dependencies = [
  "delog",
  "heapless",
  "iso7816",
+ "littlefs2-core",
  "serde",
  "serde-indexed",
  "serde_bytes",
@@ -802,6 +800,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -841,27 +848,34 @@ checksum = "4ec2a862134d2a7d32d7983ddcdd1c4923530833c9f2ea1a44fc5fa473989058"
 [[package]]
 name = "littlefs2"
 version = "0.4.0"
-source = "git+https://github.com/sosthene-nitrokey/littlefs2.git?rev=2b45a7559ff44260c6dd693e4cb61f54ae5efc53#2b45a7559ff44260c6dd693e4cb61f54ae5efc53"
+source = "git+https://github.com/trussed-dev/littlefs2.git#a1f8d9e87bc70765b488625e5844dbce4c1568cc"
 dependencies = [
- "bitflags 1.3.2",
- "cstr_core",
- "cty",
  "delog",
  "generic-array",
  "heapless",
+ "littlefs2-core",
  "littlefs2-sys",
+]
+
+[[package]]
+name = "littlefs2-core"
+version = "0.1.0"
+source = "git+https://github.com/trussed-dev/littlefs2.git#a1f8d9e87bc70765b488625e5844dbce4c1568cc"
+dependencies = [
+ "bitflags 2.6.0",
+ "heapless",
+ "heapless-bytes",
  "serde",
 ]
 
 [[package]]
 name = "littlefs2-sys"
-version = "0.1.7"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c25e4f545f6ca5415c6325066260e764674d7893dcf0017a52a2ef456ba915f5"
+checksum = "5e9a93267fadc37e91758279342f2055b6c03b1187ec7a6b1419c3710172466e"
 dependencies = [
  "bindgen",
  "cc",
- "cty",
 ]
 
 [[package]]
@@ -909,6 +923,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "523dc4f511e55ab87b694dc30d0f820d60906ef06413f93d4d7a1385599cc149"
 
 [[package]]
+name = "minimal-lexical"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
+
+[[package]]
 name = "nb"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -925,12 +945,12 @@ checksum = "8d5439c4ad607c3c23abf66de8c8bf57ba8adcd1f129e699851a6e43935d339d"
 
 [[package]]
 name = "nom"
-version = "5.1.3"
+version = "7.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08959a387a676302eebf4ddbcbc611da04285579f76f88ee0506c63b1a61dd4b"
+checksum = "d273983c5a657a70a3e8f2a01329822f3b8c8172b73826411a55751e404a0a4a"
 dependencies = [
  "memchr",
- "version_check",
+ "minimal-lexical",
 ]
 
 [[package]]
@@ -1083,12 +1103,6 @@ dependencies = [
  "cc",
  "cty",
 ]
-
-[[package]]
-name = "peeking_take_while"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19b17cddbe7ec3f8bc800887bab5e717348c95ea2ca0b1bf0837fb964dc67099"
 
 [[package]]
 name = "pin-project-lite"
@@ -1463,9 +1477,9 @@ dependencies = [
 
 [[package]]
 name = "shlex"
-version = "0.1.1"
+version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7fdf1b9db47230893d76faad238fd6097fd6d6a9245cd7a4d90dbd639536bbd2"
+checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 
 [[package]]
 name = "signature"
@@ -1672,10 +1686,10 @@ dependencies = [
 [[package]]
 name = "trussed"
 version = "0.1.0"
-source = "git+https://github.com/trussed-dev/trussed.git?rev=b548d379dcbd67d29453d94847b7bc33ae92e673#b548d379dcbd67d29453d94847b7bc33ae92e673"
+source = "git+https://github.com/trussed-dev/trussed.git?branch=littlefs2#a2a76740e3c4e9c4162381a92d4b5b01436a5d0f"
 dependencies = [
  "aes",
- "bitflags 2.4.2",
+ "bitflags 2.6.0",
  "cbc",
  "cbor-smol",
  "cfg-if",
@@ -1693,6 +1707,7 @@ dependencies = [
  "hmac 0.12.1",
  "interchange 0.3.0",
  "littlefs2",
+ "littlefs2-core",
  "nb 1.1.0",
  "p256-cortex-m4",
  "postcard",
@@ -1708,12 +1723,13 @@ dependencies = [
 
 [[package]]
 name = "trussed-auth"
-version = "0.2.2"
-source = "git+https://github.com/trussed-dev/trussed-auth?rev=62235294bd63977bbb88eb01e7ac44b8010eb450#62235294bd63977bbb88eb01e7ac44b8010eb450"
+version = "0.3.0"
+source = "git+https://github.com/trussed-dev/trussed-auth?branch=littlefs2#0d24dca44240b20b9e66e8176e9a2457fe136020"
 dependencies = [
  "chacha20poly1305",
  "hkdf",
  "hmac 0.12.1",
+ "littlefs2",
  "rand_core",
  "serde",
  "serde-byte-array",
@@ -1777,7 +1793,7 @@ dependencies = [
 [[package]]
 name = "trussed-staging"
 version = "0.3.0"
-source = "git+https://github.com/trussed-dev/trussed-staging.git?tag=v0.3.1#72b082002e0869facfc11bf8d76a1272c7ddf4ee"
+source = "git+https://github.com/trussed-dev/trussed-staging.git?branch=littlefs2#4148fdab7e47844e890e81512955490b2bb773b7"
 dependencies = [
  "chacha20poly1305",
  "delog",
@@ -1906,6 +1922,7 @@ dependencies = [
  "heapless",
  "heapless-bytes",
  "hmac 0.12.1",
+ "littlefs2",
  "pretty_env_logger",
  "serde",
  "serde-indexed",
