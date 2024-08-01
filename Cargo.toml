@@ -42,7 +42,8 @@ delog = { version = "0.1.6", features = ["std-log"] }
 fido-authenticator = {version = "0.1.1", features = ["dispatch", "log-all"]}
 trussed-hkdf = { version = "0.2.0" }
 trussed-manage = { version = "0.1.0" }
-trussed-staging = { version = "0.3.0", features = ["chunked", "hkdf", "manage", "virt"] }
+trussed-fs-info = { version = "0.1.0" }
+trussed-staging = { version = "0.3.0", features = ["chunked", "hkdf", "manage", "virt", "fs-info"] }
 trussed-usbip = { version = "0.0.1", features = ["ctaphid"], default-features = false }
 admin-app = { version = "0.1", features = ["log-all"] }
 

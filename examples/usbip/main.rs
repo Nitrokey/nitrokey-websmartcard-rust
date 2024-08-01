@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 const LOCATION_FOR_SIMULATION: Location = Location::Internal;
 
 mod dispatch {
+    use trussed_fs_info::FsInfoExtension;
     use trussed_hkdf::HkdfExtension;
     use trussed_manage::ManageExtension;
     use trussed_staging::StagingBackend;
@@ -49,6 +50,7 @@ mod dispatch {
         HmacShaP256,
         Manage,
         Hkdf,
+        FsInfo,
     }
 
     impl From<Extension> for u8 {
@@ -58,6 +60,7 @@ mod dispatch {
                 Extension::HmacShaP256 => 1,
                 Extension::Manage => 2,
                 Extension::Hkdf => 3,
+                Extension::FsInfo => 4,
             }
         }
     }
@@ -71,6 +74,7 @@ mod dispatch {
                 1 => Ok(Extension::HmacShaP256),
                 2 => Ok(Extension::Manage),
                 3 => Ok(Extension::Hkdf),
+                4 => Ok(Extension::FsInfo),
                 _ => Err(Error::InternalError),
             }
         }
@@ -178,6 +182,15 @@ mod dispatch {
                             resources,
                         )
                     }
+                    Extension::FsInfo => {
+                        ExtensionImpl::<FsInfoExtension>::extension_request_serialized(
+                            &mut self.staging,
+                            &mut ctx.core,
+                            &mut ctx.backends.staging,
+                            request,
+                            resources,
+                        )
+                    }
                     _ => Err(Error::RequestNotAvailable),
                 },
                 Backend::HmacShaP256 => match extension {
@@ -220,6 +233,11 @@ mod dispatch {
         type Id = Extension;
 
         const ID: Self::Id = Self::Id::Hkdf;
+    }
+    impl ExtensionId<FsInfoExtension> for Dispatch {
+        type Id = Extension;
+
+        const ID: Self::Id = Self::Id::FsInfo;
     }
 }
 

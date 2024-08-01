@@ -1789,6 +1789,7 @@ dependencies = [
  "sha2 0.10.8",
  "trussed",
  "trussed-chunked",
+ "trussed-fs-info",
  "trussed-hkdf",
  "trussed-manage",
 ]
@@ -1912,6 +1913,7 @@ dependencies = [
  "sha2 0.10.8",
  "trussed",
  "trussed-auth",
+ "trussed-fs-info",
  "trussed-hkdf",
  "trussed-manage",
  "trussed-rsa-alloc",
