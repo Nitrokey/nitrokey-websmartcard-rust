@@ -170,8 +170,7 @@ dependencies = [
 [[package]]
 name = "cbor-smol"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d516e3e353d5fc5ee156028f43224033430fd08ef05f8d5dba18a57a4ee5df49"
+source = "git+https://github.com/Nitrokey/cbor-smol.git?tag=v0.4.0-nitrokey.4#d6211450a8e29fcf8cd41b01104c32ac15370508"
 dependencies = [
  "delog",
  "heapless",
@@ -302,9 +301,9 @@ checksum = "c2459377285ad874054d797f3ccebf984978aa39129f6eafde5cdc8315b612f8"
 
 [[package]]
 name = "cosey"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb743c2c58b69b970e02f5ba7f552f75fcfc8393768e3ae4316e055aabacfdaa"
+checksum = "39323fe531b92e7acad90b8550b58cec63d29a6c5a56e02de4b25b6aeedbf82e"
 dependencies = [
  "heapless-bytes",
  "serde",
@@ -389,9 +388,9 @@ dependencies = [
 
 [[package]]
 name = "ctap-types"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb60d898980133d08bc1c5f3fc3facecf18833bf4ff3d962871bb43607ac0b81"
+checksum = "bf6a69fe79c279d4e06b0064d25ee7d05f87d55c06e07a1386043bc14bbd5c6d"
 dependencies = [
  "bitflags 1.3.2",
  "cbor-smol",
@@ -577,11 +576,12 @@ dependencies = [
 [[package]]
 name = "fido-authenticator"
 version = "0.1.1"
-source = "git+https://github.com/Nitrokey/fido-authenticator.git?tag=v0.1.1-nitrokey.16#79b05b576863236fe54750b18e862ce0801f2040"
+source = "git+https://github.com/Nitrokey/fido-authenticator.git?tag=v0.1.1-nitrokey.18#58a8ca1166cdda5dc7119ae393b05f71a16164be"
 dependencies = [
  "apdu-dispatch",
+ "cbor-smol",
  "cosey",
- "ctap-types 0.2.0",
+ "ctap-types 0.3.0",
  "ctaphid-dispatch",
  "delog",
  "heapless",
@@ -591,6 +591,7 @@ dependencies = [
  "serde_bytes",
  "sha2 0.10.8",
  "trussed",
+ "trussed-fs-info",
  "trussed-hkdf",
 ]
 
@@ -792,8 +793,9 @@ dependencies = [
 
 [[package]]
 name = "iso7816"
-version = "0.1.1"
-source = "git+https://github.com/Nitrokey/iso7816.git?tag=v0.1.1-nitrokey.1#d1ee4146c43b9f25d21821c70fefdd87b886f4a9"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3af73ac9c821e7aea3280532118e15cdf9e7bb45c923cbf0e319ae25b27d20c"
 dependencies = [
  "delog",
  "heapless",
@@ -1731,6 +1733,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "trussed-fs-info"
+version = "0.1.0"
+source = "git+https://github.com/trussed-dev/trussed-staging.git?tag=fs-info-v0.1.0#72b082002e0869facfc11bf8d76a1272c7ddf4ee"
+dependencies = [
+ "serde",
+ "serde-byte-array",
+ "trussed",
+]
+
+[[package]]
 name = "trussed-hkdf"
 version = "0.2.0"
 source = "git+https://github.com/trussed-dev/trussed-staging.git?tag=hkdf-v0.2.0#e016b25fbc49f3ba13272d58a9e9d47a16d8ea14"
@@ -1765,7 +1777,7 @@ dependencies = [
 [[package]]
 name = "trussed-staging"
 version = "0.3.0"
-source = "git+https://github.com/trussed-dev/trussed-staging.git?tag=v0.3.0#e016b25fbc49f3ba13272d58a9e9d47a16d8ea14"
+source = "git+https://github.com/trussed-dev/trussed-staging.git?tag=v0.3.1#72b082002e0869facfc11bf8d76a1272c7ddf4ee"
 dependencies = [
  "chacha20poly1305",
  "delog",
@@ -1777,6 +1789,7 @@ dependencies = [
  "sha2 0.10.8",
  "trussed",
  "trussed-chunked",
+ "trussed-fs-info",
  "trussed-hkdf",
  "trussed-manage",
 ]
@@ -1885,7 +1898,7 @@ dependencies = [
  "cbor-smol",
  "clap",
  "clap-num",
- "ctap-types 0.2.0",
+ "ctap-types 0.3.0",
  "ctaphid-dispatch",
  "delog",
  "fido-authenticator",
@@ -1900,6 +1913,7 @@ dependencies = [
  "sha2 0.10.8",
  "trussed",
  "trussed-auth",
+ "trussed-fs-info",
  "trussed-hkdf",
  "trussed-manage",
  "trussed-rsa-alloc",
@@ -2081,3 +2095,8 @@ dependencies = [
  "quote",
  "syn 2.0.52",
 ]
+
+[[patch.unused]]
+name = "iso7816"
+version = "0.1.1"
+source = "git+https://github.com/Nitrokey/iso7816.git?tag=v0.1.1-nitrokey.1#d1ee4146c43b9f25d21821c70fefdd87b886f4a9"
