@@ -15,6 +15,7 @@ delog = { version = "0.1.6", features = ["std-log"] }
 cbor-smol = "0.4.0"
 heapless-bytes = { version = "0.3.0" }
 heapless = "0.7"
+littlefs2 = "0.4"
 serde = { version = "1.0", default-features = false }
 serde-indexed = "0.1.0"
 serde_bytes = { version = "0.11.10", default-features = false, features=["alloc"] }
