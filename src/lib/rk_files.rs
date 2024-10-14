@@ -4,6 +4,7 @@
 // Imported from the https://github.com/solokeys/fido-authenticator/ project
 
 use heapless_bytes::Bytes;
+use littlefs2_core::path;
 use trussed::types::PathBuf;
 
 #[inline(never)]
@@ -22,8 +23,8 @@ pub fn rp_rk_dir(rp_id_hash: &Bytes<32>) -> PathBuf {
     let mut hex = [b'0'; 16];
     format_hex(&rp_id_hash[..8], &mut hex);
 
-    let mut dir = PathBuf::from(b"wcrk");
-    dir.push(&PathBuf::from(&hex));
+    let mut dir = PathBuf::from(path!("wcrk"));
+    dir.push(&PathBuf::try_from(&hex).unwrap());
 
     dir
 }
@@ -34,7 +35,7 @@ pub fn rk_path(rp_id_hash: &Bytes<32>, credential_id_hash: &Bytes<32>) -> PathBu
 
     let mut hex = [0u8; 16];
     format_hex(&credential_id_hash[..8], &mut hex);
-    path.push(&PathBuf::from(&hex));
+    path.push(&PathBuf::try_from(&hex).unwrap());
 
     path
 }

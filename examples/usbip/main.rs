@@ -23,7 +23,7 @@ mod dispatch {
         service::ServiceResources,
         types::{Bytes, Context},
     };
-    use trussed_auth::{AuthBackend, AuthContext, AuthExtension, MAX_HW_KEY_LEN};
+    use trussed_auth::{AuthBackend, AuthContext, AuthExtension, FilesystemLayout, MAX_HW_KEY_LEN};
 
     use crate::LOCATION_FOR_SIMULATION;
     #[cfg(feature = "rsa")]
@@ -96,7 +96,7 @@ mod dispatch {
     impl Dispatch {
         pub fn new() -> Self {
             Self {
-                auth: AuthBackend::new(LOCATION_FOR_SIMULATION),
+                auth: AuthBackend::new(LOCATION_FOR_SIMULATION, FilesystemLayout::V0),
                 staging: StagingBackend::new(),
                 hmacsha256p256: webcrypt::hmacsha256p256::Backend::new(),
             }
@@ -104,7 +104,11 @@ mod dispatch {
 
         pub fn with_hw_key(hw_key: Bytes<MAX_HW_KEY_LEN>) -> Self {
             Self {
-                auth: AuthBackend::with_hw_key(LOCATION_FOR_SIMULATION, hw_key),
+                auth: AuthBackend::with_hw_key(
+                    LOCATION_FOR_SIMULATION,
+                    hw_key,
+                    FilesystemLayout::V0,
+                ),
                 staging: StagingBackend::new(),
                 hmacsha256p256: webcrypt::hmacsha256p256::Backend::new(),
             }
@@ -247,22 +251,25 @@ use apdu_dispatch::command::SIZE as ApduCommandSize;
 use admin_app::StatusBytes;
 use clap::Parser;
 use clap_num::maybe_hex;
+use littlefs2_core::path;
 use trussed::backend::BackendId;
+use trussed::client::ClientBuilder;
 use trussed::platform::{consent, reboot, ui};
+use trussed::virt::StoreProvider;
+use trussed_usbip::Syscall;
 
 use trussed::types::Location;
-use trussed::{virt, ClientImplementation, Platform};
-use trussed_usbip::ClientBuilder;
+use trussed::{
+    virt::{self},
+    ClientImplementation, Platform, Service,
+};
 
 use usbd_ctaphid::constants::MESSAGE_SIZE;
 use webcrypt::{debug, info, try_debug, try_info, try_warn, warn};
 use webcrypt::{Options, PeekingBypass};
 
 pub type FidoConfig = fido_authenticator::Config;
-pub type VirtClient = ClientImplementation<
-    trussed_usbip::Service<virt::Filesystem, dispatch::Dispatch>,
-    dispatch::Dispatch,
->;
+pub type VirtClient = ClientImplementation<Syscall, dispatch::Dispatch>;
 
 /// USP/IP based virtualization of the Nitrokey 3 / Solo2 device.
 #[derive(Parser, Debug)]
@@ -473,11 +480,20 @@ struct Apps {
 
 const MAX_RESIDENT_CREDENTIAL_COUNT: u32 = 50;
 
-impl trussed_usbip::Apps<'static, VirtClient, dispatch::Dispatch> for Apps {
+impl<S: StoreProvider> trussed_usbip::Apps<'static, S, dispatch::Dispatch> for Apps {
     type Data = ();
-    fn new<B: ClientBuilder<VirtClient, dispatch::Dispatch>>(builder: &B, _data: ()) -> Self {
+    fn new(
+        service: &mut Service<virt::Platform<S>, dispatch::Dispatch>,
+        syscall: Syscall,
+        _data: (),
+    ) -> Self {
+        let client = ClientBuilder::new(path!("fido"))
+            .backends(&[BackendId::Core])
+            .prepare(service)
+            .expect("failed to build client")
+            .build(syscall.clone());
         let fido = fido_authenticator::Authenticator::new(
-            builder.build("fido", &[BackendId::Core]),
+            client,
             fido_authenticator::Conforming {},
             fido_authenticator::Config {
                 max_msg_size: MESSAGE_SIZE,
@@ -487,18 +503,22 @@ impl trussed_usbip::Apps<'static, VirtClient, dispatch::Dispatch> for Apps {
                 nfc_transport: false,
             },
         );
-        let data = AdminData::new(Variant::Usbip);
-        let admin = admin_app::App::with_default_config(
-            builder.build("admin", &[BackendId::Core]),
-            [0; 16],
-            0,
-            "",
-            data,
-            &[],
-        );
 
+        let client = ClientBuilder::new(path!("admin"))
+            .backends(&[BackendId::Core])
+            .prepare(service)
+            .expect("failed to build client")
+            .build(syscall.clone());
+        let data = AdminData::new(Variant::Usbip);
+        let admin = admin_app::App::with_default_config(client, [0; 16], 0, "", data, &[]);
+
+        let client = ClientBuilder::new(path!("webcrypt"))
+            .backends(dispatch::BACKENDS)
+            .prepare(service)
+            .expect("failed to build client")
+            .build(syscall);
         let webcrypt = webcrypt::Webcrypt::new_with_options(
-            builder.build("webcrypt", dispatch::BACKENDS),
+            client,
             Options::new(Location::External, *b"1234", 10000),
         );
 
@@ -563,7 +583,7 @@ fn store_file(platform: &impl Platform, host_file: &Path, device_file: &str) {
     trussed::store::store(
         platform.store(),
         LOCATION_FOR_SIMULATION,
-        &trussed::types::PathBuf::from(device_file),
+        &trussed::types::PathBuf::try_from(device_file).unwrap(),
         &data,
     )
     .expect("failed to store file");
