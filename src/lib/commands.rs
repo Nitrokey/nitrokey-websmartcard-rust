@@ -1,4 +1,5 @@
 use cbor_smol::cbor_deserialize;
+use littlefs2::path;
 use heapless::Vec;
 
 use heapless_bytes::{Bytes, Bytes32};
@@ -1017,7 +1018,7 @@ where
     syscall!(w.trussed.delete_all(w.options.location));
     syscall!(w
         .trussed
-        .remove_dir_all(w.options.location, PathBuf::from("wcrk"),));
+        .remove_dir_all(w.options.location, PathBuf::from(path!("wcrk")),));
 
     #[cfg(feature = "transparent-encryption")]
     {
