@@ -1,9 +1,4 @@
 use crate::commands::WebcryptTrussedClient;
-use apdu_dispatch::app as apdu;
-use apdu_dispatch::app::Interface;
-use apdu_dispatch::app::Status;
-use apdu_dispatch::command::SIZE as APDU_SIZE;
-use apdu_dispatch::iso7816::{Aid, App};
 use ctap_types::ctap1::{authenticate, Request as Request1, Response as Response1};
 use ctap_types::ctap2::{get_assertion, Request, Response};
 use ctap_types::webauthn::PublicKeyCredentialDescriptor;
@@ -11,6 +6,7 @@ use ctap_types::{ctap1, ctap2};
 use ctaphid_dispatch::app;
 use ctaphid_dispatch::app as ctaphid;
 use heapless_bytes::Bytes;
+use iso7816::{command::CommandView, Aid, App, Interface, Status};
 
 use crate::helpers::hash;
 use crate::transport::Webcrypt;
@@ -18,18 +14,17 @@ use crate::types::RequestSource::RS_FIDO2;
 use crate::types::{CtapSignatureSize, RequestDetails, RequestSource};
 
 #[inline(never)]
-fn try_handle_ctap1<C>(
+fn try_handle_ctap1<C, const R: usize>(
     w: &mut Webcrypt<C>,
     data: &[u8],
-    response: &mut apdu_dispatch::response::Data,
+    response: &mut apdu_app::Data<R>,
 ) -> Result<(), Status>
 where
     C: WebcryptTrussedClient,
 {
     let ctap_response = {
-        let command =
-            apdu_dispatch::Command::try_from(data).map_err(|_| Status::IncorrectDataParameter)?;
-        let ctap_request = ctap1::Request::try_from(&command)?;
+        let command = CommandView::try_from(data).map_err(|_| Status::IncorrectDataParameter)?;
+        let ctap_request = ctap1::Request::try_from(command)?;
 
         match ctap_request {
             // Request1::Register(reg) => {
@@ -81,8 +76,11 @@ where
 }
 
 #[inline(never)]
-fn handle_ctap1<C>(w: &mut Webcrypt<C>, data: &[u8], response: &mut apdu_dispatch::response::Data)
-where
+fn handle_ctap1<C, const R: usize>(
+    w: &mut Webcrypt<C>,
+    data: &[u8],
+    response: &mut apdu_app::Data<R>,
+) where
     C: WebcryptTrussedClient,
 {
     info!("WC handle CTAP1");
@@ -101,10 +99,10 @@ where
 }
 
 #[inline(never)]
-fn try_handle_ctap2<C>(
+fn try_handle_ctap2<C, const R: usize>(
     w: &mut Webcrypt<C>,
     data: &[u8],
-    response: &mut apdu_dispatch::response::Data,
+    response: &mut apdu_app::Data<R>,
 ) -> Result<(), u8>
 where
     C: WebcryptTrussedClient,
@@ -218,10 +216,10 @@ where
 }
 
 #[inline(never)]
-fn handle_ctap2<C>(
+fn handle_ctap2<C, const R: usize>(
     authenticator: &mut Webcrypt<C>,
     data: &[u8],
-    response: &mut apdu_dispatch::response::Data,
+    response: &mut apdu_app::Data<R>,
 ) where
     C: WebcryptTrussedClient,
 {
@@ -268,8 +266,6 @@ where
     }
 }
 
-const SIZE: usize = APDU_SIZE;
-
 impl<C> App for Webcrypt<C>
 where
     C: WebcryptTrussedClient,
@@ -280,16 +276,16 @@ where
     }
 }
 
-impl<C> apdu::App<{ SIZE }, { SIZE }> for Webcrypt<C>
+impl<C, const R: usize> apdu_app::App<R> for Webcrypt<C>
 where
     C: WebcryptTrussedClient,
 {
     fn select(
         &mut self,
         _interface: Interface,
-        _apdu: &apdu::Command<{ SIZE }>,
-        reply: &mut apdu::Data<{ apdu_dispatch::response::SIZE }>,
-    ) -> apdu::Result {
+        _apdu: CommandView<'_>,
+        reply: &mut apdu_app::Data<R>,
+    ) -> apdu_app::Result {
         reply.extend_from_slice(b"U2F_V2").unwrap();
         Ok(())
     }
@@ -299,9 +295,9 @@ where
     fn call(
         &mut self,
         interface: Interface,
-        apdu: &apdu::Command<{ SIZE }>,
-        response: &mut apdu::Data<{ apdu_dispatch::response::SIZE }>,
-    ) -> apdu::Result {
+        apdu: CommandView<'_>,
+        response: &mut apdu_app::Data<R>,
+    ) -> apdu_app::Result {
         if interface != Interface::Contactless {
             return Err(Status::ConditionsOfUseNotSatisfied);
         }
@@ -316,7 +312,8 @@ where
                     // 0x10
                     Ok(ctaphid::Command::Cbor) => handle_ctap2(self, apdu.data(), response),
                     Ok(ctaphid::Command::Msg) => handle_ctap1(self, apdu.data(), response),
-                    Ok(ctaphid::Command::Deselect) => self.deselect(),
+                    // Ok(ctaphid::Command::Deselect) => self.deselect(),
+                    Ok(ctaphid::Command::Deselect) => apdu_app::App::<R>::deselect(self),
                     _ => {
                         info!("Unsupported ins for fido app {:02x}", instruction);
                         return Err(Status::InstructionNotSupportedOrInvalid);
@@ -328,7 +325,7 @@ where
     }
 
     #[cfg(feature = "apdu-peek")]
-    fn peek(&self, apdu: Option<&apdu_dispatch::app::Command<SIZE>>) -> bool {
+    fn peek(&self, apdu: Option<CommandView<'_>>) -> bool {
         match apdu {
             None => false,
             Some(apdu) => {

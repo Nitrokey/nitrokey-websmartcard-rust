@@ -19,9 +19,10 @@ serde = { version = "1.0", default-features = false }
 serde-indexed = "0.1.0"
 serde_bytes = { version = "0.11.10", default-features = false, features=["alloc"] }
 generic-array = "0.14.3"
-ctap-types = "0.3"
+ctap-types = "0.3.1"
 ctaphid-dispatch = "0.1"
-apdu-dispatch = "0.1"
+apdu-app = "0.1"
+iso7816 = "0.1"
 
 trussed = "0.1.0"
 pretty_env_logger = { version = "0.4.0", optional = true }
@@ -99,13 +100,11 @@ ctaphid-dispatch = { git = "https://github.com/Nitrokey/ctaphid-dispatch", tag =
 #apdu-dispatch = { git = "https://github.com/Nitrokey/apdu-dispatch.git", branch="sz-multiple-apps" }
 
 # forked
-admin-app = { git = "https://github.com/Nitrokey/admin-app.git", tag = "v0.1.0-nitrokey.11" }
-fido-authenticator = { git = "https://github.com/Nitrokey/fido-authenticator.git", tag = "v0.1.1-nitrokey.18" }
-cbor-smol = { git = "https://github.com/Nitrokey/cbor-smol.git", tag = "v0.4.0-nitrokey.4"}
+admin-app = { git = "https://github.com/Nitrokey/admin-app.git", tag = "v0.1.0-nitrokey.16" }
+fido-authenticator = { git = "https://github.com/Nitrokey/fido-authenticator.git", tag = "v0.1.1-nitrokey.21" }
+cbor-smol = { git = "https://github.com/trussed-dev/cbor-smol.git", rev = "d499e527f1214b2998b844720f0d41a9d05be7e1" }
 
 # unreleased upstream changes
-apdu-dispatch = { git = "https://github.com/trussed-dev/apdu-dispatch.git", rev = "915fc237103fcecc29d0f0b73391f19abf6576de" }
-iso7816 = { git = "https://github.com/Nitrokey/iso7816.git", tag = "v0.1.1-nitrokey.1" }
 littlefs2 = { git = "https://github.com/sosthene-nitrokey/littlefs2.git", rev = "2b45a7559ff44260c6dd693e4cb61f54ae5efc53" }
 trussed = { git = "https://github.com/trussed-dev/trussed.git", rev = "b548d379dcbd67d29453d94847b7bc33ae92e673" }
 usbd-ctaphid = { git = "https://github.com/Nitrokey/usbd-ctaphid", tag = "v0.1.0-nitrokey.1" }

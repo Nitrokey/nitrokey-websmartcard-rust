@@ -244,6 +244,7 @@ mod dispatch {
 #[cfg(feature = "ccid")]
 use apdu_dispatch::command::SIZE as ApduCommandSize;
 
+use admin_app::StatusBytes;
 use clap::Parser;
 use clap_num::maybe_hex;
 use trussed::backend::BackendId;
@@ -340,12 +341,12 @@ impl TryFrom<u8> for CustomStatus {
         match value {
             0 => Ok(Self::ReverseHotpSuccess),
             1 => Ok(Self::ReverseHotpError),
-            _ => Err(UnknownStatusError(value)),
+            _ => Err(UnknownStatusError),
         }
     }
 }
 
-pub struct UnknownStatusError(u8);
+pub struct UnknownStatusError;
 
 impl CustomStatus {}
 
@@ -427,6 +428,7 @@ pub struct AdminData {
     pub efs_blocks: u16,
     pub variant: Variant,
 }
+
 impl AdminData {
     pub fn new(variant: Variant) -> Self {
         Self {
@@ -438,9 +440,18 @@ impl AdminData {
     }
 }
 
-pub type AdminStatus = [u8; 5];
-impl AdminData {
-    fn encode(&self) -> AdminStatus {
+impl StatusBytes for AdminData {
+    type Serialized = [u8; 5];
+
+    fn set_random_error(&mut self, _value: bool) {
+        unimplemented!();
+    }
+
+    fn get_random_error(&self) -> bool {
+        false
+    }
+
+    fn serialize(&self) -> Self::Serialized {
         let efs_blocks = self.efs_blocks.to_be_bytes();
         [
             self.init_status,
@@ -456,7 +467,7 @@ type FidoAuthApp = fido_authenticator::Authenticator<fido_authenticator::Conform
 type WebcryptApp = webcrypt::Webcrypt<VirtClient>;
 
 struct Apps {
-    admin: admin_app::App<VirtClient, Reboot, AdminStatus, ()>,
+    admin: admin_app::App<VirtClient, Reboot, AdminData, ()>,
     peeking_fido: PeekingBypass<'static, FidoAuthApp, WebcryptApp>,
 }
 
@@ -482,7 +493,8 @@ impl trussed_usbip::Apps<'static, VirtClient, dispatch::Dispatch> for Apps {
             [0; 16],
             0,
             "",
-            data.encode(),
+            data,
+            &[],
         );
 
         let webcrypt = webcrypt::Webcrypt::new_with_options(
