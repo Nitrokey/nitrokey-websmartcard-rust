@@ -385,9 +385,8 @@ where
     pub fn get_input_deserialized_from_slice<'a, T: Deserialize<'a>>(
         message: &'a Message,
     ) -> Result<T, cbor_smol::Error> {
-        cbor_deserialize::<T>(&message[3..]).map_err(|e| {
-            debug_now!("Input deserialization error: {:?}", e);
-            e
+        cbor_deserialize::<T>(&message[3..]).inspect_err(|_e| {
+            debug_now!("Input deserialization error: {:?}", _e);
         })
     }
 }
