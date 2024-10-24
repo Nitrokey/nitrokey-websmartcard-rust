@@ -6,7 +6,7 @@
 // TODO Consider importing PersistentState from fido-authenticator directly if needed
 
 use ctap_types::Error;
-use littlefs2::path;
+use littlefs2_core::path;
 use trussed::types::{Path, PathBuf};
 
 use trussed::{

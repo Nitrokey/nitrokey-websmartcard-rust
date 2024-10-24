@@ -4,7 +4,7 @@
 // Imported from the https://github.com/solokeys/fido-authenticator/ project
 
 use heapless_bytes::Bytes;
-use littlefs2::path;
+use littlefs2_core::path;
 use trussed::types::PathBuf;
 
 #[inline(never)]

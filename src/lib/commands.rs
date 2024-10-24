@@ -1,6 +1,6 @@
 use cbor_smol::cbor_deserialize;
-use littlefs2::path;
 use heapless::Vec;
+use littlefs2_core::path;
 
 use heapless_bytes::{Bytes, Bytes32};
 use trussed::api::reply::Encrypt;

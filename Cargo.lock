@@ -1935,7 +1935,7 @@ dependencies = [
  "heapless-bytes",
  "hmac 0.12.1",
  "iso7816",
- "littlefs2",
+ "littlefs2-core",
  "pretty_env_logger",
  "serde",
  "serde-indexed",
