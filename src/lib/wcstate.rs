@@ -1,9 +1,10 @@
 #![allow(non_camel_case_types)]
 
 use heapless_bytes::{Bytes, Bytes32};
+use littlefs2_core::path;
 use trussed::{
     client, syscall, try_syscall,
-    types::{KeyId, Location},
+    types::{KeyId, Location, Path},
 };
 
 // use std::borrow::Borrow;
@@ -204,7 +205,7 @@ impl WebcryptSession {
     }
 }
 
-const STATE_FILE_PATH: &[u8; 10] = b"wcrk/state";
+const STATE_FILE_PATH: &Path = path!("wcrk/state");
 
 impl WebcryptState {
     #[inline(never)]

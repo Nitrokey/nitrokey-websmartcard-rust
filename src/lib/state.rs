@@ -6,7 +6,8 @@
 // TODO Consider importing PersistentState from fido-authenticator directly if needed
 
 use ctap_types::Error;
-use trussed::types::PathBuf;
+use littlefs2_core::path;
+use trussed::types::{Path, PathBuf};
 
 use trussed::{
     client, syscall, try_syscall,
@@ -51,7 +52,7 @@ impl PersistentState {
 }
 
 impl PersistentState {
-    const FILENAME: &'static [u8] = b"persistent-state.cbor";
+    const FILENAME: &'static Path = path!("persistent-state.cbor");
 
     #[inline(never)]
     pub fn load<T: client::Client + client::Chacha8Poly1305>(
