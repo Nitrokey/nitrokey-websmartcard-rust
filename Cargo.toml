@@ -119,7 +119,7 @@ trussed-hkdf = { git = "https://github.com/trussed-dev/trussed-staging.git", tag
 trussed-manage = { git = "https://github.com/trussed-dev/trussed-staging.git", tag = "manage-v0.1.0" }
 trussed-rsa-alloc = { git = "https://github.com/trussed-dev/trussed-rsa-backend.git", tag = "v0.2.0" }
 trussed-staging = { git = "https://github.com/trussed-dev/trussed-staging.git", branch = "littlefs2" }
-trussed-usbip = { git = "https://github.com/Nitrokey/pc-usbip-runner", tag = "v0.0.1-nitrokey.1" }
+trussed-usbip = { git = "https://github.com/Nitrokey/pc-usbip-runner", tag = "v0.0.1-nitrokey.5" }
 
 # Local development
 #trussed = { path = "../trussed" }
