@@ -1,5 +1,5 @@
-use ctaphid_dispatch::app;
-use ctaphid_dispatch::app::{AppResult, Command};
+use ctaphid_dispatch::app::{App, Command, Error};
+use heapless_bytes::Bytes;
 
 pub trait Peeking {
     /// Allow application to peek into the incoming request to decide, whether it should take it over,
@@ -27,10 +27,10 @@ pub trait Peeking {
     ///      false
     ///  }
     /// ```
-    fn peek(&self, request: &ctaphid_dispatch::types::Message) -> bool;
+    fn peek(&self, request: &[u8]) -> bool;
 }
 
-pub struct PeekingBypass<'a, A: app::App<'a>, B: app::App<'a> + Peeking> {
+pub struct PeekingBypass<'a, A, B> {
     /// The application to be run, if peeking app rejects the call
     fallback_app: A,
     /// The application peeking into request, and deciding if it should run
@@ -39,7 +39,7 @@ pub struct PeekingBypass<'a, A: app::App<'a>, B: app::App<'a> + Peeking> {
     phantom: core::marker::PhantomData<&'a A>,
 }
 
-impl<'a, A: app::App<'a>, B: app::App<'a> + Peeking> PeekingBypass<'a, A, B> {
+impl<A, B> PeekingBypass<'_, A, B> {
     /// Create a new application wrapper, which could be used as an app itself.
     ///
     /// # Arguments
@@ -71,18 +71,20 @@ impl<'a, A: app::App<'a>, B: app::App<'a> + Peeking> PeekingBypass<'a, A, B> {
     }
 }
 
-impl<'a, A: app::App<'a>, B: app::App<'a> + Peeking> app::App<'_> for PeekingBypass<'a, A, B> {
+impl<'a, A: App<'a, N>, B: App<'a, N> + Peeking, const N: usize> App<'_, N>
+    for PeekingBypass<'a, A, B>
+{
     fn commands(&self) -> &'static [Command] {
         // TODO Ideally this would be constructed commands' list from the taken apps
-        &[app::Command::Cbor, app::Command::Msg]
+        &[Command::Cbor, Command::Msg]
     }
 
     fn call(
         &mut self,
         command: Command,
-        request: &app::Message,
-        response: &mut app::Message,
-    ) -> AppResult {
+        request: &[u8],
+        response: &mut Bytes<N>,
+    ) -> Result<(), Error> {
         if self.peeking_app.peek(request) {
             self.peeking_app.call(command, request, response)
         } else {

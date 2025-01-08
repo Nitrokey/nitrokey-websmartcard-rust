@@ -3,8 +3,6 @@ use ctap_types::ctap1::{authenticate, Request as Request1, Response as Response1
 use ctap_types::ctap2::{get_assertion, Request, Response};
 use ctap_types::webauthn::PublicKeyCredentialDescriptor;
 use ctap_types::{ctap1, ctap2};
-use ctaphid_dispatch::app;
-use ctaphid_dispatch::app as ctaphid;
 use heapless_bytes::Bytes;
 use iso7816::{command::CommandView, Aid, App, Interface, Status};
 
@@ -231,29 +229,29 @@ fn handle_ctap2<C, const R: usize>(
 }
 use trussed::interrupt::InterruptFlag;
 
-impl<C> app::App<'static> for Webcrypt<C>
+impl<'a, C, const N: usize> ctaphid_app::App<'a, N> for Webcrypt<C>
 where
     C: WebcryptTrussedClient,
 {
-    fn commands(&self) -> &'static [app::Command] {
-        &[app::Command::Cbor, app::Command::Msg]
+    fn commands(&self) -> &'static [ctaphid_app::Command] {
+        &[ctaphid_app::Command::Cbor, ctaphid_app::Command::Msg]
     }
 
     #[inline(never)]
     fn call(
         &mut self,
-        command: app::Command,
-        request: &app::Message,
-        response: &mut app::Message,
-    ) -> app::AppResult {
+        command: ctaphid_app::Command,
+        request: &[u8],
+        response: &mut Bytes<N>,
+    ) -> Result<(), ctaphid_app::Error> {
         if request.is_empty() {
             info!("WC invalid request length in ctaphid.call");
-            return Err(app::Error::InvalidLength);
+            return Err(ctaphid_app::Error::InvalidLength);
         }
 
         match command {
-            app::Command::Cbor => handle_ctap2(self, request, response),
-            app::Command::Msg => handle_ctap1(self, request, response),
+            ctaphid_app::Command::Cbor => handle_ctap2(self, request, response),
+            ctaphid_app::Command::Msg => handle_ctap1(self, request, response),
             _ => {
                 info!("WC ctaphid trying to dispatch {:?}", command);
             }
@@ -261,7 +259,7 @@ where
         Ok(())
     }
 
-    fn interrupt(&self) -> Option<&'static InterruptFlag> {
+    fn interrupt(&self) -> Option<&'a InterruptFlag> {
         self.wc.trussed.interrupt()
     }
 }
@@ -308,12 +306,12 @@ where
             0x00 | 0x01 | 0x02 => handle_ctap1(self, apdu.data(), response), //self.call_authenticator_u2f(apdu, response),
 
             _ => {
-                match ctaphid::Command::try_from(instruction) {
+                match ctaphid_app::Command::try_from(instruction) {
                     // 0x10
-                    Ok(ctaphid::Command::Cbor) => handle_ctap2(self, apdu.data(), response),
-                    Ok(ctaphid::Command::Msg) => handle_ctap1(self, apdu.data(), response),
+                    Ok(ctaphid_app::Command::Cbor) => handle_ctap2(self, apdu.data(), response),
+                    Ok(ctaphid_app::Command::Msg) => handle_ctap1(self, apdu.data(), response),
                     // Ok(ctaphid::Command::Deselect) => self.deselect(),
-                    Ok(ctaphid::Command::Deselect) => apdu_app::App::<R>::deselect(self),
+                    Ok(ctaphid_app::Command::Deselect) => apdu_app::App::<R>::deselect(self),
                     _ => {
                         info!("Unsupported ins for fido app {:02x}", instruction);
                         return Err(Status::InstructionNotSupportedOrInvalid);
@@ -352,7 +350,7 @@ where
     C: WebcryptTrussedClient,
 {
     #[inline(never)]
-    fn peek(&self, request: &ctaphid_dispatch::types::Message) -> bool {
+    fn peek(&self, request: &[u8]) -> bool {
         // let offset = 4 * 16 + 8;
         // let offset2 = 3 * 16 + 8;
         // let res = request.len() > 3 + offset

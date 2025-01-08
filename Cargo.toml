@@ -21,11 +21,13 @@ serde-indexed = "0.1.0"
 serde_bytes = { version = "0.11.10", default-features = false, features=["alloc"] }
 generic-array = "0.14.3"
 ctap-types = "0.3.1"
-ctaphid-dispatch = "0.1"
+ctaphid-app = "0.1"
+ctaphid-dispatch = "0.2"
 apdu-app = "0.1"
 iso7816 = "0.1"
 
 trussed = "0.1.0"
+trussed-core = "0.1"
 pretty_env_logger = { version = "0.4.0", optional = true }
 trussed-rsa-alloc = { version = "0.2.0", optional = true }
 
@@ -37,14 +39,14 @@ sha2 = { version = "0.10", default-features = false, optional = true}
 pretty_env_logger = "0.4.0"
 
 # below are for running the usbip example
-usbd-ctaphid = "0.1"
+usbd-ctaphid = "0.2"
 clap = { version = "3.0.0", features = ["cargo", "derive"] }
 clap-num = "1.0.0"
 delog = { version = "0.1.6", features = ["std-log"] }
 fido-authenticator = {version = "0.1.1", features = ["dispatch", "log-all"]}
-trussed-hkdf = { version = "0.2.0" }
-trussed-manage = { version = "0.1.0" }
-trussed-fs-info = { version = "0.1.0" }
+trussed-hkdf = { version = "0.3.0" }
+trussed-manage = { version = "0.2.0" }
+trussed-fs-info = { version = "0.2.0" }
 trussed-staging = { version = "0.3.0", features = ["chunked", "hkdf", "manage", "virt", "fs-info"] }
 trussed-usbip = { version = "0.0.1", features = ["ctaphid"], default-features = false }
 admin-app = { version = "0.1", features = ["log-all"] }
@@ -93,31 +95,10 @@ name="usbip"
 
 
 [patch.crates-io]
-# Enable this for FIDO2 transport support
-ctaphid-dispatch = { git = "https://github.com/Nitrokey/ctaphid-dispatch", tag = "v0.1.1-nitrokey.2" }
-
-# Enable this for the NFC support, implemented in a somewhat outdated fork
-# Probably obsoleted by apps wrapper
-#apdu-dispatch = { git = "https://github.com/Nitrokey/apdu-dispatch.git", branch="sz-multiple-apps" }
-
-# forked
-admin-app = { git = "https://github.com/Nitrokey/admin-app.git", tag = "v0.1.0-nitrokey.18" }
-fido-authenticator = { git = "https://github.com/Nitrokey/fido-authenticator.git", tag = "v0.1.1-nitrokey.23" }
-
-# unreleased upstream changes
-trussed = { git = "https://github.com/trussed-dev/trussed.git", rev = "046478b7a4f6e2315acf9112d98308379c2e3eee" }
-usbd-ctaphid = { git = "https://github.com/trussed-dev/usbd-ctaphid.git", rev = "dcff9009c3cd1ef9e5b09f8f307aca998fc9a8c8" }
-
-# unreleased crates
-trussed-fs-info = { git = "https://github.com/trussed-dev/trussed-staging.git", tag = "fs-info-v0.1.0" }
-trussed-auth = { git = "https://github.com/trussed-dev/trussed-auth", rev = "c030b82ad3441f337af09afe3a69e8a6da5785ea" }
-trussed-chunked = { git = "https://github.com/trussed-dev/trussed-staging.git", tag = "chunked-v0.1.0" }
-trussed-hkdf = { git = "https://github.com/trussed-dev/trussed-staging.git", tag = "hkdf-v0.2.0" }
-trussed-manage = { git = "https://github.com/trussed-dev/trussed-staging.git", tag = "manage-v0.1.0" }
-trussed-rsa-alloc = { git = "https://github.com/trussed-dev/trussed-rsa-backend.git", tag = "v0.2.0" }
-trussed-staging = { git = "https://github.com/trussed-dev/trussed-staging.git", rev = "53eba84d2cd0bcacc3a7096d4b7a2490dcf6f069" }
-trussed-usbip = { git = "https://github.com/Nitrokey/pc-usbip-runner", tag = "v0.0.1-nitrokey.5" }
-
-# Local development
-#trussed = { path = "../trussed" }
-#trussed-rsa-alloc = { path = "../trussed-rsa-backend" }
+admin-app = { git = "https://github.com/Nitrokey/admin-app.git", rev = "d5f1c6df405e4edeb6524f908c1c713139173e81" }
+fido-authenticator = { git = "https://github.com/Nitrokey/fido-authenticator.git", rev = "c9512c7bdff055a5fd9373f1c60c2a14d05ef3ce" }
+trussed = { git = "https://github.com/trussed-dev/trussed.git", rev = "6bba8fde36d05c0227769eb63345744e87d84b2b" }
+trussed-auth = { git = "https://github.com/trussed-dev/trussed-auth", rev = "fc53539536d7658c45a492585041742d8cdc45d0" }
+trussed-rsa-alloc = { git = "https://github.com/trussed-dev/trussed-rsa-backend.git", rev = "743d9aaa3d8a17d7dbf492bd54dc18ab8fca3dc0" }
+trussed-staging = { git = "https://github.com/trussed-dev/trussed-staging.git", rev = "1e1ca03a3a62ea9b802f4070ea4bce002eeb4bec" }
+trussed-usbip = { git = "https://github.com/trussed-dev/pc-usbip-runner.git", rev = "4fe4e4e287dac1d92fcd4f97e8926497bfa9d7a9" }

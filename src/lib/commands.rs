@@ -3,14 +3,14 @@ use heapless::Vec;
 use littlefs2_core::path;
 
 use heapless_bytes::{Bytes, Bytes32};
-use trussed::api::reply::Encrypt;
-use trussed::key::Kind;
-use trussed::types::{KeyId, SerializedKey};
 
-use trussed::types::PathBuf;
-use trussed::{
-    client, syscall, try_syscall,
-    types::{KeySerialization, Location, Mechanism, SignatureSerialization},
+use trussed::{client, key::Kind};
+use trussed_core::{
+    syscall, try_syscall,
+    types::{
+        EncryptedData, KeyId, KeySerialization, Location, Mechanism, PathBuf, SerializedKey,
+        SignatureSerialization,
+    },
 };
 
 #[cfg(feature = "rsa")]
@@ -205,7 +205,9 @@ where
         syscall!(w
             .trussed
             .encrypt_chacha8poly1305(kek, &keyhandle_ser, &appid, Some(&nonce_b)));
-    let keyhandle_ser_enc: KeyHandleSerialized = trussed::cbor_serialize_bytes(&encr).unwrap();
+    let encrypted_data = EncryptedData::from(encr);
+    let keyhandle_ser_enc: KeyHandleSerialized =
+        trussed::cbor_serialize_bytes(&encrypted_data).unwrap();
     Ok(keyhandle_ser_enc)
 }
 
@@ -307,7 +309,7 @@ where
 
     let appid = w.session.rp_id_hash.clone().ok_or(Error::BadOrigin)?;
 
-    let encr_message: Encrypt =
+    let encr_message: EncryptedData =
         cbor_deserialize(encrypted_serialized_keyhandle).map_err(|_| Error::BadFormat)?;
 
     let kek = w
